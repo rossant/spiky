@@ -88,8 +88,8 @@ class HistogramTemplate(PlotTemplate):
         identity = clusters[:,0] == clusters[:,1]
         # for each histogram, index of the color
         color_array_index = np.zeros(self.size, dtype=np.int32)
-        color_array_index[identity] = np.repeat(np.arange(1, nclusters + 1),
-            nsamples)
+        color_array_index[identity] = np.array(np.repeat(np.arange(1, nclusters + 1),
+            nsamples), np.int32)
         # size of the array with all colors: one color per cluster + one for
         # the off-diagonal
         color_array_size = nclusters + 1
