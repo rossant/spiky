@@ -712,13 +712,12 @@ class WaveformBindings(DefaultBindingSet):
 
     def set_highlight(self):
         # highlight
-        self.set(UserActions.MiddleButtonMouseMoveAction,
-                 WaveformEventEnum.HighlightSpikeEvent,
-                 # key_modifier=QtCore.Qt.Key_Control,
-                 param_getter=lambda p: (p["mouse_press_position"][0],
-                                         p["mouse_press_position"][1],
-                                         p["mouse_position"][0],
-                                         p["mouse_position"][1]))
+        # self.set(UserActions.MiddleButtonMouseMoveAction,
+                 # WaveformEventEnum.HighlightSpikeEvent,
+                 # param_getter=lambda p: (p["mouse_press_position"][0],
+                                         # p["mouse_press_position"][1],
+                                         # p["mouse_position"][0],
+                                         # p["mouse_position"][1]))
         
         self.set(UserActions.LeftButtonMouseMoveAction,
                  WaveformEventEnum.HighlightSpikeEvent,
