@@ -1,6 +1,11 @@
 from galry import *
 
-__all__ = ['Settings']
+__all__ = ['Settings', 'Info']
+
+
+class Info(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 class Settings(object):
     organization_name = "SpikeSorters"

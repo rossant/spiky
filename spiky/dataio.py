@@ -2,11 +2,9 @@ import numpy as np
 import numpy.random as rdn
 
 import colors
+from tools import Info
 
 
-class Info(object):
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
 
 
 __all__ = [
