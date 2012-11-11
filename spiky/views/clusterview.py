@@ -1,12 +1,7 @@
 import numpy as np
-# from .tools import Info
-# from ..dataio import MockDataProvider
+import numpy.random as rnd
 from galry import *
-# from views import *
-# import ..tools
 from collections import OrderedDict
-
-# SETTINGS = tools.init_settings()
 
 __all__ = ['ClusterGroupManager', 'ClusterWidget']
 
@@ -37,6 +32,8 @@ class TreeItem(object):
         return len(self.item_data)
 
     def data(self, column):
+        if column >= self.columnCount():
+            return None
         return self.item_data.get(self.item_data.keys()[column], None)
         
     def row(self):
@@ -128,7 +125,9 @@ class TreeModel(QtCore.QAbstractItemModel):
         parent_item.index = index
         return index
 
-    def rowCount(self, parent):
+    def rowCount(self, parent=None):
+        if parent is None:
+            parent = QtCore.QModelIndex()
         if parent.column() > 0:
             return 0
         if not parent.isValid():
@@ -137,7 +136,9 @@ class TreeModel(QtCore.QAbstractItemModel):
             parent_item = parent.internalPointer()
         return parent_item.rowCount()
         
-    def columnCount(self, parent):
+    def columnCount(self, parent=None):
+        if parent is None:
+            parent = QtCore.QModelIndex()
         if not parent.isValid():
             return len(self.headers)
         return parent.internalPointer().columnCount()
@@ -193,18 +194,29 @@ when reimplementing the setData() and setHeaderData() functions, respectively.
 """
 
 class ClusterItem(TreeItem):
-    def __init__(self, parent=None, name=None, clusteridx=None):
+    def __init__(self, parent=None, name=None, clusteridx=None, color=None,
+            rate=None):
+        if color is None:
+            color = (1., 1., 1.)
         data = OrderedDict()
         # different columns fields
         data['name'] = name
+        data['rate'] = rate
+        data['color'] = color
         data['clusteridx'] = clusteridx
         super(ClusterItem, self).__init__(parent=parent, data=data)
 
     def name(self):
         return self.data(0)
 
-    def clusteridx(self):
+    def rate(self):
         return self.data(1)
+
+    def color(self):
+        return self.data(2)
+                
+    def clusteridx(self):
+        return self.data(2)
 
 
 class GroupItem(TreeItem):
@@ -212,6 +224,8 @@ class GroupItem(TreeItem):
         data = OrderedDict()
         # different columns fields
         data['name'] = name
+        data['rate'] = None
+        data['color'] = None
         data['groupidx'] = groupidx
         super(GroupItem, self).__init__(parent=parent, data=data)
 
@@ -223,19 +237,23 @@ class GroupItem(TreeItem):
         
 
 class ClusterGroupManager(TreeModel):
+    headers = ['name', 'rate', 'color']
+    
     def __init__(self, clusters, groups=None):
         """
         groups is a dict groupid => {name, description..}
         clusters is a dict idx => [name, ...}
         """
-        super(ClusterGroupManager, self).__init__(['name', 'info'])
+        super(ClusterGroupManager, self).__init__(self.headers)
         for groupidx, group in groups.iteritems():
             # add the group node
             groupitem = self.add_group(groupidx, group['name'])
             for clusteridx, cluster in group['clusters'].iteritems():
                 # add the cluster node as a child of the current group node
                 clusteritem = self.add_cluster(clusteridx,
-                    name=cluster['name'], parent=groupitem)
+                    name=cluster['name'], color=cluster['color'],
+                    rate=cluster['rate'],
+                    parent=groupitem)
     
     def headerData(self, section, orientation, role):
         if (orientation == QtCore.Qt.Horizontal) and (role == QtCore.Qt.DisplayRole):
@@ -246,11 +264,13 @@ class ClusterGroupManager(TreeModel):
             groupidx=groupidx)
         return groupitem
         
-    def add_cluster(self, clusteridx, name, parent=None):
+    def add_cluster(self, clusteridx, name, color=None, rate=None,
+                    parent=None):
         if parent is None:
             parent = self.item_root
         cluster = self.add_node(item_class=ClusterItem, parent=parent, 
-                            name=name, clusteridx=clusteridx)
+                            name=name, color=color, rate=rate,
+                            clusteridx=clusteridx)
         return cluster
         
     def drag(self, target, sources):
@@ -275,6 +295,32 @@ class ClusterGroupManager(TreeModel):
             oldgroupidx = self.get_groupidx(clusteridx)
             if oldgroupidx != groupidx:
                 self.assign(clusteridx, groupidx)
+        
+    def data(self, index, role):
+        """Return custom background color for the last column of cluster
+        items."""
+        item = index.internalPointer()
+        col = index.column()
+        # group item
+        if type(item) == GroupItem:
+            if role == QtCore.Qt.DisplayRole:
+                return item.data(col)
+        # cluster item
+        if type(item) == ClusterItem:
+            # rate
+            if col == 1:
+                if role == QtCore.Qt.TextAlignmentRole:
+                    return QtCore.Qt.AlignRight
+                if role == QtCore.Qt.DisplayRole:
+                    return "%.1f Hz" % item.rate()
+            # color
+            elif col == self.columnCount() - 1:
+                if role == QtCore.Qt.BackgroundRole:
+                    color = np.array(item.color()) * 255
+                    return QtGui.QColor(*color)
+            # default
+            if role == QtCore.Qt.DisplayRole:
+                return item.data(col)
         
     def get_groups(self):
         return [group for group in self.get_descendants(self.root_item) \
@@ -338,10 +384,12 @@ class ClusterWidget(QtGui.QWidget):
         
         clusters1 = OrderedDict()
         for i in xrange(5):
-            clusters1[i] = dict(name='cluster%d' % i)
+            clusters1[i] = dict(name='cluster%d' % i, color=rnd.rand(3),
+                rate=rnd.rand() * 20)
         clusters2 = OrderedDict()
         for i in xrange(5, 10):
-            clusters2[i] = dict(name='cluster%d' % i)
+            clusters2[i] = dict(name='cluster%d' % i, color=rnd.rand(3),
+                rate=rnd.rand() * 20)
         
         groups = {0: dict(name="group0", clusters=clusters1),
                   1: dict(name="group1", clusters=clusters2)}
@@ -352,106 +400,13 @@ class ClusterWidget(QtGui.QWidget):
         clm = ClusterGroupManager(clusters, groups)
         
         self.view.setModel(clm)
+        # resize color column
+        self.view.header().resizeSection(2, 20)
         self.view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+        self.view.expandAll()
         
         vbox.addWidget(self.view, stretch=100)
         
         # set the VBox as layout of the widget
         self.setLayout(vbox)
 
-
-# if __name__ == '__main__':
-
-
-
-    # class SpikyMainWindow(QtGui.QMainWindow):
-        # window_title = "Spiky"
-        
-        # def __init__(self):
-            # super(SpikyMainWindow, self).__init__()
-            # # parameters related to docking
-            # self.setAnimated(False)
-            # self.setTabPosition(
-                # QtCore.Qt.LeftDockWidgetArea |
-                # QtCore.Qt.RightDockWidgetArea |
-                # QtCore.Qt.TopDockWidgetArea |
-                # QtCore.Qt.BottomDockWidgetArea,
-                # QtGui.QTabWidget.North)
-            # self.setDockNestingEnabled(True)
-            # self.setWindowTitle(self.window_title)
-            # # make the UI initialization
-            # self.initialize()
-            # self.restore_geometry()
-            # self.show()
-            
-        # def initialize(self):
-            # """Make the UI initialization."""
-            
-            # # load mock data
-            # provider = MockDataProvider()
-            # self.dh = provider.load(nspikes=100)
-            # self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
-
-            
-
-        # def add_dock(self, widget_class, position, name=None, minsize=None):
-            # """Add a dockable widget"""
-            # if name is None:
-                # name = widget_class.__name__
-            # widget = widget_class(self.dh)
-            # if minsize is not None:
-                # widget.setMinimumSize(*minsize)
-            # dockwidget = QtGui.QDockWidget(name)
-            # dockwidget.setObjectName(name)
-            # dockwidget.setWidget(widget)
-            # dockwidget.setFeatures(QtGui.QDockWidget.DockWidgetFloatable | \
-                # QtGui.QDockWidget.DockWidgetMovable)
-            # self.addDockWidget(position, dockwidget)
-            
-        # def add_central(self, widget_class, name=None, minsize=None):
-            # """Add a central widget in the main window."""
-            # if name is None:
-                # name = widget_class.__name__
-            # widget = widget_class(self.dh)
-            # widget.setObjectName(name)
-            # if minsize is not None:
-                # widget.setMinimumSize(*minsize)
-            # self.setCentralWidget(widget)
-            
-        # def save_geometry(self):
-            # """Save the arrangement of the whole window into a INI file."""
-            # SETTINGS.set("mainWindow/geometry", self.saveGeometry())
-            # SETTINGS.set("mainWindow/windowState", self.saveState())
-            
-        # def restore_geometry(self):
-            # """Restore the arrangement of the whole window from a INI file."""
-            # g = SETTINGS.get("mainWindow/geometry")
-            # w = SETTINGS.get("mainWindow/windowState")
-            # if g:
-                # self.restoreGeometry(g)
-            # if w:
-                # self.restoreState(w)
-            
-        # def closeEvent(self, e):
-            # """Automatically save the arrangement of the window when closing
-            # the window."""
-            # self.save_geometry()
-            # super(SpikyMainWindow, self).closeEvent(e)
-
-
-    # window = show_window(SpikyMainWindow)
-
-
-
-# def create_group_data(name="", idx=0):
-    # item = OrderedDict()
-    # item["name"] = name
-    # # TODO: add other fields
-    # item["groupidx"] = idx
-    # return item
-# def create_cluster_data(name="", idx=0):
-    # item = OrderedDict()
-    # item["name"] = name
-    # # TODO: add other fields
-    # item["clusteridx"] = idx
-    # return item
