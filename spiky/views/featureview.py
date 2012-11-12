@@ -6,6 +6,7 @@ import time
 
 from galry import *
 from common import *
+from signals import emit
 
 # import colors
 # from probes import Probe
@@ -170,7 +171,7 @@ class FeatureHighlightManager(HighlightManager):
         spkindices = np.unique(spkindices)
         return spkindices
         
-    def set_highlighted_spikes(self, spikes):
+    def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
         if len(spikes) == 0:
@@ -183,8 +184,17 @@ class FeatureHighlightManager(HighlightManager):
             self.highlight_mask[spikes] = 1
         
         if do_update:
+            
+            # emit the HighlightSpikes signal
+            if do_emit:
+                emit(self.parent, 'HighlightSpikes', spikes)
+            
             self.paint_manager.set_data(
                 highlight=self.highlight_mask, dataset=self.paint_manager.ds)
+        
+        # self.HighlightSpikes = QtCore.pyqtSignal(np.ndarray)
+        
+        # self.parent.emit(SpikySignals.HighlightSpikes, spikes)
         
         self.highlighted_spikes = spikes
         
@@ -194,7 +204,7 @@ class FeatureHighlightManager(HighlightManager):
         
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
-        self.set_highlighted_spikes([])
+        self.set_highlighted_spikes(np.array([]))
         
         
 class FeatureInteractionManager(InteractionManager):
@@ -256,15 +266,16 @@ class FeaturesBindings(DefaultBindingSet):
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
       
-    def extend(self):
-        self.set_highlight()
-        
+    def set_projection(self):
         # change projection
         self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
                  key=QtCore.Qt.Key_F, param_getter=lambda p: -1)
         self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
                  key=QtCore.Qt.Key_G, param_getter=lambda p: 1)
      
+    def extend(self):
+        self.set_highlight()
+        self.set_projection()
      
 class FeatureView(GalryWidget):
     def initialize(self):
@@ -278,7 +289,11 @@ class FeatureView(GalryWidget):
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
         
-        
+    # Signals-related methods
+    # -----------------------
+    def highlight_spikes(self, spikes):
+        self.highlight_manager.set_highlighted_spikes(spikes, False)
+        self.updateGL()
 
 # if __name__ == '__main__':
 

@@ -6,6 +6,7 @@ import time
 
 from galry import *
 from common import *
+from signals import emit
 
 __all__ = ['WaveformView']
 
@@ -147,7 +148,7 @@ class WaveformHighlightManager(HighlightManager):
                                 self.nsamples * n)
         return ind
         
-    def set_highlighted_spikes(self, spikes):
+    def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
         if len(spikes) == 0:
@@ -162,6 +163,11 @@ class WaveformHighlightManager(HighlightManager):
             self.highlight_mask[ind] = 1
         
         if do_update:
+            
+            # emit the HighlightSpikes signal
+            if do_emit:
+                emit(self.parent, 'HighlightSpikes', spikes)
+                
             self.paint_manager.set_data(
                 highlight=self.highlight_mask,
                 dataset=self.paint_manager.ds_waveforms)
@@ -177,7 +183,7 @@ class WaveformHighlightManager(HighlightManager):
                       
     def cancel_highlight(self):
         super(WaveformHighlightManager, self).cancel_highlight()
-        self.set_highlighted_spikes([])
+        self.set_highlighted_spikes(np.array([]))
     
     
 class WaveformPositionManager(object):
@@ -649,11 +655,12 @@ class WaveformBindings(DefaultBindingSet):
                                             p["mouse_position_diff"][1]*2.5,
                                             p["mouse_press_position"][1]))
         # Zooming: zoombox (drag and drop)
-        # self.set(UserActions.MiddleButtonMouseMoveAction, InteractionEvents.ZoomBoxEvent,
-                    # param_getter=lambda p: (p["mouse_press_position"][0],
-                                            # p["mouse_press_position"][1],
-                                            # p["mouse_position"][0],
-                                            # p["mouse_position"][1]))
+        self.set(UserActions.MiddleButtonMouseMoveAction, InteractionEvents.ZoomBoxEvent,
+                key_modifier=Qt.Key_Control,
+                param_getter=lambda p: (p["mouse_press_position"][0],
+                                        p["mouse_press_position"][1],
+                                        p["mouse_position"][0],
+                                        p["mouse_position"][1]))
                      
         # Zooming: ALT + key arrows
         self.set(UserActions.KeyPressAction, InteractionEvents.ZoomEvent,
@@ -712,12 +719,12 @@ class WaveformBindings(DefaultBindingSet):
 
     def set_highlight(self):
         # highlight
-        # self.set(UserActions.MiddleButtonMouseMoveAction,
-                 # WaveformEventEnum.HighlightSpikeEvent,
-                 # param_getter=lambda p: (p["mouse_press_position"][0],
-                                         # p["mouse_press_position"][1],
-                                         # p["mouse_position"][0],
-                                         # p["mouse_position"][1]))
+        self.set(UserActions.MiddleButtonMouseMoveAction,
+                 WaveformEventEnum.HighlightSpikeEvent,
+                 param_getter=lambda p: (p["mouse_press_position"][0],
+                                         p["mouse_press_position"][1],
+                                         p["mouse_position"][0],
+                                         p["mouse_position"][1]))
         
         self.set(UserActions.LeftButtonMouseMoveAction,
                  WaveformEventEnum.HighlightSpikeEvent,
@@ -751,6 +758,12 @@ class WaveformView(GalryWidget):
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
 
+    # Signals-related methods
+    # -----------------------
+    def highlight_spikes(self, spikes):
+        self.highlight_manager.set_highlighted_spikes(spikes, False)
+        self.updateGL()
+        
 
 # if __name__ == '__main__':
     

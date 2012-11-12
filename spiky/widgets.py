@@ -124,11 +124,6 @@ class CorrelationMatrixWidget(VisualizationWidget):
         return view
 
 
-
-     
-
-        
-        
 class ClusterWidget(QtGui.QWidget):
     
     class ClusterDelegate(QtGui.QStyledItemDelegate):
@@ -175,13 +170,3 @@ class ClusterWidget(QtGui.QWidget):
 
 
 
-        
-        
-        
-        
-
-        
-        
-        
-        
-        

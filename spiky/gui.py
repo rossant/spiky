@@ -6,6 +6,7 @@ from dataio import MockDataProvider
 from tools import Info
 from collections import OrderedDict
 from widgets import *
+import inspect
 
 SETTINGS = tools.init_settings()
 
@@ -39,12 +40,38 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = provider.load(nspikes=100)
         
         # central window, the dockable widgets are arranged around it
-        self.add_central(FeatureWidget)
-        self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
-        self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
-        self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+        self.feature_widget = self.add_central(FeatureWidget)
+        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        # self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+        
+        self.initialize_connections()
+        
+    # Signals
+    # -------
+    def initialize_connections(self):
+        """Initialize the signals/slots connections between widgets."""
+        Signals.HighlightSpikes.connect(self.slotHighlightSpikes)
 
+    def slotHighlightSpikes(self, sender, spikes):
+        """Called whenever spikes are selected in a view.
+        
+        Arguments:
+          * sender: the view which is at the origin of the signal emission.
+          * spikes: a Numpy array of integers with the indices of highlighted
+            spikes.
+        
+        """
+        # highlighting occurred in the feature widget
+        if sender == self.feature_widget.view:
+            self.waveform_widget.view.highlight_spikes(spikes)
+        # highlighting occurred in the waveform widget
+        elif sender == self.waveform_widget.view:
+            self.feature_widget.view.highlight_spikes(spikes)
+        
+    # Widget creation methods
+    # -----------------------
     def add_dock(self, widget_class, position, name=None, minsize=None):
         """Add a dockable widget"""
         if name is None:
@@ -58,6 +85,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         dockwidget.setFeatures(QtGui.QDockWidget.DockWidgetFloatable | \
             QtGui.QDockWidget.DockWidgetMovable)
         self.addDockWidget(position, dockwidget)
+        return widget
         
     def add_central(self, widget_class, name=None, minsize=None):
         """Add a central widget in the main window."""
@@ -68,7 +96,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         self.setCentralWidget(widget)
+        return widget
         
+    # User preferences related methods
+    # --------------------------------
     def save_geometry(self):
         """Save the arrangement of the whole window into a INI file."""
         SETTINGS.set("mainWindow/geometry", self.saveGeometry())
