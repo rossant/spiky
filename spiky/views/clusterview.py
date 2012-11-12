@@ -244,20 +244,17 @@ class GroupItem(TreeItem):
 class ClusterGroupManager(TreeModel):
     headers = ['name', 'rate', 'color']
     
-    def __init__(self, clusters, groups=None):
-        """
-        groups is a dict groupid => {name, description..}
-        clusters is a dict idx => [name, ...}
-        """
+    def __init__(self, clusters=None, clusters_info=None):
         super(ClusterGroupManager, self).__init__(self.headers)
-        for groupidx, group in groups.iteritems():
-            # add the group node
-            groupitem = self.add_group(groupidx, group['name'])
-            for clusteridx, cluster in group['clusters'].iteritems():
-                # add the cluster node as a child of the current group node
-                clusteritem = self.add_cluster(clusteridx,
-                    name=cluster['name'], color=cluster['color'],
-                    rate=cluster['rate'],
+        for idx, groupinfo in enumerate(clusters_info.groups_info):
+            groupitem = self.add_group(idx, groupinfo['name'])
+            clusterindices = sorted(np.nonzero(clusters_info.groups == idx)[0])
+            for clusteridx in clusterindices:
+                clusteritem = self.add_cluster(
+                    clusteridx,
+                    name=clusters_info.names[clusteridx],
+                    color=clusters_info.colors[clusteridx],
+                    rate=clusters_info.rates[clusteridx],
                     parent=groupitem)
     
     def headerData(self, section, orientation, role):

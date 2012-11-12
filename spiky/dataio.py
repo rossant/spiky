@@ -91,11 +91,18 @@ class MockDataProvider(DataProvider):
         self.holder.masks = rdn.rand(nspikes, nchannels)
         self.holder.masks[self.holder.masks < .25] = 0
         
+        # a list of dict with the info about each group
+        groups_info = [dict(name='Interneurons'),
+                       dict(name='MUA')]
         self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         self.holder.clusters_info = Info(
             colors=np.array(colors.generate_colors(nclusters),
-                                    dtype=np.float32))
-                                    
+                                    dtype=np.float32),
+            names=['cluster%d' % i for i in xrange(nclusters)],
+            rates=rdn.rand(nclusters) * 20,
+            groups_info=groups_info,
+            groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))
+
         self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
         
         # cross correlograms

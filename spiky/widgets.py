@@ -126,48 +126,38 @@ class CorrelationMatrixWidget(VisualizationWidget):
 
 
      
-class ClusterDelegate(QtGui.QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        """Disable the color column so that the color remains the same even
-        when it is selected."""
-        # deactivate all columns except the first one, so that selection
-        # is only possible in the first column
-        if index.column() >= 1:
-            if option.state and QtGui.QStyle.State_Selected:
-                option.state = option.state and QtGui.QStyle.State_Off
-        super(ClusterDelegate, self).paint(painter, option, index)
+
         
         
 class ClusterWidget(QtGui.QWidget):
-    def __init__(self, dataholder):
+    
+    class ClusterDelegate(QtGui.QStyledItemDelegate):
+        def paint(self, painter, option, index):
+            """Disable the color column so that the color remains the same even
+            when it is selected."""
+            # deactivate all columns except the first one, so that selection
+            # is only possible in the first column
+            if index.column() >= 1:
+                if option.state and QtGui.QStyle.State_Selected:
+                    option.state = option.state and QtGui.QStyle.State_Off
+            super(ClusterWidget.ClusterDelegate, self).paint(painter, option, index)
+    
+    def __init__(self, dh):
         super(ClusterWidget, self).__init__()
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
         
+        # add controller
         self.controller = QtGui.QPushButton()
         vbox.addWidget(self.controller, stretch=1)
         
+        # pass the cluster data to the ClusterView
+        model = ClusterGroupManager(clusters=dh.clusters,
+                                  clusters_info=dh.clusters_info)
+        
+        # set the QTreeView options
         self.view = QtGui.QTreeView()
-        
-        clusters1 = OrderedDict()
-        for i in xrange(5):
-            clusters1[i] = dict(name='cluster%d' % i, color=rnd.rand(3),
-                rate=rnd.rand() * 20)
-        clusters2 = OrderedDict()
-        for i in xrange(5, 10):
-            clusters2[i] = dict(name='cluster%d' % i, color=rnd.rand(3),
-                rate=rnd.rand() * 20)
-        
-        groups = {0: dict(name="group0", clusters=clusters1),
-                  1: dict(name="group1", clusters=clusters2)}
-                  
-        clusters = clusters1.copy()
-        clusters.update(clusters2)
-        
-        clm = ClusterGroupManager(clusters, groups)
-        
-        self.view.setModel(clm)
-        # resize color column
+        self.view.setModel(model)
         self.view.header().resizeSection(2, 20)
         self.view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.view.expandAll()
@@ -175,7 +165,7 @@ class ClusterWidget(QtGui.QWidget):
         self.view.setAllColumnsShowFocus(True)
         self.view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
         self.view.setRootIsDecorated(False)
-        self.view.setItemDelegate(ClusterDelegate())
+        self.view.setItemDelegate(self.ClusterDelegate())
         # self.setStyleSheet(STYLESHEET)
         
         vbox.addWidget(self.view, stretch=100)
