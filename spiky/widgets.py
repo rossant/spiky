@@ -142,31 +142,55 @@ class ClusterWidget(QtGui.QWidget):
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
         
+        # add actions
+        self.add_actions()
+        
         # add controller
         self.controller = QtGui.QPushButton()
         vbox.addWidget(self.controller, stretch=1)
         
-        # pass the cluster data to the ClusterView
-        model = ClusterGroupManager(clusters=dh.clusters,
-                                  clusters_info=dh.clusters_info)
-        
-        # set the QTreeView options
-        self.view = QtGui.QTreeView()
-        self.view.setModel(model)
-        self.view.header().resizeSection(2, 20)
-        self.view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
-        self.view.expandAll()
-        self.view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.view.setAllColumnsShowFocus(True)
-        self.view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
-        self.view.setRootIsDecorated(False)
-        self.view.setItemDelegate(self.ClusterDelegate())
-        # self.setStyleSheet(STYLESHEET)
-        
+        # add the tree view
+        self.view = self.create_tree_view(dh)
         vbox.addWidget(self.view, stretch=100)
         
         # set the VBox as layout of the widget
         self.setLayout(vbox)
+        
+    def add_actions(self):
+        # self.test_action = QtGui.QAction("TestAction!", self)
+        self.context_menu = QtGui.QMenu(self)
+        self.context_menu.addAction("TestAction!", self.test_action_slot)
+        
+    def test_action_slot(self, *args):
+        print args
+        
+    def create_tree_view(self, dh):
+        """Create the Tree View widget, and populates it using the data 
+        handler `dh`."""
+        # pass the cluster data to the ClusterView
+        model = ClusterGroupManager(clusters=dh.clusters,
+                                    clusters_info=dh.clusters_info)
+        
+        # set the QTreeView options
+        view = QtGui.QTreeView()
+        view.setModel(model)
+        view.header().resizeSection(2, 20)
+        view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+        view.expandAll()
+        view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        view.setAllColumnsShowFocus(True)
+        view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
+        view.setRootIsDecorated(False)
+        view.setItemDelegate(self.ClusterDelegate())
+        # self.setStyleSheet(STYLESHEET)
+        
+        return view
 
-
+    def contextMenuEvent(self, event):
+        # menu = QtGui.QMenu(self)
+        # quitAction = menu.addAction("Hi")
+        action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
+        print action
+        # if action == quitAction:
+            # qApp.quit()
 

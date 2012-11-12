@@ -1,32 +1,17 @@
 
-  * bug when user action is not properly terminated?
-
-  * waveformview: fully reset the view (box scale, etc.)
-  
   * lowlight: gray or original colors
-    transient recoloring
   
-    use cases (merge, split, group)
-    button view
+  * transient recoloring
   
-
-
   * move data manager into templates, so that templates contain everything
 
   * feature view: toggle show/hide masked points
   
   * polygon selection
 
-  * more permanent selection
-  
   * trace view
   
   * continue cluster box
   
+  * waveformview: fully reset the view (box scale, etc.)
   * save default view in geometrical form
-
-  * Check if add/modify/delete is slow or not in HDF5?
-
-  * think about design of IO standalone module
-  
-  

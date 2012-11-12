@@ -124,6 +124,7 @@ class HistogramPaintManager(PaintManager):
 class CorrelogramsView(GalryWidget):
     def initialize(self):
         self.constrain_ratio = True
+        self.constrain_navigation = True
         self.set_companion_classes(paint_manager=HistogramPaintManager,
             data_manager=HistogramDataManager)
     

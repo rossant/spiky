@@ -40,11 +40,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = provider.load(nspikes=100)
         
         # central window, the dockable widgets are arranged around it
-        self.feature_widget = self.add_central(FeatureWidget)
-        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        # self.feature_widget = self.add_central(FeatureWidget)
+        # self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
         # self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
         # self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
-        # self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+        self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
         
         self.initialize_connections()
         
@@ -63,12 +63,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
             spikes.
         
         """
+        
         # highlighting occurred in the feature widget
         if sender == self.feature_widget.view:
             self.waveform_widget.view.highlight_spikes(spikes)
+            
         # highlighting occurred in the waveform widget
         elif sender == self.waveform_widget.view:
             self.feature_widget.view.highlight_spikes(spikes)
+            
         
     # Widget creation methods
     # -----------------------

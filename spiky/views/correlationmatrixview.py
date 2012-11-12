@@ -47,6 +47,7 @@ class CorrelationMatrixPaintManager(PaintManager):
 class CorrelationMatrixView(GalryWidget):
     def initialize(self, **kwargs):
         self.constrain_ratio = True
+        self.constrain_navigation = True
         self.set_companion_classes(paint_manager=CorrelationMatrixPaintManager)
     
     def set_data(self, data):
