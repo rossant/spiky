@@ -3,7 +3,7 @@ import numpy.random as rnd
 from galry import *
 from collections import OrderedDict
 
-__all__ = ['ClusterGroupManager']
+__all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem']
 
 
 
@@ -45,8 +45,6 @@ class TreeItem(object):
         return self.parent_item.children.index(self)
         
     def parent(self):
-        # if not hasattr(self, "parent_item"):
-            # return None
         return self.parent_item
        
         
@@ -245,7 +243,19 @@ class ClusterGroupManager(TreeModel):
     headers = ['name', 'rate', 'color']
     
     def __init__(self, clusters=None, clusters_info=None):
+        """Initialize the tree model.
+        
+        Arguments:
+          * clusters: a Nspikes long array with the cluster index for each
+            spike.
+          * clusters_info: an Info object with fields names, colors, rates,
+            groups_info.
+        
+        """
         super(ClusterGroupManager, self).__init__(self.headers)
+        self.initialize(clusters=clusters, clusters_info=clusters_info)
+        
+    def initialize(self, clusters=None, clusters_info=None):
         for idx, groupinfo in enumerate(clusters_info.groups_info):
             groupitem = self.add_group(idx, groupinfo['name'])
             clusterindices = sorted(np.nonzero(clusters_info.groups == idx)[0])
@@ -262,9 +272,25 @@ class ClusterGroupManager(TreeModel):
             return self.headers[section]
         
     def add_group(self, groupidx, name):
+        """Add a group."""
         groupitem = self.add_node(item_class=GroupItem, name=name,
             groupidx=groupidx)
         return groupitem
+        
+    def remove_group(self, groupidx):
+        """Remove an empty group. Raise an error if the group is not empty."""
+        # check that the group is empty
+        if self.get_clusters_in_group(groupidx):
+            print groupidx, self.get_clusters_in_group(groupidx)
+            # raise ValueError("group %d is not empty, unable to delete it" % \
+                    # groupidx)
+            return
+        groups = [g for g in self.get_groups() if g.groupidx() == groupidx]
+        if groups:
+            group = groups[0]
+            self.remove_node(group)
+        else:
+            log_warn("group %d does not exist" % groupidx)
         
     def add_cluster(self, clusteridx, name, color=None, rate=None,
                     parent=None):

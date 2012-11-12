@@ -142,8 +142,8 @@ class ClusterWidget(QtGui.QWidget):
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
         
-        # add actions
-        self.add_actions()
+        # add context menu
+        self.add_menu()
         
         # add controller
         self.controller = QtGui.QPushButton()
@@ -156,41 +156,67 @@ class ClusterWidget(QtGui.QWidget):
         # set the VBox as layout of the widget
         self.setLayout(vbox)
         
-    def add_actions(self):
-        # self.test_action = QtGui.QAction("TestAction!", self)
+    def add_menu(self):
         self.context_menu = QtGui.QMenu(self)
-        self.context_menu.addAction("TestAction!", self.test_action_slot)
+        self.context_menu.addAction("Add group", self.add_group_action)
+        self.context_menu.addAction("Remove group", self.remove_group_action)
         
-    def test_action_slot(self, *args):
-        print args
-        
+    def selected_clusters(self):
+        """Return the list of selected clusters."""
+        return [(v.internalPointer().clusteridx()) \
+                    for v in self.view.selectedIndexes() \
+                        if v.column() == 0 and \
+                           type(v.internalPointer()) == ClusterItem]
+              
+    def selected_groups(self):
+        """Return the list of selected groups."""
+        return [(v.internalPointer().groupidx()) \
+                    for v in self.view.selectedIndexes() \
+                        if v.column() == 0 and \
+                           type(v.internalPointer()) == GroupItem]
+                                            
+    def add_group_action(self):
+        groupidx = len(self.model.get_groups())
+        self.model.add_group(groupidx, "Group %d" % groupidx)
+    
+    def remove_group_action(self):
+        errors = []
+        for groupidx in self.selected_groups():
+            # try:
+            self.model.remove_group(groupidx)
+            # except:
+                # errors.append(groupidx)
+        if errors:
+            msg = "Some groups could not be deleted because they are not empty"
+            
+            # QtGui.QErrorMessage(self).showMessage()
+            box = QtGui.QMessageBox(self)
+            box.setText(msg)
+            box.setWindowModality(QtCore.Qt.NonModal)
+            box.exec_()
+    
     def create_tree_view(self, dh):
         """Create the Tree View widget, and populates it using the data 
         handler `dh`."""
         # pass the cluster data to the ClusterView
-        model = ClusterGroupManager(clusters=dh.clusters,
+        self.model = ClusterGroupManager(clusters=dh.clusters,
                                     clusters_info=dh.clusters_info)
         
         # set the QTreeView options
         view = QtGui.QTreeView()
-        view.setModel(model)
+        view.setModel(self.model)
         view.header().resizeSection(2, 20)
         view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         view.expandAll()
         view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         view.setAllColumnsShowFocus(True)
         view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
-        view.setRootIsDecorated(False)
+        # view.setRootIsDecorated(False)
         view.setItemDelegate(self.ClusterDelegate())
         # self.setStyleSheet(STYLESHEET)
         
         return view
 
     def contextMenuEvent(self, event):
-        # menu = QtGui.QMenu(self)
-        # quitAction = menu.addAction("Hi")
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
-        print action
-        # if action == quitAction:
-            # qApp.quit()
-
+        # TODO
