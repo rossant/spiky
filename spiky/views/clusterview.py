@@ -5,6 +5,19 @@ from collections import OrderedDict
 
 __all__ = ['ClusterGroupManager', 'ClusterWidget']
 
+
+
+STYLESHEET = """
+QTreeView::item:selected
+{
+    //background-color: initial;
+    //color: #000000;
+    //selection-background-color: rgba(255,255,255,255);
+}
+"""
+
+
+
 class TreeItem(object):
     def __init__(self, parent=None, data=None):
         """data is an OrderedDict"""
@@ -203,20 +216,21 @@ class ClusterItem(TreeItem):
         data['name'] = name
         data['rate'] = rate
         data['color'] = color
+        # the index is the last column
         data['clusteridx'] = clusteridx
         super(ClusterItem, self).__init__(parent=parent, data=data)
 
     def name(self):
-        return self.data(0)
+        return self.item_data['name']
 
     def rate(self):
-        return self.data(1)
+        return self.item_data['rate']
 
     def color(self):
-        return self.data(2)
+        return self.item_data['color']
                 
     def clusteridx(self):
-        return self.data(2)
+        return self.item_data['clusteridx']
 
 
 class GroupItem(TreeItem):
@@ -226,14 +240,15 @@ class GroupItem(TreeItem):
         data['name'] = name
         data['rate'] = None
         data['color'] = None
+        # the index is the last column
         data['groupidx'] = groupidx
         super(GroupItem, self).__init__(parent=parent, data=data)
 
     def name(self):
-        return self.data(0)
+        return self.item_data['name']
 
     def groupidx(self):
-        return self.data(1)
+        return self.item_data['groupidx']
         
 
 class ClusterGroupManager(TreeModel):
@@ -266,8 +281,8 @@ class ClusterGroupManager(TreeModel):
         
     def add_cluster(self, clusteridx, name, color=None, rate=None,
                     parent=None):
-        if parent is None:
-            parent = self.item_root
+        # if parent is None:
+            # parent = self.item_root
         cluster = self.add_node(item_class=ClusterItem, parent=parent, 
                             name=name, color=color, rate=rate,
                             clusteridx=clusteridx)
@@ -281,7 +296,7 @@ class ClusterGroupManager(TreeModel):
             if str(node) in sources and type(node) == ClusterItem \
                 and node not in source_items:
                 source_items.append(node)
-                
+        
         # get the groupidx if the target is a group
         if type(target) == GroupItem:
             groupidx = target.groupidx()
@@ -318,9 +333,14 @@ class ClusterGroupManager(TreeModel):
                 if role == QtCore.Qt.BackgroundRole:
                     color = np.array(item.color()) * 255
                     return QtGui.QColor(*color)
-            # default
-            if role == QtCore.Qt.DisplayRole:
-                return item.data(col)
+                    
+        # default
+        if role == QtCore.Qt.DisplayRole:
+            return item.data(col)
+        # if role == QtCore.Qt.BackgroundRole:
+            # return QtGui.QColor(1, 1, 1, 1)
+        if role == QtCore.Qt.ForegroundRole:
+            return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
         
     def get_groups(self):
         return [group for group in self.get_descendants(self.root_item) \
@@ -362,14 +382,32 @@ class ClusterGroupManager(TreeModel):
         oldgroupidx = oldgroup.groupidx()
         newgroup = self.get_group(groupidx)
         cluster = self.get_cluster(clusteridx)
-        # oldrow = (self.get_clusters_in_group(oldgroupidx)).index(cluster)
         # add cluster in the new group
-        self.add_cluster(clusteridx, cluster.name(), newgroup)
+        self.add_cluster(clusteridx, name=cluster.name(), parent=newgroup,
+            rate=cluster.rate(), color=cluster.color())
         # remove it from the old group
         self.remove_node(cluster, oldgroup)
 
         
-
+        
+class ClusterDelegate(QtGui.QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        """Disable the color column so that the color remains the same even
+        when it is selected."""
+        # if option.state and QtGui.QStyle.State_Selected:
+        if index.column() >= 1:
+            if option.state and QtGui.QStyle.State_Selected:
+                option.state = option.state and QtGui.QStyle.State_Off
+        # painter.setBrush(QtGui.QBrush(QtGui.QColor(0,0,0,255)))
+        # option.font.setWeight(QtGui.QFont.Bold)
+        super(ClusterDelegate, self).paint(painter, option, index)
+        # if index.column() == 1:
+            # painter.setBackgroundMode(QtCore.Qt.OpaqueMode)
+            # painter.fillRect(option.rect, QtGui.QColor(255,255,255,255))
+            # super(ClusterDelegate, self).paint(painter, option, index)
+            # painter.setBackground(QtGui.QBrush(QtGui.QColor(255,255,255,255)))
+        
+        
 class ClusterWidget(QtGui.QWidget):
     def __init__(self, dataholder):
         super(ClusterWidget, self).__init__()
@@ -380,7 +418,6 @@ class ClusterWidget(QtGui.QWidget):
         vbox.addWidget(self.controller, stretch=1)
         
         self.view = QtGui.QTreeView()
-        self.view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         
         clusters1 = OrderedDict()
         for i in xrange(5):
@@ -404,6 +441,14 @@ class ClusterWidget(QtGui.QWidget):
         self.view.header().resizeSection(2, 20)
         self.view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.view.expandAll()
+        self.view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.view.setAllColumnsShowFocus(True)
+        self.view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
+        self.view.setRootIsDecorated(False)
+        # self.view.setItemDelegateForColumn(1, ClusterDelegate())
+        self.view.setItemDelegate(ClusterDelegate())
+        # self.view.setItemDelegate(ClusterDelegate())
+        self.setStyleSheet(STYLESHEET)
         
         vbox.addWidget(self.view, stretch=100)
         
