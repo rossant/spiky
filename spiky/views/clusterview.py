@@ -3,18 +3,8 @@ import numpy.random as rnd
 from galry import *
 from collections import OrderedDict
 
-__all__ = ['ClusterGroupManager', 'ClusterWidget']
+__all__ = ['ClusterGroupManager']
 
-
-
-STYLESHEET = """
-QTreeView::item:selected
-{
-    //background-color: initial;
-    //color: #000000;
-    //selection-background-color: rgba(255,255,255,255);
-}
-"""
 
 
 
@@ -337,8 +327,7 @@ class ClusterGroupManager(TreeModel):
         # default
         if role == QtCore.Qt.DisplayRole:
             return item.data(col)
-        # if role == QtCore.Qt.BackgroundRole:
-            # return QtGui.QColor(1, 1, 1, 1)
+        # all text in black
         if role == QtCore.Qt.ForegroundRole:
             return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
         
@@ -389,69 +378,4 @@ class ClusterGroupManager(TreeModel):
         self.remove_node(cluster, oldgroup)
 
         
-        
-class ClusterDelegate(QtGui.QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        """Disable the color column so that the color remains the same even
-        when it is selected."""
-        # if option.state and QtGui.QStyle.State_Selected:
-        if index.column() >= 1:
-            if option.state and QtGui.QStyle.State_Selected:
-                option.state = option.state and QtGui.QStyle.State_Off
-        # painter.setBrush(QtGui.QBrush(QtGui.QColor(0,0,0,255)))
-        # option.font.setWeight(QtGui.QFont.Bold)
-        super(ClusterDelegate, self).paint(painter, option, index)
-        # if index.column() == 1:
-            # painter.setBackgroundMode(QtCore.Qt.OpaqueMode)
-            # painter.fillRect(option.rect, QtGui.QColor(255,255,255,255))
-            # super(ClusterDelegate, self).paint(painter, option, index)
-            # painter.setBackground(QtGui.QBrush(QtGui.QColor(255,255,255,255)))
-        
-        
-class ClusterWidget(QtGui.QWidget):
-    def __init__(self, dataholder):
-        super(ClusterWidget, self).__init__()
-        # put the controller and the view vertically
-        vbox = QtGui.QVBoxLayout()
-        
-        self.controller = QtGui.QPushButton()
-        vbox.addWidget(self.controller, stretch=1)
-        
-        self.view = QtGui.QTreeView()
-        
-        clusters1 = OrderedDict()
-        for i in xrange(5):
-            clusters1[i] = dict(name='cluster%d' % i, color=rnd.rand(3),
-                rate=rnd.rand() * 20)
-        clusters2 = OrderedDict()
-        for i in xrange(5, 10):
-            clusters2[i] = dict(name='cluster%d' % i, color=rnd.rand(3),
-                rate=rnd.rand() * 20)
-        
-        groups = {0: dict(name="group0", clusters=clusters1),
-                  1: dict(name="group1", clusters=clusters2)}
-                  
-        clusters = clusters1.copy()
-        clusters.update(clusters2)
-        
-        clm = ClusterGroupManager(clusters, groups)
-        
-        self.view.setModel(clm)
-        # resize color column
-        self.view.header().resizeSection(2, 20)
-        self.view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
-        self.view.expandAll()
-        self.view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.view.setAllColumnsShowFocus(True)
-        self.view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
-        self.view.setRootIsDecorated(False)
-        # self.view.setItemDelegateForColumn(1, ClusterDelegate())
-        self.view.setItemDelegate(ClusterDelegate())
-        # self.view.setItemDelegate(ClusterDelegate())
-        self.setStyleSheet(STYLESHEET)
-        
-        vbox.addWidget(self.view, stretch=100)
-        
-        # set the VBox as layout of the widget
-        self.setLayout(vbox)
-
+   
