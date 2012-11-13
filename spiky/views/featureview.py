@@ -216,14 +216,17 @@ class FeatureHighlightManager(HighlightManager):
        
 class FeatureSelectionManager(object):
     
-    selection_rectangle_color = (1., 1., 1., 1.)
+    selection_polygon_color = (1., 1., 1., 1.)
+    points = np.zeros((100, 2))
+    npoints = 0
+    is_selection_pending = False
     
     def initialize(self):
-        self.selection_box = None
+        # self.selection_box = None
         self.paint_manager.ds_selection_rectangle = \
             self.paint_manager.create_dataset(PlotTemplate,
-                position=np.zeros((2, 2)),
-                color=self.selection_rectangle_color,
+                position=self.points,
+                color=self.selection_polygon_color,
                 primitive_type=PrimitiveType.LineLoop,
                 is_static=True,
                 visible=False)
@@ -231,27 +234,27 @@ class FeatureSelectionManager(object):
         self.selection_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.selected_spikes = []
         
-    def find_enclosed_spikes(self, enclosing_box):
-        x0, y0, x1, y1 = enclosing_box
+    # def find_enclosed_spikes(self, enclosing_box):
+        # x0, y0, x1, y1 = enclosing_box
         
-        # press_position
-        xp, yp = x0, y0
+        # # press_position
+        # xp, yp = x0, y0
 
-        # reorder
-        xmin, xmax = min(x0, x1), max(x0, x1)
-        ymin, ymax = min(y0, y1), max(y0, y1)
+        # # reorder
+        # xmin, xmax = min(x0, x1), max(x0, x1)
+        # ymin, ymax = min(y0, y1), max(y0, y1)
 
-        features = self.data_manager.normalized_data
-        masks = self.data_manager.full_masks
+        # features = self.data_manager.normalized_data
+        # masks = self.data_manager.full_masks
 
-        indices = ((masks > 0) & \
-                  (features[:,0] >= xmin) & (features[:,0] <= xmax) & \
-                  (features[:,1] >= ymin) & (features[:,1] <= ymax))
+        # indices = ((masks > 0) & \
+                  # (features[:,0] >= xmin) & (features[:,0] <= xmax) & \
+                  # (features[:,1] >= ymin) & (features[:,1] <= ymax))
         
-        # absolute indices in the data
-        spkindices = np.nonzero(indices)[0]
-        spkindices = np.unique(spkindices)
-        return spkindices
+        # # absolute indices in the data
+        # spkindices = np.nonzero(indices)[0]
+        # spkindices = np.unique(spkindices)
+        # return spkindices
         
     def set_selected_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
@@ -277,34 +280,58 @@ class FeatureSelectionManager(object):
         
         self.selected_spikes = spikes
     
-    def select(self, enclosing_box):
+    # def select(self, enclosing_box):
+        # TODO
         # get the enclosing box in the window relative coordinates
-        x0, y0, x1, y1 = enclosing_box
+        # x0, y0, x1, y1 = enclosing_box
         
-        # set the selection box, in window relative coordinates, used
-        # for displaying the selection rectangle on the screen
-        self.selection_box = (x0, y0, x1, y1)
+        # # set the selection box, in window relative coordinates, used
+        # # for displaying the selection rectangle on the screen
+        # self.selection_box = (x0, y0, x1, y1)
         
-        # paint selection box
-        self.paint_manager.set_data(visible=True,
-            position=np.array(self.selection_box).reshape((2, 2)),
-            dataset=self.paint_manager.ds_selection_rectangle)
+        # # paint selection box
+        # self.paint_manager.set_data(visible=True,
+            # position=np.array(self.selection_box).reshape((2, 2)),
+            # dataset=self.paint_manager.ds_selection_rectangle)
         
-        # convert the box coordinates in the data coordinate system
-        x0, y0 = self.interaction_manager.get_data_coordinates(x0, y0)
-        x1, y1 = self.interaction_manager.get_data_coordinates(x1, y1)
+        # # convert the box coordinates in the data coordinate system
+        # x0, y0 = self.interaction_manager.get_data_coordinates(x0, y0)
+        # x1, y1 = self.interaction_manager.get_data_coordinates(x1, y1)
         
-        self.selected((x0, y0, x1, y1))
+        # self.selected((x0, y0, x1, y1))
         
-    def selected(self, box):
-        spikes = self.find_enclosed_spikes(box)
-        self.set_selected_spikes(spikes)
+    # def selected(self, box):
+        # spikes = self.find_enclosed_spikes(box)
+        # self.set_selected_spikes(spikes)
+        
+    def add_point(self, point):
+        """Add a point in the selection polygon."""
+        if not self.is_selection_pending:
+            self.points = np.tile(point, (100, 1))
+            self.paint_manager.set_data(
+                    visible=True,
+                    position=self.points,
+                    dataset=self.paint_manager.ds_selection_rectangle)
+        self.is_selection_pending = True
+        self.npoints += 1
+        self.points[self.npoints,:] = point
+        
+    def point_pending(self, point):
+        if self.is_selection_pending:
+            self.points[self.npoints + 1,:] = point
+            self.paint_manager.set_data(
+                    position=self.points,
+                    dataset=self.paint_manager.ds_selection_rectangle)
+        
+    def end_point(self, point):
+        """Terminate selection polygon."""
+        self.is_selection_pending = False
         
     def cancel_selection(self):
-        if self.selection_box is not None:
+        if self.points:
             self.paint_manager.set_data(visible=False,
                 dataset=self.paint_manager.ds_selection_rectangle)
-            self.selection_box = None
+            self.points = []
         self.set_selected_spikes(np.array([]))
         
         
@@ -336,8 +363,14 @@ class FeatureInteractionManager(InteractionManager):
             self.cursor = cursors.CrossCursor
             
         # selection
-        if event == FeatureEventEnum.SelectionSpikeEvent:
-            self.selection_manager.select(parameter)
+        if event == FeatureEventEnum.SelectionPointPendingEvent:
+            self.selection_manager.point_pending(parameter)
+            self.cursor = cursors.CrossCursor
+        if event == FeatureEventEnum.AddSelectionPointEvent:
+            self.selection_manager.add_point(parameter)
+            self.cursor = cursors.CrossCursor
+        if event == FeatureEventEnum.EndSelectionPointEvent:
+            self.selection_manager.end_point(parameter)
             self.cursor = cursors.CrossCursor
           
     def change_projection(self, dir=1):
@@ -358,7 +391,11 @@ class FeatureInteractionManager(InteractionManager):
 FeatureEventEnum = enum(
     "ChangeProjection",
     "HighlightSpikeEvent",
-    "SelectionSpikeEvent",
+    
+    "AddSelectionPointEvent",
+    "SelectionPointPendingEvent",
+    "EndSelectionPointEvent",
+    "CancelSelectionPointEvent",
     )
         
         
@@ -382,13 +419,18 @@ class FeaturesBindings(DefaultBindingSet):
         
     def set_selection(self):
         # selection
-        self.set(UserActions.MiddleButtonMouseMoveAction,
-                 FeatureEventEnum.SelectionSpikeEvent,
-                 key_modifier=QtCore.Qt.Key_Control,
+        self.set(UserActions.MouseMoveAction,
+                 FeatureEventEnum.SelectionPointPendingEvent,
+                 param_getter=lambda p: (p["mouse_position"][0],
+                                         p["mouse_position"][1],))
+        self.set(UserActions.LeftButtonClickAction,
+                 FeatureEventEnum.AddSelectionPointEvent,
                  param_getter=lambda p: (p["mouse_press_position"][0],
-                                         p["mouse_press_position"][1],
-                                         p["mouse_position"][0],
-                                         p["mouse_position"][1]))
+                                         p["mouse_press_position"][1],))
+        self.set(UserActions.RightButtonClickAction,
+                 FeatureEventEnum.EndSelectionPointEvent,
+                 param_getter=lambda p: (p["mouse_press_position"][0],
+                                         p["mouse_press_position"][1],))
       
     def set_projection(self):
         # change projection
