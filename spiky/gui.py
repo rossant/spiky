@@ -10,6 +10,13 @@ import inspect
 
 SETTINGS = tools.init_settings()
 
+STYLESHEET = """
+QStatusBar::item
+{
+    border: none;
+}
+"""
+
 __all__ = ['SpikyMainWindow']
 
 class SpikyMainWindow(QtGui.QMainWindow):
@@ -29,7 +36,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.setWindowTitle(self.window_title)
         # make the UI initialization
         self.initialize()
+        # set stylesheet
+        self.setStyleSheet(STYLESHEET)
+        # set empty status bar
+        self.statusBar().addPermanentWidget(QtGui.QWidget(self))
         self.restore_geometry()
+        # show the window
         self.show()
         
     def initialize(self):
@@ -40,12 +52,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = provider.load(nspikes=100)
         
         # central window, the dockable widgets are arranged around it
-        # self.feature_widget = self.add_central(FeatureWidget)
-        # self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        # self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
-        # self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        self.feature_widget = self.add_central(FeatureWidget)
+        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
-        
+        # initialize all signals/slots connections between widgets
         self.initialize_connections()
     
     
@@ -81,6 +93,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if name is None:
             name = widget_class.__name__
         widget = widget_class(self.dh)
+        widget.mainwindow = self
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         dockwidget = QtGui.QDockWidget(name)
@@ -96,6 +109,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if name is None:
             name = widget_class.__name__
         widget = widget_class(self.dh)
+        widget.mainwindow = self
         widget.setObjectName(name)
         if minsize is not None:
             widget.setMinimumSize(*minsize)

@@ -76,6 +76,7 @@ class FeatureDataManager(object):
         
         # update the highlight manager
         self.highlight_manager.initialize()
+        self.selection_manager.initialize()
 
     def set_projection(self, channel0=0, channel1=0, coord0=0, coord1=1):
         
@@ -205,6 +206,113 @@ class FeatureHighlightManager(HighlightManager):
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
+       
+       
+       
+       
+       
+       
+       
+       
+class FeatureSelectionManager(object):
+    
+    selection_rectangle_color = (1., 1., 1., 1.)
+    
+    def initialize(self):
+        self.selection_box = None
+        self.paint_manager.ds_selection_rectangle = \
+            self.paint_manager.create_dataset(PlotTemplate,
+                position=np.zeros((2, 2)),
+                color=self.selection_rectangle_color,
+                primitive_type=PrimitiveType.LineLoop,
+                is_static=True,
+                visible=False)
+                
+        self.selection_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
+        self.selected_spikes = []
+        
+    def find_enclosed_spikes(self, enclosing_box):
+        x0, y0, x1, y1 = enclosing_box
+        
+        # press_position
+        xp, yp = x0, y0
+
+        # reorder
+        xmin, xmax = min(x0, x1), max(x0, x1)
+        ymin, ymax = min(y0, y1), max(y0, y1)
+
+        features = self.data_manager.normalized_data
+        masks = self.data_manager.full_masks
+
+        indices = ((masks > 0) & \
+                  (features[:,0] >= xmin) & (features[:,0] <= xmax) & \
+                  (features[:,1] >= ymin) & (features[:,1] <= ymax))
+        
+        # absolute indices in the data
+        spkindices = np.nonzero(indices)[0]
+        spkindices = np.unique(spkindices)
+        return spkindices
+        
+    def set_selected_spikes(self, spikes, do_emit=True):
+        """Update spike colors to mark transiently selected spikes with
+        a special color."""
+        if len(spikes) == 0:
+            # do update only if there were previously selected spikes
+            do_update = len(self.selected_spikes) > 0
+            self.selection_mask[:] = 0
+        else:
+            do_update = True
+            self.selection_mask[:] = 0
+            self.selection_mask[spikes] = 1
+        
+        if do_update:
+            
+            # TODO
+            # emit the SelectionSpikes signal
+            # if do_emit:
+                # emit(self.parent, 'SelectionSpikes', spikes)
+            
+            self.paint_manager.set_data(
+                highlight=self.selection_mask, dataset=self.paint_manager.ds)
+        
+        self.selected_spikes = spikes
+    
+    def select(self, enclosing_box):
+        # get the enclosing box in the window relative coordinates
+        x0, y0, x1, y1 = enclosing_box
+        
+        # set the selection box, in window relative coordinates, used
+        # for displaying the selection rectangle on the screen
+        self.selection_box = (x0, y0, x1, y1)
+        
+        # paint selection box
+        self.paint_manager.set_data(visible=True,
+            position=np.array(self.selection_box).reshape((2, 2)),
+            dataset=self.paint_manager.ds_selection_rectangle)
+        
+        # convert the box coordinates in the data coordinate system
+        x0, y0 = self.interaction_manager.get_data_coordinates(x0, y0)
+        x1, y1 = self.interaction_manager.get_data_coordinates(x1, y1)
+        
+        self.selected((x0, y0, x1, y1))
+        
+    def selected(self, box):
+        spikes = self.find_enclosed_spikes(box)
+        self.set_selected_spikes(spikes)
+        
+    def cancel_selection(self):
+        if self.selection_box is not None:
+            self.paint_manager.set_data(visible=False,
+                dataset=self.paint_manager.ds_selection_rectangle)
+            self.selection_box = None
+        self.set_selected_spikes(np.array([]))
+        
+        
+        
+        
+        
+        
+        
         
         
 class FeatureInteractionManager(InteractionManager):
@@ -222,9 +330,14 @@ class FeatureInteractionManager(InteractionManager):
         if event == FeatureEventEnum.ChangeProjection:
             self.change_projection(parameter)
             
-        # transient selection
+        # highlight
         if event == FeatureEventEnum.HighlightSpikeEvent:
             self.highlight_manager.highlight(parameter)
+            self.cursor = cursors.CrossCursor
+            
+        # selection
+        if event == FeatureEventEnum.SelectionSpikeEvent:
+            self.selection_manager.select(parameter)
             self.cursor = cursors.CrossCursor
           
     def change_projection(self, dir=1):
@@ -245,6 +358,7 @@ class FeatureInteractionManager(InteractionManager):
 FeatureEventEnum = enum(
     "ChangeProjection",
     "HighlightSpikeEvent",
+    "SelectionSpikeEvent",
     )
         
         
@@ -265,6 +379,16 @@ class FeaturesBindings(DefaultBindingSet):
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
+        
+    def set_selection(self):
+        # selection
+        self.set(UserActions.MiddleButtonMouseMoveAction,
+                 FeatureEventEnum.SelectionSpikeEvent,
+                 key_modifier=QtCore.Qt.Key_Control,
+                 param_getter=lambda p: (p["mouse_press_position"][0],
+                                         p["mouse_press_position"][1],
+                                         p["mouse_position"][0],
+                                         p["mouse_position"][1]))
       
     def set_projection(self):
         # change projection
@@ -275,6 +399,7 @@ class FeaturesBindings(DefaultBindingSet):
      
     def extend(self):
         self.set_highlight()
+        self.set_selection()
         self.set_projection()
      
 class FeatureView(GalryWidget):
@@ -284,6 +409,7 @@ class FeatureView(GalryWidget):
                 paint_manager=FeaturePaintManager,
                 data_manager=FeatureDataManager,
                 highlight_manager=FeatureHighlightManager,
+                selection_manager=FeatureSelectionManager,
                 interaction_manager=FeatureInteractionManager)
     
     def set_data(self, *args, **kwargs):

@@ -18,11 +18,6 @@ __all__ = ['WaveformWidget',
 
 
 
-def get_default_widget_controller():
-    vbox = QtGui.QVBoxLayout()
-    
-    return vbox
-
 
 class VisualizationWidget(QtGui.QWidget):
     def __init__(self, dataholder):
@@ -72,7 +67,7 @@ class VisualizationWidget(QtGui.QWidget):
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
         # add the controller (which must be a layout)
-        vbox.addLayout(self.controller)
+        # vbox.addLayout(self.controller)
         # add the view (which must be a widget, typically deriving from
         # GalryWidget)
         vbox.addWidget(self.view)
@@ -161,39 +156,6 @@ class ClusterWidget(QtGui.QWidget):
         self.context_menu.addAction("Add group", self.add_group_action)
         self.context_menu.addAction("Remove group", self.remove_group_action)
         
-    def selected_clusters(self):
-        """Return the list of selected clusters."""
-        return [(v.internalPointer().clusteridx()) \
-                    for v in self.view.selectedIndexes() \
-                        if v.column() == 0 and \
-                           type(v.internalPointer()) == ClusterItem]
-              
-    def selected_groups(self):
-        """Return the list of selected groups."""
-        return [(v.internalPointer().groupidx()) \
-                    for v in self.view.selectedIndexes() \
-                        if v.column() == 0 and \
-                           type(v.internalPointer()) == GroupItem]
-                                            
-    def add_group_action(self):
-        groupindices = [g.groupidx() for g in self.model.get_groups()]
-        groupidx = max(groupindices) + 1
-        self.model.add_group(groupidx, "Group %d" % groupidx)
-    
-    def remove_group_action(self):
-        errors = []
-        for groupidx in self.selected_groups():
-            try:
-                self.model.remove_group(groupidx)
-            except:
-                errors.append(groupidx)
-        if errors:
-            msg = "Some groups could not be deleted because they are not empty"
-            box = QtGui.QMessageBox(self)
-            box.setText(msg)
-            box.setWindowModality(QtCore.Qt.NonModal)
-            box.exec_()
-    
     def create_tree_view(self, dh):
         """Create the Tree View widget, and populates it using the data 
         handler `dh`."""
@@ -219,3 +181,35 @@ class ClusterWidget(QtGui.QWidget):
     def contextMenuEvent(self, event):
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
         # TODO
+
+    def selected_clusters(self):
+        """Return the list of selected clusters."""
+        return [(v.internalPointer().clusteridx()) \
+                    for v in self.view.selectedIndexes() \
+                        if v.column() == 0 and \
+                           type(v.internalPointer()) == ClusterItem]
+              
+    def selected_groups(self):
+        """Return the list of selected groups."""
+        return [(v.internalPointer().groupidx()) \
+                    for v in self.view.selectedIndexes() \
+                        if v.column() == 0 and \
+                           type(v.internalPointer()) == GroupItem]
+                                            
+    def add_group_action(self):
+        groupindices = [g.groupidx() for g in self.model.get_groups()]
+        groupidx = max(groupindices) + 1
+        self.model.add_group(groupidx, "Group %d" % groupidx)
+        self.view.expandAll()
+    
+    def remove_group_action(self):
+        errors = []
+        for groupidx in self.selected_groups():
+            try:
+                self.model.remove_group(groupidx)
+            except:
+                errors.append(groupidx)
+        if errors:
+            msg = "Non-empty groups were not deleted."
+            self.mainwindow.statusBar().showMessage(msg, 5000)
+    

@@ -281,10 +281,8 @@ class ClusterGroupManager(TreeModel):
         """Remove an empty group. Raise an error if the group is not empty."""
         # check that the group is empty
         if self.get_clusters_in_group(groupidx):
-            # print groupidx, self.get_clusters_in_group(groupidx)
             raise ValueError("group %d is not empty, unable to delete it" % \
                     groupidx)
-            # return
         groups = [g for g in self.get_groups() if g.groupidx() == groupidx]
         if groups:
             group = groups[0]

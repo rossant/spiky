@@ -50,6 +50,7 @@ class SpikeDataOrganizer(object):
         
         if cluster_colors is None:
             cluster_colors = np.ones((self.nclusters, 3))
+        self.cluster_colors = self.cluster_colors[:self.nclusters,:]
         
         # same as clusters, but with relative indexing instead of absolute
         clusters_rel = np.arange(self.clusters_unique.max() + 1)
