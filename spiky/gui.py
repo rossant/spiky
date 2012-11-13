@@ -47,7 +47,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
         
         self.initialize_connections()
-        
+    
+    
     # Signals
     # -------
     def initialize_connections(self):
@@ -71,8 +72,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # highlighting occurred in the waveform widget
         elif sender == self.waveform_widget.view:
             self.feature_widget.view.highlight_spikes(spikes)
-            
-        
+    
+    
     # Widget creation methods
     # -----------------------
     def add_dock(self, widget_class, position, name=None, minsize=None):
@@ -100,7 +101,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
             widget.setMinimumSize(*minsize)
         self.setCentralWidget(widget)
         return widget
-        
+    
+    
     # User preferences related methods
     # --------------------------------
     def save_geometry(self):

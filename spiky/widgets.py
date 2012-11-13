@@ -176,20 +176,19 @@ class ClusterWidget(QtGui.QWidget):
                            type(v.internalPointer()) == GroupItem]
                                             
     def add_group_action(self):
-        groupidx = len(self.model.get_groups())
+        groupindices = [g.groupidx() for g in self.model.get_groups()]
+        groupidx = max(groupindices) + 1
         self.model.add_group(groupidx, "Group %d" % groupidx)
     
     def remove_group_action(self):
         errors = []
         for groupidx in self.selected_groups():
-            # try:
-            self.model.remove_group(groupidx)
-            # except:
-                # errors.append(groupidx)
+            try:
+                self.model.remove_group(groupidx)
+            except:
+                errors.append(groupidx)
         if errors:
             msg = "Some groups could not be deleted because they are not empty"
-            
-            # QtGui.QErrorMessage(self).showMessage()
             box = QtGui.QMessageBox(self)
             box.setText(msg)
             box.setWindowModality(QtCore.Qt.NonModal)
