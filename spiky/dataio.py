@@ -80,6 +80,10 @@ class MockDataProvider(DataProvider):
         
         self.holder = DataHolder()
         
+        self.holder.nspikes = nspikes
+        self.holder.nclusters = nclusters
+        self.holder.nchannels = nchannels
+        
         self.holder.waveforms = rdn.randn(nspikes, nsamples, nchannels)
         self.holder.waveforms_info = Info(nsamples=nsamples)
         

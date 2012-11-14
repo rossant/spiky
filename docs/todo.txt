@@ -1,4 +1,6 @@
 
+  * trace view
+
   * lowlight: gray or original colors
   
   * transient recoloring
@@ -6,12 +8,8 @@
   * move data manager into templates, so that templates contain everything
 
   * feature view: toggle show/hide masked points
-  
-  * polygon selection
 
-  * trace view
-  
-  * continue cluster box
-  
   * waveformview: fully reset the view (box scale, etc.)
   * save default view in geometrical form
+
+  

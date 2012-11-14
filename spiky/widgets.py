@@ -6,6 +6,7 @@ import numpy.random as rnd
 from dataio import MockDataProvider
 from tools import Info
 from collections import OrderedDict
+import re
 
 SETTINGS = tools.init_settings()
 
@@ -44,17 +45,17 @@ class VisualizationWidget(QtGui.QWidget):
         hbox = QtGui.QHBoxLayout()
         
         # we add the "isolated" checkbox
-        self.isolated_control = QtGui.QCheckBox("isolated")
-        hbox.addWidget(self.isolated_control, stretch=1, alignment=QtCore.Qt.AlignLeft)
+        # self.isolated_control = QtGui.QCheckBox("isolated")
+        # hbox.addWidget(self.isolated_control, stretch=1, alignment=QtCore.Qt.AlignLeft)
         
-        # add the reset view button
-        self.reset_view_control = QtGui.QPushButton("reset view")
-        hbox.addWidget(self.reset_view_control, stretch=1, alignment=QtCore.Qt.AlignLeft)
+        # # add the reset view button
+        # self.reset_view_control = QtGui.QPushButton("reset view")
+        # hbox.addWidget(self.reset_view_control, stretch=1, alignment=QtCore.Qt.AlignLeft)
         
-        # hbox.addWidget(QtGui.QCheckBox("test"), stretch=1, alignment=QtCore.Qt.AlignLeft)
-        # add lots of space to the right to make sure everything is aligned to 
-        # the left
-        hbox.addStretch(100)
+        # # hbox.addWidget(QtGui.QCheckBox("test"), stretch=1, alignment=QtCore.Qt.AlignLeft)
+        # # add lots of space to the right to make sure everything is aligned to 
+        # # the left
+        # hbox.addStretch(100)
         
         return hbox
         
@@ -67,7 +68,7 @@ class VisualizationWidget(QtGui.QWidget):
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
         # add the controller (which must be a layout)
-        # vbox.addLayout(self.controller)
+        vbox.addLayout(self.controller)
         # add the view (which must be a widget, typically deriving from
         # GalryWidget)
         vbox.addWidget(self.view)
@@ -90,6 +91,7 @@ class WaveformWidget(VisualizationWidget):
     
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
+        self.dh = dh
         view = FeatureView()
         view.set_data(dh.features, clusters=dh.clusters,
                       fetdim=3,
@@ -97,10 +99,88 @@ class FeatureWidget(VisualizationWidget):
                       masks=dh.masks)
         return view
 
+    def create_navigation_toolbar(self):
+        toolbar = QtGui.QToolBar(self)
+        toolbar.setObjectName("toolbar")
+        toolbar.setIconSize(QtCore.QSize(32, 32))
+        toolbar.addAction(get_icon('hand'), "Move (press M to switch)",
+            self.set_navigation)
+        toolbar.addAction(get_icon('selection'), "Selection (press M to switch)",
+            self.set_selection)
+        return toolbar
+        
+    def select_feature(self, coord, fet=0):
+        """Select channel coord, feature fet."""
+        print fet
+        
+    def _select_feature_getter(self, coord, fet):
+        """Return the callback function for the feature selection."""
+        return lambda e: self.select_feature(coord, fet)
+        
+    def channel_combo_changed(self, text):
+        """Called when the combobox text has changed."""
+        text = text.lower()
+        # select time dimension
+        if text == "time":
+            print "time"
+        # find if there is a number in the text, if so, it is the channel
+        # dimension
+        g = re.match("[^0-9]*([0-9]+)[^0-9]*", text)
+        if g:
+            channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
+            self.channel_selection_combobox.setCurrentIndex(channel)
+            print "channel", channel
+            # TODO: use qt signals instead
+            # self.view.interaction_manager.select_projection((channel, channel, 0, 1))
+            self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, (channel, channel, 0, 1))
+        
+    def create_feature_widget(self, coord=0):
+        gridLayout = QtGui.QGridLayout()
+        gridLayout.setSpacing(0)
+        gridLayout.setMargin(0)
+        
+        # channel selection
+        comboBox = QtGui.QComboBox(self)
+        comboBox.setEditable(True)
+        comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
+        comboBox.addItems(["Channel %d" % i for i in xrange(self.dh.nchannels)])
+        comboBox.editTextChanged.connect(self.channel_combo_changed)
+        # editTextChanged
+        # currentIndexChanged
+        # activated
+        gridLayout.addWidget(comboBox, 0, 0, 1, 3)
+        self.channel_selection_combobox = comboBox
+        
+        # create 3 buttons for selecting the feature
+        widths = [60, 30, 30]
+        labels = ['A', 'B', 'C']
+        for i in xrange(3):
+            # selecting feature i
+            pushButton = QtGui.QPushButton(labels[i], self)
+            pushButton.setMaximumSize(QtCore.QSize(widths[i], 20))
+            pushButton.clicked.connect(self._select_feature_getter(coord, i))
+            gridLayout.addWidget(pushButton, 1, i)
+        
+        return gridLayout
+        
     def create_controller(self):
         box = super(FeatureWidget, self).create_controller()
-        # box.addWidget(QtGui.QCheckBox("hi"))
+        
+        # add navigation toolbar
+        self.toolbar = self.create_navigation_toolbar()
+        box.addWidget(self.toolbar)
+        
+        # add feature widget
+        self.feature_widget = self.create_feature_widget(0)
+        box.addLayout(self.feature_widget)
+        
         return box
+    
+    def set_navigation(self):
+        self.view.set_interaction_mode(FeatureNavigationBindings)
+    
+    def set_selection(self):
+        self.view.set_interaction_mode(FeatureSelectionBindings)
     
     
 class CorrelogramsWidget(VisualizationWidget):

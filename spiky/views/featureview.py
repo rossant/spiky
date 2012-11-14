@@ -13,6 +13,9 @@ from signals import emit
 # from probes import Probe
 # from waveformtest import *
 
+__all__ = ['FeatureView', 'FeatureNavigationBindings',
+           'FeatureSelectionBindings', 'FeatureEventEnum']
+
 
 VERTEX_SHADER = """
     // move the vertex to its position
@@ -235,12 +238,6 @@ class FeatureHighlightManager(HighlightManager):
         self.set_highlighted_spikes(np.array([]))
        
        
-       
-       
-       
-       
-       
-       
 class FeatureSelectionManager(object):
     
     selection_polygon_color = (1., 1., 1., .5)
@@ -348,13 +345,6 @@ class FeatureSelectionManager(object):
         self.is_selection_pending = False
         
         
-        
-        
-        
-        
-        
-        
-        
 class FeatureInteractionManager(InteractionManager):
     def initialize(self):
         self.channel = 0
@@ -385,6 +375,16 @@ class FeatureInteractionManager(InteractionManager):
         if event == FeatureEventEnum.CancelSelectionPointEvent:
             self.selection_manager.cancel_selection()
           
+        # select projection
+        if event == FeatureEventEnum.SelectProjectionEvent:
+            self.select_projection(parameter)
+            
+    def select_projection(self, parameter):
+        # ch1, fet1, ch2, fet2 = parameter
+        self.data_manager.set_projection(*parameter)  #ch1, ch2, fet1, fet2)
+        self.paint_manager.update_points()
+        self.paint_manager.updateGL()
+          
     def change_projection(self, dir=1):
         self.icoord += dir
         nchannels = self.data_manager.nchannels
@@ -408,6 +408,8 @@ FeatureEventEnum = enum(
     "SelectionPointPendingEvent",
     "EndSelectionPointEvent",
     "CancelSelectionPointEvent",
+    
+    "SelectProjectionEvent",
     )
         
         

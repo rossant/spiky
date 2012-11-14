@@ -8,6 +8,7 @@ from collections import OrderedDict
 from widgets import *
 import inspect
 
+
 SETTINGS = tools.init_settings()
 
 STYLESHEET = """
@@ -44,48 +45,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # show the window
         self.show()
         
-    def initialize(self):
-        """Make the UI initialization."""
-        
-        # load mock data
-        provider = MockDataProvider()
-        self.dh = provider.load(nspikes=100)
-        
-        # central window, the dockable widgets are arranged around it
-        self.feature_widget = self.add_central(FeatureWidget)
-        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
-        self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
-        self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
-        # initialize all signals/slots connections between widgets
-        self.initialize_connections()
-    
-    
-    # Signals
-    # -------
-    def initialize_connections(self):
-        """Initialize the signals/slots connections between widgets."""
-        Signals.HighlightSpikes.connect(self.slotHighlightSpikes)
-
-    def slotHighlightSpikes(self, sender, spikes):
-        """Called whenever spikes are selected in a view.
-        
-        Arguments:
-          * sender: the view which is at the origin of the signal emission.
-          * spikes: a Numpy array of integers with the indices of highlighted
-            spikes.
-        
-        """
-        
-        # highlighting occurred in the feature widget
-        if sender == self.feature_widget.view:
-            self.waveform_widget.view.highlight_spikes(spikes)
-            
-        # highlighting occurred in the waveform widget
-        elif sender == self.waveform_widget.view:
-            self.feature_widget.view.highlight_spikes(spikes)
-    
-    
     # Widget creation methods
     # -----------------------
     def add_dock(self, widget_class, position, name=None, minsize=None):
@@ -116,6 +75,49 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.setCentralWidget(widget)
         return widget
     
+    # Initialization
+    # --------------
+    def initialize(self):
+        """Make the UI initialization."""
+        
+        # load mock data
+        provider = MockDataProvider()
+        self.dh = provider.load(nspikes=100)
+        
+        # central window, the dockable widgets are arranged around it
+        self.feature_widget = self.add_central(FeatureWidget)
+        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        self.cluster_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+        
+        # initialize all signals/slots connections between widgets
+        self.initialize_connections()
+    
+    # Signals
+    # -------
+    def initialize_connections(self):
+        """Initialize the signals/slots connections between widgets."""
+        Signals.HighlightSpikes.connect(self.slotHighlightSpikes)
+
+    def slotHighlightSpikes(self, sender, spikes):
+        """Called whenever spikes are selected in a view.
+        
+        Arguments:
+          * sender: the view which is at the origin of the signal emission.
+          * spikes: a Numpy array of integers with the indices of highlighted
+            spikes.
+        
+        """
+        # highlighting occurred in the feature widget
+        if sender == self.feature_widget.view:
+            if hasattr(self, 'waveform_widget'):
+                self.waveform_widget.view.highlight_spikes(spikes)
+            
+        # highlighting occurred in the waveform widget
+        elif sender == self.waveform_widget.view:
+            if hasattr(self, 'feature_widget'):
+                self.feature_widget.view.highlight_spikes(spikes)
     
     # User preferences related methods
     # --------------------------------
@@ -123,6 +125,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Save the arrangement of the whole window into a INI file."""
         SETTINGS.set("mainWindow/geometry", self.saveGeometry())
         SETTINGS.set("mainWindow/windowState", self.saveState())
+        # save size and pos
+        SETTINGS.set("mainWindow/size", self.size())
+        SETTINGS.set("mainWindow/pos", self.pos())
         
     def restore_geometry(self):
         """Restore the arrangement of the whole window from a INI file."""

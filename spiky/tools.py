@@ -34,12 +34,8 @@ class Settings(object):
     def set(self, key, value):
         self.settings.setValue(key, value)
     
-    # def set(self, **kwargs):
-        # for key, value in kwargs.iteritems():
-            # self.settings.setValue(key, value)
-    
-    def get(self, key):
-        return self.settings.value(key)
+    def get(self, key, default=None):
+        return self.settings.value(key, default)
         
 SETTINGS = None
         
