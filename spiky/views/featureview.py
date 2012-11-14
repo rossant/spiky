@@ -3,6 +3,7 @@ import numpy.random as rdn
 import collections
 import operator
 import time
+from matplotlib.path import Path
 
 from galry import *
 from common import *
@@ -25,13 +26,37 @@ VERTEX_SHADER = """
     if (highlight > 0)
         varying_color = vec4(1, 1, 1, varying_color.w);
         
-    gl_PointSize = 3.;
+    // selection
+    if (selection > 0)
+        //varying_color = vec4(1, 1, 1, varying_color.w);
+        gl_PointSize = 6.;
+    else
+        gl_PointSize = 3.;
 """
      
      
 FRAGMENT_SHADER = """
     out_color = varying_color;
 """
+
+def polygon_contains_points(polygon, points):
+    """Returns the points within a polygon.
+    
+    Arguments:
+      * polygon: a Nx2 array with the coordinates of the polygon vertices.
+      * points: a Nx2 array with the coordinates of the points.
+
+    Returns:
+      * arr: a Nx2 array of booleans with the belonging of every point to
+        the inside of the polygon.
+      
+    """
+    p = Path(polygon)
+    if hasattr(p, 'contains_points'):
+        return p.contains_points(points)
+    else:
+        import matplotlib.nxutils
+        return matplotlib.nxutils.points_inside_poly(points, polygon)
 
 
 class FeatureDataManager(object):
@@ -117,6 +142,7 @@ class FeatureTemplate(DefaultTemplate):
         self.add_attribute("mask", vartype="float", ndim=1)
         self.add_attribute("cluster", vartype="int", ndim=1)
         self.add_attribute("highlight", vartype="int", ndim=1)
+        self.add_attribute("selection", vartype="int", ndim=1)
         
         self.add_uniform("cluster_colors", vartype="float", ndim=3,
             size=self.nclusters)
@@ -138,6 +164,7 @@ class FeaturePaintManager(PaintManager):
             mask=self.data_manager.full_masks,
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
+            selection=self.selection_manager.selection_mask,
             cluster_colors=self.data_manager.cluster_colors)
         
     def update_points(self):
@@ -216,45 +243,24 @@ class FeatureHighlightManager(HighlightManager):
        
 class FeatureSelectionManager(object):
     
-    selection_polygon_color = (1., 1., 1., 1.)
+    selection_polygon_color = (1., 1., 1., .5)
     points = np.zeros((100, 2))
     npoints = 0
     is_selection_pending = False
     
+    def polygon(self):
+        return self.points[:self.npoints + 2,:]
+    
     def initialize(self):
-        # self.selection_box = None
         self.paint_manager.ds_selection_rectangle = \
             self.paint_manager.create_dataset(PlotTemplate,
                 position=self.points,
                 color=self.selection_polygon_color,
                 primitive_type=PrimitiveType.LineLoop,
-                is_static=True,
                 visible=False)
                 
         self.selection_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.selected_spikes = []
-        
-    # def find_enclosed_spikes(self, enclosing_box):
-        # x0, y0, x1, y1 = enclosing_box
-        
-        # # press_position
-        # xp, yp = x0, y0
-
-        # # reorder
-        # xmin, xmax = min(x0, x1), max(x0, x1)
-        # ymin, ymax = min(y0, y1), max(y0, y1)
-
-        # features = self.data_manager.normalized_data
-        # masks = self.data_manager.full_masks
-
-        # indices = ((masks > 0) & \
-                  # (features[:,0] >= xmin) & (features[:,0] <= xmax) & \
-                  # (features[:,1] >= ymin) & (features[:,1] <= ymax))
-        
-        # # absolute indices in the data
-        # spkindices = np.nonzero(indices)[0]
-        # spkindices = np.unique(spkindices)
-        # return spkindices
         
     def set_selected_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
@@ -276,36 +282,30 @@ class FeatureSelectionManager(object):
                 # emit(self.parent, 'SelectionSpikes', spikes)
             
             self.paint_manager.set_data(
-                highlight=self.selection_mask, dataset=self.paint_manager.ds)
+                selection=self.selection_mask, dataset=self.paint_manager.ds)
         
         self.selected_spikes = spikes
     
-    # def select(self, enclosing_box):
-        # TODO
-        # get the enclosing box in the window relative coordinates
-        # x0, y0, x1, y1 = enclosing_box
-        
-        # # set the selection box, in window relative coordinates, used
-        # # for displaying the selection rectangle on the screen
-        # self.selection_box = (x0, y0, x1, y1)
-        
-        # # paint selection box
-        # self.paint_manager.set_data(visible=True,
-            # position=np.array(self.selection_box).reshape((2, 2)),
-            # dataset=self.paint_manager.ds_selection_rectangle)
-        
-        # # convert the box coordinates in the data coordinate system
-        # x0, y0 = self.interaction_manager.get_data_coordinates(x0, y0)
-        # x1, y1 = self.interaction_manager.get_data_coordinates(x1, y1)
-        
-        # self.selected((x0, y0, x1, y1))
-        
-    # def selected(self, box):
-        # spikes = self.find_enclosed_spikes(box)
-        # self.set_selected_spikes(spikes)
-        
+    def find_enclosed_spikes(self, polygon=None):
+        """Find the indices of the spikes inside the polygon (in 
+        transformed coordinates)."""
+        if polygon is None:
+            polygon = self.polygon()
+        features = self.data_manager.normalized_data
+        masks = self.data_manager.full_masks
+        indices = (masks > 0) & polygon_contains_points(polygon, features)#Path(polygon).contains_points(features)
+        spkindices = np.nonzero(indices)[0]
+        spkindices = np.unique(spkindices)
+        return spkindices
+   
+    def select_spikes(self, polygon=None):
+        """Select spikes enclosed in the selection polygon."""
+        spikes = self.find_enclosed_spikes(polygon)
+        self.set_selected_spikes(spikes)
+   
     def add_point(self, point):
         """Add a point in the selection polygon."""
+        point = self.interaction_manager.get_data_coordinates(*point)
         if not self.is_selection_pending:
             self.points = np.tile(point, (100, 1))
             self.paint_manager.set_data(
@@ -317,21 +317,34 @@ class FeatureSelectionManager(object):
         self.points[self.npoints,:] = point
         
     def point_pending(self, point):
+        """A point is currently being positioned by the user. The polygon
+        is updated in real time."""
+        point = self.interaction_manager.get_data_coordinates(*point)
         if self.is_selection_pending:
             self.points[self.npoints + 1,:] = point
             self.paint_manager.set_data(
                     position=self.points,
                     dataset=self.paint_manager.ds_selection_rectangle)
+            # select spikes
+            self.select_spikes()
         
     def end_point(self, point):
         """Terminate selection polygon."""
+        point = self.interaction_manager.get_data_coordinates(*point)
+        # self.npoints += 1
+        self.points[self.npoints + 1,:] = self.points[0,:]
+        self.paint_manager.set_data(
+                position=self.points,
+                dataset=self.paint_manager.ds_selection_rectangle)
+        self.select_spikes()
         self.is_selection_pending = False
         
     def cancel_selection(self):
-        if self.points:
+        """Remove the selection polygon."""
+        # hide the selection polygon
+        if self.paint_manager.ds_selection_rectangle['visible']:
             self.paint_manager.set_data(visible=False,
                 dataset=self.paint_manager.ds_selection_rectangle)
-            self.points = []
         self.set_selected_spikes(np.array([]))
         
         
@@ -365,13 +378,12 @@ class FeatureInteractionManager(InteractionManager):
         # selection
         if event == FeatureEventEnum.SelectionPointPendingEvent:
             self.selection_manager.point_pending(parameter)
-            self.cursor = cursors.CrossCursor
         if event == FeatureEventEnum.AddSelectionPointEvent:
             self.selection_manager.add_point(parameter)
-            self.cursor = cursors.CrossCursor
         if event == FeatureEventEnum.EndSelectionPointEvent:
             self.selection_manager.end_point(parameter)
-            self.cursor = cursors.CrossCursor
+        if event == FeatureEventEnum.CancelSelectionPointEvent:
+            self.selection_manager.cancel_selection()
           
     def change_projection(self, dir=1):
         self.icoord += dir
@@ -399,7 +411,9 @@ FeatureEventEnum = enum(
     )
         
         
-class FeaturesBindings(DefaultBindingSet):
+# Navigation mode
+# --------------
+class FeatureNavigationBindings(DefaultBindingSet):
     def set_highlight(self):
         # highlight
         self.set(UserActions.MiddleButtonMouseMoveAction,
@@ -417,6 +431,20 @@ class FeaturesBindings(DefaultBindingSet):
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
+    def set_projection(self):
+        # change projection
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
+                 key=QtCore.Qt.Key_F, param_getter=lambda p: -1)
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
+                 key=QtCore.Qt.Key_G, param_getter=lambda p: 1)
+     
+    def extend(self):
+        self.set_highlight()
+        self.set_projection()
+   
+# Selection mode
+# --------------
+class FeatureSelectionBindings(FeatureNavigationBindings):
     def set_selection(self):
         # selection
         self.set(UserActions.MouseMoveAction,
@@ -431,22 +459,27 @@ class FeaturesBindings(DefaultBindingSet):
                  FeatureEventEnum.EndSelectionPointEvent,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
-      
-    def set_projection(self):
-        # change projection
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
-                 key=QtCore.Qt.Key_F, param_getter=lambda p: -1)
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
-                 key=QtCore.Qt.Key_G, param_getter=lambda p: 1)
-     
+        self.set(UserActions.DoubleClickAction,
+                 FeatureEventEnum.CancelSelectionPointEvent,
+                 param_getter=lambda p: (p["mouse_press_position"][0],
+                                         p["mouse_press_position"][1],))
+    
+    # def set_zoombox_mouse(self):
+        # pass
+        
+    # def set_zoombox_keyboard(self):
+        # pass
+    
     def extend(self):
         self.set_highlight()
+        self.set_base_cursor(cursors.CrossCursor)
         self.set_selection()
-        self.set_projection()
+     
+     
      
 class FeatureView(GalryWidget):
     def initialize(self):
-        self.set_bindings(FeaturesBindings)
+        self.set_bindings(FeatureNavigationBindings, FeatureSelectionBindings)
         self.set_companion_classes(
                 paint_manager=FeaturePaintManager,
                 data_manager=FeatureDataManager,
