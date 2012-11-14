@@ -293,7 +293,7 @@ class FeatureSelectionManager(object):
             polygon = self.polygon()
         features = self.data_manager.normalized_data
         masks = self.data_manager.full_masks
-        indices = (masks > 0) & polygon_contains_points(polygon, features)#Path(polygon).contains_points(features)
+        indices = (masks > 0) & polygon_contains_points(polygon, features)
         spkindices = np.nonzero(indices)[0]
         spkindices = np.unique(spkindices)
         return spkindices
@@ -331,7 +331,6 @@ class FeatureSelectionManager(object):
     def end_point(self, point):
         """Terminate selection polygon."""
         point = self.interaction_manager.get_data_coordinates(*point)
-        # self.npoints += 1
         self.points[self.npoints + 1,:] = self.points[0,:]
         self.paint_manager.set_data(
                 position=self.points,
@@ -346,6 +345,7 @@ class FeatureSelectionManager(object):
             self.paint_manager.set_data(visible=False,
                 dataset=self.paint_manager.ds_selection_rectangle)
         self.set_selected_spikes(np.array([]))
+        self.is_selection_pending = False
         
         
         
@@ -463,12 +463,6 @@ class FeatureSelectionBindings(FeatureNavigationBindings):
                  FeatureEventEnum.CancelSelectionPointEvent,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
-    
-    # def set_zoombox_mouse(self):
-        # pass
-        
-    # def set_zoombox_keyboard(self):
-        # pass
     
     def extend(self):
         self.set_highlight()
