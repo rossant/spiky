@@ -171,8 +171,12 @@ class FeatureWidget(VisualizationWidget):
         box.addWidget(self.toolbar)
         
         # add feature widget
-        self.feature_widget = self.create_feature_widget(0)
-        box.addLayout(self.feature_widget)
+        self.feature_widget1 = self.create_feature_widget(0)
+        box.addLayout(self.feature_widget1)
+        
+        # add feature widget
+        self.feature_widget2 = self.create_feature_widget(1)
+        box.addLayout(self.feature_widget2)
         
         return box
     
