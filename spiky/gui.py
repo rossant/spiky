@@ -6,6 +6,7 @@ from dataio import MockDataProvider
 from tools import Info
 from collections import OrderedDict
 from widgets import *
+from icons import get_icon
 import inspect
 
 
@@ -35,14 +36,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
             QtGui.QTabWidget.North)
         self.setDockNestingEnabled(True)
         self.setWindowTitle(self.window_title)
-        # make the UI initialization
-        self.initialize()
         # initialize actions
         self.initialize_actions()
         # initialize menu
         self.initialize_menu()
         # initialize all signals/slots connections between widgets
         self.initialize_connections()
+        # make the UI initialization
+        self.initialize()
         # set stylesheet
         self.setStyleSheet(STYLESHEET)
         # set empty status bar
@@ -57,8 +58,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Add a dockable widget"""
         if name is None:
             name = widget_class.__name__
-        widget = widget_class(self.dh)
-        widget.main_window = self
+        widget = widget_class(self, self.dh)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         dockwidget = QtGui.QDockWidget(name)
@@ -75,8 +75,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Add a central widget in the main window."""
         if name is None:
             name = widget_class.__name__
-        widget = widget_class(self.dh)
-        widget.main_window = self
+        widget = widget_class(self, self.dh)
         widget.setObjectName(name)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
@@ -100,13 +99,30 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.cluster_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
         
     def initialize_actions(self):
-        self.quit_action = QtGui.QAction("Exit", self)
+        """Initialize all global actions."""
+        # automatic projection action
+        self.autoproj_action = QtGui.QAction("Automatic projection", self)
+        self.autoproj_action.setIcon(get_icon("magic"))
+        self.autoproj_action.setShortcut("P")
+        self.autoproj_action.setStatusTip("Automatically choose the best " +
+            "projection in the FeatureView.")
+        self.autoproj_action.triggered.connect(lambda e: emit(self, "AutomaticProjection"))
+        
+        # exit action
+        self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
+        self.quit_action.setStatusTip("Exit the application.")
         self.quit_action.triggered.connect(self.close)
         
     def initialize_menu(self):
+        """Initialize the menu."""
+        # File menu
+        # ---------
         file_menu = self.menuBar().addMenu("&File")
+        
+        # Quit
         file_menu.addAction(self.quit_action)
+        
         
     # Signals
     # -------
@@ -123,6 +139,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
             spikes.
         
         """
+        # TODO: better design with the slot being in the target widgets directly
         # highlighting occurred in the feature widget
         if sender == self.feature_widget.view:
             if hasattr(self, 'waveform_widget'):

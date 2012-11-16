@@ -21,9 +21,10 @@ __all__ = ['WaveformWidget',
 
 
 class VisualizationWidget(QtGui.QWidget):
-    def __init__(self, dataholder):
+    def __init__(self, main_window, dataholder):
         super(VisualizationWidget, self).__init__()
         self.dataholder = dataholder
+        self.main_window = main_window
         self.view = self.create_view(dataholder)
         self.controller = self.create_controller()
         self.initialize()
@@ -102,14 +103,22 @@ class FeatureWidget(VisualizationWidget):
                       masks=dh.masks)
         return view
 
-    def create_navigation_toolbar(self):
+    def create_toolbar(self):
         toolbar = QtGui.QToolBar(self)
         toolbar.setObjectName("toolbar")
         toolbar.setIconSize(QtCore.QSize(32, 32))
+        
+        # navigation toolbar
         toolbar.addAction(get_icon('hand'), "Move (press I to switch)",
             self.set_navigation)
         toolbar.addAction(get_icon('selection'), "Selection (press I to switch)",
             self.set_selection)
+            
+        toolbar.addSeparator()
+            
+        # autoprojection
+        toolbar.addAction(self.main_window.autoproj_action)
+        
         return toolbar
         
     def initialize_connections(self):
@@ -230,7 +239,7 @@ class FeatureWidget(VisualizationWidget):
         self.feature_buttons = [[None] * 3, [None] * 3]
         
         # add navigation toolbar
-        self.toolbar = self.create_navigation_toolbar()
+        self.toolbar = self.create_toolbar()
         box.addWidget(self.toolbar)
         
         # add feature widget
@@ -279,8 +288,9 @@ class ClusterWidget(QtGui.QWidget):
                     option.state = option.state and QtGui.QStyle.State_Off
             super(ClusterWidget.ClusterDelegate, self).paint(painter, option, index)
     
-    def __init__(self, dh):
+    def __init__(self, main_window, dh):
         super(ClusterWidget, self).__init__()
+        self.main_window = main_window
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
         

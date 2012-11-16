@@ -7,7 +7,7 @@ from matplotlib.path import Path
 
 from galry import *
 from common import *
-from signals import emit
+from signals import *
 
 # import colors
 # from probes import Probe
@@ -111,6 +111,7 @@ class FeatureDataManager(object):
         self.selection_manager.initialize()
 
     def set_projection(self, coord, channel, feature, do_update=True):
+        """Set the projection axes."""
         i = channel * self.fetdim + feature
         self.full_masks = self.masks[:,channel]
         self.data[:, coord] = self.features_reordered[:, i].ravel()
@@ -123,6 +124,11 @@ class FeatureDataManager(object):
             self.selection_manager.set_selection_polygon_visibility(
               (self.projection[0] == self.selection_manager.projection[0]) & \
                (self.projection[1] == self.selection_manager.projection[1]))
+        
+    def automatic_projection(self):
+        """Set the best projections depending on the selected clusters."""
+        # TODO
+        log_info("TODO: automatic projection")
         
         
 class FeatureTemplate(DefaultTemplate):
@@ -357,9 +363,6 @@ class FeatureInteractionManager(InteractionManager):
         self.highlight_manager.cancel_highlight()
         
     def process_custom_event(self, event, parameter):
-        # if event == FeatureEventEnum.ChangeProjection:
-            # self.change_projection(parameter)
-            
         # highlight
         if event == FeatureEventEnum.HighlightSpikeEvent:
             self.highlight_manager.highlight(parameter)
@@ -379,29 +382,18 @@ class FeatureInteractionManager(InteractionManager):
         if event == FeatureEventEnum.SelectProjectionEvent:
             self.select_projection(parameter)
             
+        # automatic projection
+        if event == FeatureEventEnum.AutomaticProjectionEvent:
+            self.data_manager.automatic_projection()
+            
     def select_projection(self, parameter):
+        """Select a projection for the given coordinate."""
         self.data_manager.set_projection(*parameter)  # coord, channel, feature
-        
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
-          
-    # def change_projection(self, dir=1):
-        # # self.icoord += dir
-        # nchannels = self.data_manager.nchannels
-        # # if self.icoord == 3:
-            # # self.icoord = 0
-            # # self.channel = np.mod(self.channel + 1, nchannels)
-        # # elif self.icoord == -1:
-            # # self.icoord = 2
-            # # self.channel = np.mod(self.channel - 1, nchannels)
-        # # c0, c1 = self.coordorder[self.icoord]
-        # self.data_manager.set_projection(self.channel, self.channel,
-                # c0, c1)
-        # self.paint_manager.update_points()
         
         
 FeatureEventEnum = enum(
-    # "ChangeProjection",
     "HighlightSpikeEvent",
     
     "AddSelectionPointEvent",
@@ -410,6 +402,7 @@ FeatureEventEnum = enum(
     "CancelSelectionPointEvent",
     
     "SelectProjectionEvent",
+    "AutomaticProjectionEvent",
     )
         
         
@@ -433,16 +426,8 @@ class FeatureNavigationBindings(DefaultBindingSet):
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-    # def set_projection(self):
-        # # change projection
-        # self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
-                 # key=QtCore.Qt.Key_F, param_getter=lambda p: -1)
-        # self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
-                 # key=QtCore.Qt.Key_G, param_getter=lambda p: 1)
-     
     def extend(self):
         self.set_highlight()
-        # self.set_projection()
    
 # Selection mode
 # --------------
@@ -482,6 +467,10 @@ class FeatureView(GalryWidget):
                 highlight_manager=FeatureHighlightManager,
                 selection_manager=FeatureSelectionManager,
                 interaction_manager=FeatureInteractionManager)
+        # connect the AutomaticProjection signal to the
+        # AutomaticProjectionEvent
+        self.connect_events(SIGNALS.AutomaticProjection,
+                            FeatureEventEnum.AutomaticProjectionEvent)
     
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
