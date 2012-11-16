@@ -84,22 +84,40 @@ class VisualizationWidget(QtGui.QWidget):
 
 class WaveformWidget(VisualizationWidget):
     def create_view(self, dh):
+        self.dh = dh
         view = WaveformView()
         view.set_data(dh.waveforms,
                       clusters=dh.clusters,
-                      cluster_colors=dh.clusters_info.colors,
+                      cluster_colors=dh.cluster_colors,
                       geometrical_positions=dh.probe.positions,
                       masks=dh.masks)
         return view
 
+    # def initialize_connections(self):
+        # SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        
+    def slotClusterSelectionChanged(self, sender, clusters):
+        dh = self.dh
+        # select clusters in the select data handler
+        dh.select_clusters(clusters)
+        
+        # pass the selected data to the view
+        self.view.clear()
+        self.view.set_data(dh.waveforms,
+                      clusters=dh.clusters,
+                      cluster_colors=dh.cluster_colors,
+                      geometrical_positions=dh.probe.positions,
+                      masks=dh.masks)
+        self.view.reinit()
     
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
         view = FeatureView()
-        view.set_data(dh.features, clusters=dh.clusters,
-                      fetdim=3,
-                      cluster_colors=dh.clusters_info.colors,
+        view.set_data(fetdim=dh.fetdim,
+                      features=dh.features,
+                      clusters=dh.clusters,
+                      cluster_colors=dh.cluster_colors,
                       masks=dh.masks)
         return view
 
@@ -119,10 +137,27 @@ class FeatureWidget(VisualizationWidget):
         # autoprojection
         toolbar.addAction(self.main_window.autoproj_action)
         
+        toolbar.addSeparator()
+        
         return toolbar
         
     def initialize_connections(self):
         SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
+        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        
+    def slotClusterSelectionChanged(self, sender, clusters):
+        dh = self.dh
+        # select clusters in the select data handler
+        dh.select_clusters(clusters)
+        
+        # pass the selected data to the view
+        self.view.clear()
+        self.view.set_data(fetdim=dh.fetdim,
+                           features=dh.features,
+                           clusters=dh.clusters,
+                           cluster_colors=dh.cluster_colors,
+                           masks=dh.masks)
+        self.view.reinit()
         
     def slotProjectionChanged(self, sender, coord, channel, feature):
         """Process the ProjectionChanged signal."""
@@ -137,6 +172,7 @@ class FeatureWidget(VisualizationWidget):
         # update the view
         self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
                                       (coord, channel, feature))
+        
         
     def set_channel_box(self, coord, channel):
         """Select the adequate line in the channel selection combo box."""
@@ -263,8 +299,7 @@ class CorrelogramsWidget(VisualizationWidget):
     def create_view(self, dh):
         view = CorrelogramsView()
         view.set_data(histograms=dh.correlograms,
-                        # nclusters=dh.nclusters,
-                        cluster_colors=dh.clusters_info.colors)
+                      cluster_colors=dh.cluster_colors)
         return view
 
     
@@ -276,17 +311,6 @@ class CorrelationMatrixWidget(VisualizationWidget):
 
 
 class ClusterWidget(QtGui.QWidget):
-    
-    class ClusterDelegate(QtGui.QStyledItemDelegate):
-        def paint(self, painter, option, index):
-            """Disable the color column so that the color remains the same even
-            when it is selected."""
-            # deactivate all columns except the first one, so that selection
-            # is only possible in the first column
-            if index.column() >= 1:
-                if option.state and QtGui.QStyle.State_Selected:
-                    option.state = option.state and QtGui.QStyle.State_Off
-            super(ClusterWidget.ClusterDelegate, self).paint(painter, option, index)
     
     def __init__(self, main_window, dh):
         super(ClusterWidget, self).__init__()
@@ -321,41 +345,13 @@ class ClusterWidget(QtGui.QWidget):
                                     clusters_info=dh.clusters_info)
         
         # set the QTreeView options
-        view = QtGui.QTreeView()
-        view.setModel(self.model)
-        # set rate column size
-        view.header().resizeSection(1, 80)
-        # set color column size
-        view.header().resizeSection(2, 40)
-        view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
-        view.expandAll()
-        view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        view.setAllColumnsShowFocus(True)
-        view.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
-        # view.setRootIsDecorated(False)
-        view.setItemDelegate(self.ClusterDelegate())
-        # self.setStyleSheet(STYLESHEET)
-        
+        view = ClusterTreeView()
+        view.set_model(self.model)
         return view
 
     def contextMenuEvent(self, event):
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
-        # TODO
-
-    def selected_clusters(self):
-        """Return the list of selected clusters."""
-        return [(v.internalPointer().clusteridx()) \
-                    for v in self.view.selectedIndexes() \
-                        if v.column() == 0 and \
-                           type(v.internalPointer()) == ClusterItem]
-              
-    def selected_groups(self):
-        """Return the list of selected groups."""
-        return [(v.internalPointer().groupidx()) \
-                    for v in self.view.selectedIndexes() \
-                        if v.column() == 0 and \
-                           type(v.internalPointer()) == GroupItem]
-                                            
+            
     def add_group_action(self):
         groupindices = [g.groupidx() for g in self.model.get_groups()]
         groupidx = max(groupindices) + 1
@@ -364,7 +360,7 @@ class ClusterWidget(QtGui.QWidget):
     
     def remove_group_action(self):
         errors = []
-        for groupidx in self.selected_groups():
+        for groupidx in self.view.selected_groups():
             try:
                 self.model.remove_group(groupidx)
             except:

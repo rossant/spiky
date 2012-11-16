@@ -67,7 +67,7 @@ class FeatureDataManager(object):
     
     # Initialization methods
     # ----------------------
-    def set_data(self, features, fetdim=None, clusters=None, cluster_colors=None,
+    def set_data(self, features=None, fetdim=None, clusters=None, cluster_colors=None,
                  masks=None, spike_ids=None):
         
         assert fetdim is not None

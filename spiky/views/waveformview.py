@@ -199,8 +199,8 @@ class WaveformPositionManager(object):
         # for each spatial arrangement, the box sizes automatically computed,
         # or modified by the user
         self.box_sizes = dict()
-        self.box_sizes.__setitem__(WaveformSpatialArrangement.Linear, None)
-        self.box_sizes.__setitem__(WaveformSpatialArrangement.Geometrical, None)
+        self.box_sizes.__setitem__(WaveformSpatialArrangement.Linear, (0., 0.))
+        self.box_sizes.__setitem__(WaveformSpatialArrangement.Geometrical, (0., 0.))
         # self.T = None
         self.spatial_arrangement = WaveformSpatialArrangement.Linear
         self.superposition = WaveformSuperposition.Separated
@@ -299,6 +299,11 @@ class WaveformPositionManager(object):
         # retrieve info
         channel_positions = self.channel_positions[self.spatial_arrangement]
         
+        # size = self.load_box_size()
+        # if size is None:
+            # w = h = 0.
+        # else:
+            # w, h = size
         w, h = self.load_box_size()
         
         # update translation vector
@@ -340,6 +345,8 @@ class WaveformPositionManager(object):
         return self.box_sizes[arrangement]
     
     def find_box_size(self, spatial_arrangement=None, superposition=None):
+        if self.nclusters == 0:
+            return 0., 0.
         do_save = (spatial_arrangement is None) and (superposition is None)
         if spatial_arrangement is None:
             spatial_arrangement = self.spatial_arrangement
@@ -497,7 +504,10 @@ class WaveformDataManager(object):
                                 (self.nchannels * self.nspikes, 1))
         
         # a (Nsamples x Nspikes) x Nchannels array
-        Y = np.vstack(self.waveforms_reordered)
+        if self.nspikes == 0:
+            Y = np.array([], dtype=np.float32)
+        else:
+            Y = np.vstack(self.waveforms_reordered)
         
         # create a Nx2 array with all coordinates
         data = np.empty((X.size, 2), dtype=np.float32)

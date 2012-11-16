@@ -2,7 +2,7 @@ from galry import *
 from views import *
 import tools
 import numpy as np
-from dataio import MockDataProvider
+from dataio import *
 from tools import Info
 from collections import OrderedDict
 from widgets import *
@@ -58,7 +58,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Add a dockable widget"""
         if name is None:
             name = widget_class.__name__
-        widget = widget_class(self, self.dh)
+        widget = widget_class(self, self.sdh)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         dockwidget = QtGui.QDockWidget(name)
@@ -75,7 +75,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Add a central widget in the main window."""
         if name is None:
             name = widget_class.__name__
-        widget = widget_class(self, self.dh)
+        widget = widget_class(self, self.sdh)
         widget.setObjectName(name)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
@@ -90,6 +90,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # load mock data
         provider = MockDataProvider()
         self.dh = provider.load(nspikes=100)
+        self.sdh = SelectDataHolder(self.dh)
         
         # central window, the dockable widgets are arranged around it
         self.feature_widget = self.add_central(FeatureWidget)
@@ -111,7 +112,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # exit action
         self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
-        self.quit_action.setStatusTip("Exit the application.")
         self.quit_action.triggered.connect(self.close)
         
     def initialize_menu(self):

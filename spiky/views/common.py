@@ -53,9 +53,12 @@ class SpikeDataOrganizer(object):
         self.cluster_colors = self.cluster_colors[:self.nclusters,:]
         
         # same as clusters, but with relative indexing instead of absolute
-        clusters_rel = np.arange(self.clusters_unique.max() + 1)
-        clusters_rel[self.clusters_unique] = np.arange(self.nclusters)
-        self.clusters_rel = clusters_rel[self.clusters]
+        if self.nclusters > 0:
+            clusters_rel = np.arange(self.clusters_unique.max() + 1)
+            clusters_rel[self.clusters_unique] = np.arange(self.nclusters)
+            self.clusters_rel = clusters_rel[self.clusters]
+        else:
+            self.clusters_rel = self.clusters
     
     def get_reordering(self):
         # regroup spikes from the same clusters, so that all data from
@@ -64,6 +67,9 @@ class SpikeDataOrganizer(object):
         self.permutation = []
         self.cluster_sizes_dict = {}
         self.cluster_sizes_cum = {}
+        # if self.nclusters == 0:
+            # self.permutation = np.array([])
+        # else:
         counter = 0
         for cluster in self.clusters_unique:
             # spike indices in the current cluster
@@ -78,12 +84,22 @@ class SpikeDataOrganizer(object):
             # create the spike permutation to regroup those in the same clusters
             self.permutation.append(ids)
             counter += size
-        self.permutation = np.hstack(self.permutation)
+        if self.permutation:
+            self.permutation = np.hstack(self.permutation)
+        else:
+            self.permutation = np.array([], dtype=np.int32)
         return self.permutation
         
     def reorder(self, permutation=None):
+        if self.nclusters == 0:
+            self.data_reordered = self.data
+            self.cluster_sizes = np.array([], dtype=np.int32)
+            permutation = self.get_reordering()
+            return self.data
+            
         if permutation is None:
             permutation = self.get_reordering()
+            
         # reorder data
         if self.ndim == 1:
             self.data_reordered = self.data[permutation]

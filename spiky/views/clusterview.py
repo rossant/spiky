@@ -2,8 +2,10 @@ import numpy as np
 import numpy.random as rnd
 from galry import *
 from collections import OrderedDict
+from signals import *
 
-__all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem']
+__all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
+           'ClusterTreeView']
 
 
 
@@ -399,4 +401,54 @@ class ClusterGroupManager(TreeModel):
         self.remove_node(cluster, oldgroup)
 
         
+class ClusterTreeView(QtGui.QTreeView):
+    # def __init__(self, *args):
+        # super(ClusterTreeView, self).__init__(*args)
+        
+    class ClusterDelegate(QtGui.QStyledItemDelegate):
+        def paint(self, painter, option, index):
+            """Disable the color column so that the color remains the same even
+            when it is selected."""
+            # deactivate all columns except the first one, so that selection
+            # is only possible in the first column
+            if index.column() >= 1:
+                if option.state and QtGui.QStyle.State_Selected:
+                    option.state = option.state and QtGui.QStyle.State_Off
+            super(ClusterTreeView.ClusterDelegate, self).paint(painter, option, index)
+    
+    def set_model(self, model):
+        self.setModel(model)
+        # set rate column size
+        self.header().resizeSection(1, 80)
+        # set color column size
+        self.header().resizeSection(2, 40)
+        # self.selectionChanged = self.selectionChanged
+        self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+        self.expandAll()
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setAllColumnsShowFocus(True)
+        self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
+        # self.setRootIsDecorated(False)
+        self.setItemDelegate(self.ClusterDelegate())
    
+    def selectionChanged(self, selected, deselected):
+        super(ClusterTreeView, self).selectionChanged(selected, deselected)
+        # emit the ClusterSelectionChanged signal
+        emit(self, "ClusterSelectionChanged",
+            np.sort(np.array(self.selected_clusters(), dtype=np.int32)))
+        
+        
+    def selected_clusters(self):
+        """Return the list of selected clusters."""
+        return [(v.internalPointer().clusteridx()) \
+                    for v in self.selectedIndexes() \
+                        if v.column() == 0 and \
+                           type(v.internalPointer()) == ClusterItem]
+              
+    def selected_groups(self):
+        """Return the list of selected groups."""
+        return [(v.internalPointer().groupidx()) \
+                    for v in self.selectedIndexes() \
+                        if v.column() == 0 and \
+                           type(v.internalPointer()) == GroupItem]
+                                

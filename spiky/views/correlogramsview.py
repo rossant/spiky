@@ -85,7 +85,10 @@ class HistogramTemplate(PlotTemplate):
         clusters = np.array(clusters, dtype=np.int32)
         # indices of histograms on the diagonal
         clusters = np.repeat(clusters, nsamples, axis=0)
-        identity = clusters[:,0] == clusters[:,1]
+        if nclusters:
+            identity = clusters[:,0] == clusters[:,1]
+        else:
+            identity = []
         # for each histogram, index of the color
         color_array_index = np.zeros(self.size, dtype=np.int32)
         color_array_index[identity] = np.array(np.repeat(np.arange(1, nclusters + 1),

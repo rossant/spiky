@@ -26,6 +26,8 @@ class SpikySignals(QtCore.QObject):
     
     AutomaticProjection = QtCore.pyqtSignal(object)
     
+    ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
+    
 
 SIGNALS = SpikySignals()
 
