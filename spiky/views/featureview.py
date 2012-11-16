@@ -100,38 +100,22 @@ class FeatureDataManager(object):
         # self.full_clusters = self.clusters
         
         # prepare GPU data
-        self.set_projection()
+        self.data = np.empty((self.nspikes, 2), dtype=np.float32)
+        self.set_projection(0, 0, 0, False)
+        self.set_projection(1, 0, 1)
         
         # update the highlight manager
         self.highlight_manager.initialize()
         self.selection_manager.initialize()
 
-    def set_projection(self, channel0=0, channel1=0, coord0=0, coord1=1):
+    def set_projection(self, coord, channel, feature, do_update=True):
+        i = channel * self.fetdim + feature
+        self.full_masks = self.masks[:,channel]
+        self.data[:, coord] = self.features_reordered[:, i].ravel()
         
-        # in GPU memory, X coordinates are always between -1 and 1
-        i0 = channel0 * self.fetdim + coord0
-        i1 = channel1 * self.fetdim + coord1
-        
-        # copy each color as many times as there are spikes in each cluster
-        self.colors = np.empty((self.nspikes, 4), dtype=np.float32)
-        colors = np.repeat(self.cluster_colors, self.cluster_sizes, axis=0)
-        self.colors[:,:3] = colors
-        # add transparency: the max of transparency between channel0 and 1
-        self.full_masks = np.max(self.masks[:,np.array([channel0, channel1])], 1)
-        self.colors[:,3] = self.full_masks
-        
-        # feature data
-        X = self.features_reordered[:,i0]
-        Y = self.features_reordered[:,i1]
-        
-        # create a Nx2 array with all coordinates
-        self.data = np.empty((X.size, 2), dtype=np.float32)
-        self.data[:,0] = X.ravel()
-        self.data[:,1] = Y.ravel()
-        
-        # initialize the normalizer
-        self.data_normalizer = DataNormalizer(self.data)
-        self.normalized_data = self.data_normalizer.normalize()
+        if do_update:
+            self.data_normalizer = DataNormalizer(self.data)
+            self.normalized_data = self.data_normalizer.normalize()
         
         
 class FeatureTemplate(DefaultTemplate):
@@ -347,9 +331,9 @@ class FeatureSelectionManager(object):
         
 class FeatureInteractionManager(InteractionManager):
     def initialize(self):
-        self.channel = 0
-        self.coordorder = [(0,1),(0,2),(1,2)]
-        self.icoord = 0
+        # self.channel = 0
+        # self.coordorder = [(0,1),(0,2),(1,2)]
+        # self.icoord = 0
         self.constrain_navigation = False
         
     def process_none_event(self):
@@ -357,8 +341,8 @@ class FeatureInteractionManager(InteractionManager):
         self.highlight_manager.cancel_highlight()
         
     def process_custom_event(self, event, parameter):
-        if event == FeatureEventEnum.ChangeProjection:
-            self.change_projection(parameter)
+        # if event == FeatureEventEnum.ChangeProjection:
+            # self.change_projection(parameter)
             
         # highlight
         if event == FeatureEventEnum.HighlightSpikeEvent:
@@ -380,28 +364,27 @@ class FeatureInteractionManager(InteractionManager):
             self.select_projection(parameter)
             
     def select_projection(self, parameter):
-        # ch1, fet1, ch2, fet2 = parameter
-        self.data_manager.set_projection(*parameter)  #ch1, ch2, fet1, fet2)
+        self.data_manager.set_projection(*parameter)  # coord, channel, feature
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
           
-    def change_projection(self, dir=1):
-        self.icoord += dir
-        nchannels = self.data_manager.nchannels
-        if self.icoord == 3:
-            self.icoord = 0
-            self.channel = np.mod(self.channel + 1, nchannels)
-        elif self.icoord == -1:
-            self.icoord = 2
-            self.channel = np.mod(self.channel - 1, nchannels)
-        c0, c1 = self.coordorder[self.icoord]
-        self.data_manager.set_projection(self.channel, self.channel,
-                c0, c1)
-        self.paint_manager.update_points()
+    # def change_projection(self, dir=1):
+        # # self.icoord += dir
+        # nchannels = self.data_manager.nchannels
+        # # if self.icoord == 3:
+            # # self.icoord = 0
+            # # self.channel = np.mod(self.channel + 1, nchannels)
+        # # elif self.icoord == -1:
+            # # self.icoord = 2
+            # # self.channel = np.mod(self.channel - 1, nchannels)
+        # # c0, c1 = self.coordorder[self.icoord]
+        # self.data_manager.set_projection(self.channel, self.channel,
+                # c0, c1)
+        # self.paint_manager.update_points()
         
         
 FeatureEventEnum = enum(
-    "ChangeProjection",
+    # "ChangeProjection",
     "HighlightSpikeEvent",
     
     "AddSelectionPointEvent",
@@ -433,16 +416,16 @@ class FeatureNavigationBindings(DefaultBindingSet):
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-    def set_projection(self):
-        # change projection
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
-                 key=QtCore.Qt.Key_F, param_getter=lambda p: -1)
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
-                 key=QtCore.Qt.Key_G, param_getter=lambda p: 1)
+    # def set_projection(self):
+        # # change projection
+        # self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
+                 # key=QtCore.Qt.Key_F, param_getter=lambda p: -1)
+        # self.set(UserActions.KeyPressAction, FeatureEventEnum.ChangeProjection,
+                 # key=QtCore.Qt.Key_G, param_getter=lambda p: 1)
      
     def extend(self):
         self.set_highlight()
-        self.set_projection()
+        # self.set_projection()
    
 # Selection mode
 # --------------

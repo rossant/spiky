@@ -27,6 +27,7 @@ class VisualizationWidget(QtGui.QWidget):
         self.view = self.create_view(dataholder)
         self.controller = self.create_controller()
         self.initialize()
+        self.initialize_connections()
 
     def create_view(self, dataholder):
         """Create the view and return it.
@@ -75,7 +76,9 @@ class VisualizationWidget(QtGui.QWidget):
         # set the VBox as layout of the widget
         self.setLayout(vbox)
 
-
+    def initialize_connections(self):
+        """Initialize signals/slots connections."""
+        pass
 
 
 class WaveformWidget(VisualizationWidget):
@@ -109,32 +112,56 @@ class FeatureWidget(VisualizationWidget):
             self.set_selection)
         return toolbar
         
+    def initialize_connections(self):
+        SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
+        
+    def slotProjectionChanged(self, sender, coord, channel, feature):
+        print "projection changed", coord, channel, feature
+        self.projection[coord] = (channel, feature)
+        self.set_channel_box(coord, channel)
+        self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
+                                      (coord, channel, feature))
+        
+    def set_channel_box(self, coord, channel):
+        self.channel_box[coord].setCurrentIndex(channel)
+        
     def select_feature(self, coord, fet=0):
         """Select channel coord, feature fet."""
-        print fet
+            # raise the ProjectionChanged signal, and keep the previously
+            # selected channel
+        emit(self, "ProjectionChanged", coord, self.projection[coord][0], fet)
+        
+    def select_channel(self, text, coord=0):
+        """Called when the combobox text has changed."""
+        text = text.lower()
+        channel = None
+        # select time dimension
+        if text == "time":
+            channel = -1
+        else:
+            # find if there is a number in the text, if so, it is the channel
+            # dimension
+            g = re.match("[^0-9]*([0-9]+)[^0-9]*", text)
+            if g:
+                channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
+        if channel is not None:
+            # raise the ProjectionChanged signal, and keep the previously
+            # selected feature
+            emit(self, "ProjectionChanged", coord, channel,
+                 self.projection[coord][1])
         
     def _select_feature_getter(self, coord, fet):
         """Return the callback function for the feature selection."""
         return lambda e: self.select_feature(coord, fet)
         
-    def channel_combo_changed(self, text):
-        """Called when the combobox text has changed."""
-        text = text.lower()
-        # select time dimension
-        if text == "time":
-            print "time"
-        # find if there is a number in the text, if so, it is the channel
-        # dimension
-        g = re.match("[^0-9]*([0-9]+)[^0-9]*", text)
-        if g:
-            channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
-            self.channel_selection_combobox.setCurrentIndex(channel)
-            print "channel", channel
-            # TODO: use qt signals instead
-            # self.view.interaction_manager.select_projection((channel, channel, 0, 1))
-            self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, (channel, channel, 0, 1))
+    def _select_channel_getter(self, coord):
+        """Return the callback function for the channel selection."""
+        return lambda text: self.select_channel(text, coord)
         
     def create_feature_widget(self, coord=0):
+        # coord => (channel, feature)
+        self.projection = [(0, 0), (0, 1)]
+        
         gridLayout = QtGui.QGridLayout()
         gridLayout.setSpacing(0)
         gridLayout.setMargin(0)
@@ -144,27 +171,33 @@ class FeatureWidget(VisualizationWidget):
         comboBox.setEditable(True)
         comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
         comboBox.addItems(["Channel %d" % i for i in xrange(self.dh.nchannels)])
-        comboBox.editTextChanged.connect(self.channel_combo_changed)
-        # editTextChanged
-        # currentIndexChanged
-        # activated
+        comboBox.editTextChanged.connect(self._select_channel_getter(coord))
+        self.channel_box[coord] = comboBox
         gridLayout.addWidget(comboBox, 0, 0, 1, 3)
-        self.channel_selection_combobox = comboBox
         
         # create 3 buttons for selecting the feature
         widths = [60, 30, 30]
         labels = ['A', 'B', 'C']
+        # ensure exclusivity of the group of buttons
+        pushButtonGroup = QtGui.QButtonGroup(self)
         for i in xrange(3):
             # selecting feature i
             pushButton = QtGui.QPushButton(labels[i], self)
+            pushButton.setCheckable(True)
+            if coord == i:
+                pushButton.setDown(True)
             pushButton.setMaximumSize(QtCore.QSize(widths[i], 20))
             pushButton.clicked.connect(self._select_feature_getter(coord, i))
+            pushButtonGroup.addButton(pushButton, i)
             gridLayout.addWidget(pushButton, 1, i)
         
         return gridLayout
         
     def create_controller(self):
         box = super(FeatureWidget, self).create_controller()
+        
+        # coord => channel combo box
+        self.channel_box = {}
         
         # add navigation toolbar
         self.toolbar = self.create_navigation_toolbar()

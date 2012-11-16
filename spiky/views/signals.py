@@ -2,7 +2,7 @@ from galry import *
 import numpy as np
 
 
-__all__ = ['Signals', 'emit']
+__all__ = ['SIGNALS', 'emit']
 
 
 class SpikySignals(QtCore.QObject):
@@ -16,13 +16,15 @@ class SpikySignals(QtCore.QObject):
     
     # transient highlight of spikes, with the sorted array of spike integers
     HighlightSpikes = QtCore.pyqtSignal(object, np.ndarray)
-
+    
+    # Projections have changed, the parameters are: coord, channel, feature
+    ProjectionChanged = QtCore.pyqtSignal(object, int, int, int)
     
 
-Signals = SpikySignals()
+SIGNALS = SpikySignals()
 
 def emit(sender, signalname, *args):
     # we add the sender to the arguments
     args = (sender,) + args
-    getattr(Signals, signalname).emit(*args)
+    getattr(SIGNALS, signalname).emit(*args)
 

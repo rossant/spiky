@@ -98,7 +98,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # -------
     def initialize_connections(self):
         """Initialize the signals/slots connections between widgets."""
-        Signals.HighlightSpikes.connect(self.slotHighlightSpikes)
+        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes)
 
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
