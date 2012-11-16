@@ -20,6 +20,8 @@ class SpikySignals(QtCore.QObject):
     # Projections have changed, the parameters are: coord, channel, feature
     ProjectionChanged = QtCore.pyqtSignal(object, int, int, int)
     
+    ToggleWaveformSuperposition = QtCore.pyqtSignal(object)
+    
 
 SIGNALS = SpikySignals()
 

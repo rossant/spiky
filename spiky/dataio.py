@@ -39,6 +39,7 @@ class DataHolder(object):
     nchannels: number of channels in the probe
     nspikes: total number of spikes
     probe: a Probe dic
+    fetdim: number of features per channel
     total_duration: total duration, in samples count, of the current dataset
     current_window: a tuple with the interval, in samples cuont, of the current window
     spiketimes: an array with the spike times of the spikes, in samples count
@@ -90,6 +91,7 @@ class MockDataProvider(DataProvider):
         fetdim = 3
         # TODO
         # self.holder.features = rdn.randn(nspikes, nchannels, fetdim)
+        self.holder.fetdim = fetdim
         self.holder.features = rdn.randn(nspikes, nchannels * fetdim + 1)
         
         self.holder.masks = rdn.rand(nspikes, nchannels)

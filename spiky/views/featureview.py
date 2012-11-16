@@ -63,6 +63,8 @@ def polygon_contains_points(polygon, points):
 
 
 class FeatureDataManager(object):
+    projection = [None, None]
+    
     # Initialization methods
     # ----------------------
     def set_data(self, features, fetdim=None, clusters=None, cluster_colors=None,
@@ -116,6 +118,11 @@ class FeatureDataManager(object):
         if do_update:
             self.data_normalizer = DataNormalizer(self.data)
             self.normalized_data = self.data_normalizer.normalize()
+            self.projection[coord] = (channel, feature)
+            # show the selection polygon only if the projection axes correspond
+            self.selection_manager.set_selection_polygon_visibility(
+              (self.projection[0] == self.selection_manager.projection[0]) & \
+               (self.projection[1] == self.selection_manager.projection[1]))
         
         
 class FeatureTemplate(DefaultTemplate):
@@ -228,12 +235,13 @@ class FeatureSelectionManager(object):
     points = np.zeros((100, 2))
     npoints = 0
     is_selection_pending = False
+    projection = [None, None]
     
     def polygon(self):
         return self.points[:self.npoints + 2,:]
     
     def initialize(self):
-        self.paint_manager.ds_selection_rectangle = \
+        self.paint_manager.ds_selection_polygon = \
             self.paint_manager.create_dataset(PlotTemplate,
                 position=self.points,
                 color=self.selection_polygon_color,
@@ -292,7 +300,7 @@ class FeatureSelectionManager(object):
             self.paint_manager.set_data(
                     visible=True,
                     position=self.points,
-                    dataset=self.paint_manager.ds_selection_rectangle)
+                    dataset=self.paint_manager.ds_selection_polygon)
         self.is_selection_pending = True
         self.npoints += 1
         self.points[self.npoints,:] = point
@@ -305,9 +313,15 @@ class FeatureSelectionManager(object):
             self.points[self.npoints + 1,:] = point
             self.paint_manager.set_data(
                     position=self.points,
-                    dataset=self.paint_manager.ds_selection_rectangle)
+                    dataset=self.paint_manager.ds_selection_polygon)
             # select spikes
             self.select_spikes()
+        
+    def set_selection_polygon_visibility(self, visible):
+        if hasattr(self.paint_manager, 'ds_selection_polygon'):
+            self.paint_manager.set_data(
+                    visible=visible,
+                    dataset=self.paint_manager.ds_selection_polygon)
         
     def end_point(self, point):
         """Terminate selection polygon."""
@@ -315,16 +329,18 @@ class FeatureSelectionManager(object):
         self.points[self.npoints + 1,:] = self.points[0,:]
         self.paint_manager.set_data(
                 position=self.points,
-                dataset=self.paint_manager.ds_selection_rectangle)
+                dataset=self.paint_manager.ds_selection_polygon)
         self.select_spikes()
+        # record the projection axes corresponding to the current selection
+        self.projection = list(self.data_manager.projection)
         self.is_selection_pending = False
         
     def cancel_selection(self):
         """Remove the selection polygon."""
         # hide the selection polygon
-        if self.paint_manager.ds_selection_rectangle['visible']:
+        if self.paint_manager.ds_selection_polygon['visible']:
             self.paint_manager.set_data(visible=False,
-                dataset=self.paint_manager.ds_selection_rectangle)
+                dataset=self.paint_manager.ds_selection_polygon)
         self.set_selected_spikes(np.array([]))
         self.is_selection_pending = False
         
@@ -365,6 +381,7 @@ class FeatureInteractionManager(InteractionManager):
             
     def select_projection(self, parameter):
         self.data_manager.set_projection(*parameter)  # coord, channel, feature
+        
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
           

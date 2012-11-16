@@ -106,9 +106,9 @@ class FeatureWidget(VisualizationWidget):
         toolbar = QtGui.QToolBar(self)
         toolbar.setObjectName("toolbar")
         toolbar.setIconSize(QtCore.QSize(32, 32))
-        toolbar.addAction(get_icon('hand'), "Move (press M to switch)",
+        toolbar.addAction(get_icon('hand'), "Move (press I to switch)",
             self.set_navigation)
-        toolbar.addAction(get_icon('selection'), "Selection (press M to switch)",
+        toolbar.addAction(get_icon('selection'), "Selection (press I to switch)",
             self.set_selection)
         return toolbar
         
@@ -116,23 +116,36 @@ class FeatureWidget(VisualizationWidget):
         SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
         
     def slotProjectionChanged(self, sender, coord, channel, feature):
-        print "projection changed", coord, channel, feature
+        """Process the ProjectionChanged signal."""
+        log_info("Projection changed in coord %s, channel=%d, feature=%s" \
+            % (('X', 'Y')[coord], channel, ('A', 'B', 'C')[feature]))
+        # record the new projection
         self.projection[coord] = (channel, feature)
+        # update the channel box
         self.set_channel_box(coord, channel)
+        # update the feature button
+        self.set_feature_button(coord, feature)
+        # update the view
         self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
                                       (coord, channel, feature))
         
     def set_channel_box(self, coord, channel):
+        """Select the adequate line in the channel selection combo box."""
         self.channel_box[coord].setCurrentIndex(channel)
+        
+    def set_feature_button(self, coord, feature):
+        """Push the corresponding button."""
+        self.feature_buttons[coord][feature].setChecked(True)
         
     def select_feature(self, coord, fet=0):
         """Select channel coord, feature fet."""
-            # raise the ProjectionChanged signal, and keep the previously
-            # selected channel
+        # raise the ProjectionChanged signal, and keep the previously
+        # selected channel
         emit(self, "ProjectionChanged", coord, self.projection[coord][0], fet)
         
-    def select_channel(self, text, coord=0):
-        """Called when the combobox text has changed."""
+    def select_channel_text(self, text, coord=0):
+        """Detect the selected channel when the text in the combo box changes,
+        and emit the ProjectionChanged signal if necessary."""
         text = text.lower()
         channel = None
         # select time dimension
@@ -147,7 +160,13 @@ class FeatureWidget(VisualizationWidget):
         if channel is not None:
             # raise the ProjectionChanged signal, and keep the previously
             # selected feature
-            emit(self, "ProjectionChanged", coord, channel,
+            # emit(self, "ProjectionChanged", coord, channel,
+                 # self.projection[coord][1])
+            self.set_channel_box(coord, channel)
+        
+    def select_channel(self, channel, coord=0):
+        """Raise the ProjectionChanged signal when the channel is changed."""
+        emit(self, "ProjectionChanged", coord, channel,
                  self.projection[coord][1])
         
     def _select_feature_getter(self, coord, fet):
@@ -156,7 +175,11 @@ class FeatureWidget(VisualizationWidget):
         
     def _select_channel_getter(self, coord):
         """Return the callback function for the channel selection."""
-        return lambda text: self.select_channel(text, coord)
+        return lambda channel: self.select_channel(channel, coord)
+        
+    def _select_channel_text_getter(self, coord):
+        """Return the callback function for the channel selection."""
+        return lambda text: self.select_channel_text(text, coord)
         
     def create_feature_widget(self, coord=0):
         # coord => (channel, feature)
@@ -171,24 +194,29 @@ class FeatureWidget(VisualizationWidget):
         comboBox.setEditable(True)
         comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
         comboBox.addItems(["Channel %d" % i for i in xrange(self.dh.nchannels)])
-        comboBox.editTextChanged.connect(self._select_channel_getter(coord))
+        comboBox.editTextChanged.connect(self._select_channel_text_getter(coord))
+        comboBox.currentIndexChanged.connect(self._select_channel_getter(coord))
+        comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.channel_box[coord] = comboBox
         gridLayout.addWidget(comboBox, 0, 0, 1, 3)
         
+        # TODO: use dh.fetdim instead of hard coded "3 features"
         # create 3 buttons for selecting the feature
         widths = [60, 30, 30]
         labels = ['A', 'B', 'C']
+        
         # ensure exclusivity of the group of buttons
         pushButtonGroup = QtGui.QButtonGroup(self)
-        for i in xrange(3):
+        for i in xrange(len(labels)):
             # selecting feature i
             pushButton = QtGui.QPushButton(labels[i], self)
             pushButton.setCheckable(True)
             if coord == i:
-                pushButton.setDown(True)
+                pushButton.setChecked(True)
             pushButton.setMaximumSize(QtCore.QSize(widths[i], 20))
             pushButton.clicked.connect(self._select_feature_getter(coord, i))
             pushButtonGroup.addButton(pushButton, i)
+            self.feature_buttons[coord][i] = pushButton
             gridLayout.addWidget(pushButton, 1, i)
         
         return gridLayout
@@ -197,7 +225,9 @@ class FeatureWidget(VisualizationWidget):
         box = super(FeatureWidget, self).create_controller()
         
         # coord => channel combo box
-        self.channel_box = {}
+        self.channel_box = [None, None]
+        # coord => (butA, butB, butC)
+        self.feature_buttons = [[None] * 3, [None] * 3]
         
         # add navigation toolbar
         self.toolbar = self.create_navigation_toolbar()
@@ -283,7 +313,10 @@ class ClusterWidget(QtGui.QWidget):
         # set the QTreeView options
         view = QtGui.QTreeView()
         view.setModel(self.model)
-        view.header().resizeSection(2, 20)
+        # set rate column size
+        view.header().resizeSection(1, 80)
+        # set color column size
+        view.header().resizeSection(2, 40)
         view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         view.expandAll()
         view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -328,5 +361,5 @@ class ClusterWidget(QtGui.QWidget):
                 errors.append(groupidx)
         if errors:
             msg = "Non-empty groups were not deleted."
-            self.mainwindow.statusBar().showMessage(msg, 5000)
+            self.main_window.statusBar().showMessage(msg, 5000)
     

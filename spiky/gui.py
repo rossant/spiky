@@ -37,6 +37,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.setWindowTitle(self.window_title)
         # make the UI initialization
         self.initialize()
+        # initialize actions
+        self.initialize_actions()
+        # initialize menu
+        self.initialize_menu()
+        # initialize all signals/slots connections between widgets
+        self.initialize_connections()
         # set stylesheet
         self.setStyleSheet(STYLESHEET)
         # set empty status bar
@@ -52,13 +58,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if name is None:
             name = widget_class.__name__
         widget = widget_class(self.dh)
-        widget.mainwindow = self
+        widget.main_window = self
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         dockwidget = QtGui.QDockWidget(name)
         dockwidget.setObjectName(name)
         dockwidget.setWidget(widget)
-        dockwidget.setFeatures(QtGui.QDockWidget.DockWidgetFloatable | \
+        dockwidget.setFeatures(
+            QtGui.QDockWidget.DockWidgetClosable | \
+            QtGui.QDockWidget.DockWidgetFloatable | \
             QtGui.QDockWidget.DockWidgetMovable)
         self.addDockWidget(position, dockwidget)
         return widget
@@ -68,7 +76,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if name is None:
             name = widget_class.__name__
         widget = widget_class(self.dh)
-        widget.mainwindow = self
+        widget.main_window = self
         widget.setObjectName(name)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
@@ -91,9 +99,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         self.cluster_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
         
-        # initialize all signals/slots connections between widgets
-        self.initialize_connections()
-    
+    def initialize_actions(self):
+        self.quit_action = QtGui.QAction("Exit", self)
+        self.quit_action.setShortcut("CTRL+Q")
+        self.quit_action.triggered.connect(self.close)
+        
+    def initialize_menu(self):
+        file_menu = self.menuBar().addMenu("&File")
+        file_menu.addAction(self.quit_action)
+        
     # Signals
     # -------
     def initialize_connections(self):
