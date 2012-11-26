@@ -75,7 +75,8 @@ class SelectDataHolder(object):
             'features',
             'masks',
             ]
-        self.select_clusters([])
+        # DEBUG
+        self.select_clusters([0,1,2])
         
     def get_correlograms(self, clusters):
         nclusters = len(clusters)

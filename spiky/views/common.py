@@ -121,18 +121,19 @@ class SpikeDataOrganizer(object):
         return self.data_reordered
 
 
-class HighlightManager(object):
+class HighlightManager(Manager):
     
     highlight_rectangle_color = (0.75, 0.75, 1., .25)
     
     def initialize(self):
         self.highlight_box = None
-        self.paint_manager.ds_highlight_rectangle = \
-            self.paint_manager.create_dataset(RectanglesTemplate,
+        # self.paint_manager.ds_highlight_rectangle = \
+        self.paint_manager.add_visual(RectanglesVisual,
                 coordinates=(0., 0., 0., 0.),
                 color=self.highlight_rectangle_color,
                 is_static=True,
-                visible=False)
+                visible=False,
+                name='highlight_rectangle')
     
     def highlight(self, enclosing_box):
         # get the enclosing box in the window relative coordinates
@@ -145,7 +146,7 @@ class HighlightManager(object):
         # paint highlight box
         self.paint_manager.set_data(visible=True,
             coordinates=self.highlight_box,
-            dataset=self.paint_manager.ds_highlight_rectangle)
+            visual='highlight_rectangle')
         
         # convert the box coordinates in the data coordinate system
         x0, y0 = self.interaction_manager.get_data_coordinates(x0, y0)
@@ -160,7 +161,7 @@ class HighlightManager(object):
         # self.set_highlighted_spikes([])
         if self.highlight_box is not None:
             self.paint_manager.set_data(visible=False,
-                dataset=self.paint_manager.ds_highlight_rectangle)
+                visual='highlight_rectangle')
             self.highlight_box = None
     
 

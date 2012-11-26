@@ -62,7 +62,7 @@ def polygon_contains_points(polygon, points):
         return matplotlib.nxutils.points_inside_poly(points, polygon)
 
 
-class FeatureDataManager(object):
+class FeatureDataManager(Manager):
     projection = [None, None]
     
     # Initialization methods
@@ -131,33 +131,40 @@ class FeatureDataManager(object):
         log_info("TODO: automatic projection")
         
         
-class FeatureTemplate(DefaultTemplate):
-    def initialize(self, npoints=None, nclusters=None, **kwargs):
-        self.primitive_type =PrimitiveType.Points
+class FeatureVisual(Visual):
+    def initialize(self, npoints=None, nclusters=None, 
+                    position0=None,
+                    mask=None,
+                    cluster=None,
+                    highlight=None,
+                    selection=None,
+                    cluster_colors=None):
+        
+        self.primitive_type = 'POINTS'
         self.size = npoints
         self.npoints = npoints
         self.nclusters = nclusters
         
-        self.add_attribute("position0", vartype="float", ndim=2)
-        self.add_attribute("mask", vartype="float", ndim=1)
-        self.add_attribute("cluster", vartype="int", ndim=1)
-        self.add_attribute("highlight", vartype="int", ndim=1)
-        self.add_attribute("selection", vartype="int", ndim=1)
+        self.add_attribute("position0", vartype="float", ndim=2, data=position0)
+        self.add_attribute("mask", vartype="float", ndim=1, data=mask)
+        self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
+        self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
+        self.add_attribute("selection", vartype="int", ndim=1, data=selection)
         
         self.add_uniform("cluster_colors", vartype="float", ndim=3,
-            size=self.nclusters)
+            size=self.nclusters, data=cluster_colors)
         
         self.add_varying("varying_color", vartype="float", ndim=4)
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
         
-        self.initialize_default(**kwargs)
+        # self.initialize_default(**kwargs)
         
         
 class FeaturePaintManager(PaintManager):
     def initialize(self):
-        self.ds = self.create_dataset(FeatureTemplate,
+        self.add_visual(FeatureVisual,
             npoints=self.data_manager.npoints,
             nclusters=self.data_manager.nclusters,
             position0=self.data_manager.normalized_data,
@@ -165,11 +172,12 @@ class FeaturePaintManager(PaintManager):
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
-            cluster_colors=self.data_manager.cluster_colors)
+            cluster_colors=self.data_manager.cluster_colors,
+            name='features')
         
     def update_points(self):
         self.set_data(position0=self.data_manager.normalized_data,
-            mask=self.data_manager.full_masks, dataset=self.ds)
+            mask=self.data_manager.full_masks, visual='features')
         
         
 class FeatureHighlightManager(HighlightManager):
@@ -218,7 +226,7 @@ class FeatureHighlightManager(HighlightManager):
                 emit(self.parent, 'HighlightSpikes', spikes)
             
             self.paint_manager.set_data(
-                highlight=self.highlight_mask, dataset=self.paint_manager.ds)
+                highlight=self.highlight_mask, visual='features')
         
         # self.HighlightSpikes = QtCore.pyqtSignal(np.ndarray)
         
@@ -235,7 +243,7 @@ class FeatureHighlightManager(HighlightManager):
         self.set_highlighted_spikes(np.array([]))
        
        
-class FeatureSelectionManager(object):
+class FeatureSelectionManager(Manager):
     
     selection_polygon_color = (1., 1., 1., .5)
     points = np.zeros((100, 2))
@@ -247,12 +255,13 @@ class FeatureSelectionManager(object):
         return self.points[:self.npoints + 2,:]
     
     def initialize(self):
-        self.paint_manager.ds_selection_polygon = \
-            self.paint_manager.create_dataset(PlotTemplate,
+        # self.paint_manager.ds_selection_polygon = \
+        self.paint_manager.add_visual(PlotVisual,
                 position=self.points,
                 color=self.selection_polygon_color,
-                primitive_type=PrimitiveType.LineLoop,
-                visible=False)
+                primitive_type='LINE_LOOP',
+                visible=False,
+                name='selection_polygon')
                 
         self.selection_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.selected_spikes = []
@@ -277,7 +286,7 @@ class FeatureSelectionManager(object):
                 # emit(self.parent, 'SelectionSpikes', spikes)
             
             self.paint_manager.set_data(
-                selection=self.selection_mask, dataset=self.paint_manager.ds)
+                selection=self.selection_mask, visual='features')
         
         self.selected_spikes = spikes
     
@@ -306,7 +315,7 @@ class FeatureSelectionManager(object):
             self.paint_manager.set_data(
                     visible=True,
                     position=self.points,
-                    dataset=self.paint_manager.ds_selection_polygon)
+                    visual='selection_polygon')
         self.is_selection_pending = True
         self.npoints += 1
         self.points[self.npoints,:] = point
@@ -319,7 +328,7 @@ class FeatureSelectionManager(object):
             self.points[self.npoints + 1,:] = point
             self.paint_manager.set_data(
                     position=self.points,
-                    dataset=self.paint_manager.ds_selection_polygon)
+                    visual='selection_polygon')
             # select spikes
             self.select_spikes()
         
@@ -327,7 +336,7 @@ class FeatureSelectionManager(object):
         if hasattr(self.paint_manager, 'ds_selection_polygon'):
             self.paint_manager.set_data(
                     visible=visible,
-                    dataset=self.paint_manager.ds_selection_polygon)
+                    visual='selection_polygon')
         
     def end_point(self, point):
         """Terminate selection polygon."""
@@ -335,7 +344,7 @@ class FeatureSelectionManager(object):
         self.points[self.npoints + 1,:] = self.points[0,:]
         self.paint_manager.set_data(
                 position=self.points,
-                dataset=self.paint_manager.ds_selection_polygon)
+                visual='selection_polygon')
         self.select_spikes()
         # record the projection axes corresponding to the current selection
         self.projection = list(self.data_manager.projection)
@@ -344,9 +353,9 @@ class FeatureSelectionManager(object):
     def cancel_selection(self):
         """Remove the selection polygon."""
         # hide the selection polygon
-        if self.paint_manager.ds_selection_polygon['visible']:
+        if self.paint_manager.get_visual('selection_polygon').get('visible', None):
             self.paint_manager.set_data(visible=False,
-                dataset=self.paint_manager.ds_selection_polygon)
+                visual='selection_polygon')
         self.set_selected_spikes(np.array([]))
         self.is_selection_pending = False
         

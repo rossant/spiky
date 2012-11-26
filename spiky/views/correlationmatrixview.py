@@ -41,7 +41,7 @@ class CorrelationMatrixPaintManager(PaintManager):
         self.texture = colormap(data)
     
     def initialize(self):
-        self.create_dataset(TextureTemplate, texture=self.texture)
+        self.add_visual(TextureVisual, texture=self.texture, name='correlationmatrix')
 
         
 class CorrelationMatrixView(GalryWidget):

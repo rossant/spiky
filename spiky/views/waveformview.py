@@ -170,7 +170,7 @@ class WaveformHighlightManager(HighlightManager):
                 
             self.paint_manager.set_data(
                 highlight=self.highlight_mask,
-                dataset=self.paint_manager.ds_waveforms)
+                visual='waveforms')
         
         self.highlighted_spikes = spikes
         
@@ -186,10 +186,10 @@ class WaveformHighlightManager(HighlightManager):
         self.set_highlighted_spikes(np.array([]))
     
     
-class WaveformPositionManager(object):
+class WaveformPositionManager(Manager):
     # Initialization methods
     # ----------------------
-    def __init__(self):
+    def reset(self):
         # set parameters
         self.alpha = .02
         self.beta = .02
@@ -199,8 +199,8 @@ class WaveformPositionManager(object):
         # for each spatial arrangement, the box sizes automatically computed,
         # or modified by the user
         self.box_sizes = dict()
-        self.box_sizes.__setitem__(WaveformSpatialArrangement.Linear, (0., 0.))
-        self.box_sizes.__setitem__(WaveformSpatialArrangement.Geometrical, (0., 0.))
+        self.box_sizes.__setitem__(WaveformSpatialArrangement.Linear, None)
+        self.box_sizes.__setitem__(WaveformSpatialArrangement.Geometrical, None)
         # self.T = None
         self.spatial_arrangement = WaveformSpatialArrangement.Linear
         self.superposition = WaveformSuperposition.Separated
@@ -209,7 +209,6 @@ class WaveformPositionManager(object):
         self.channel_positions = {}
         
     def normalize_channel_positions(self, spatial_arrangement, channel_positions):
-        
         channel_positions = channel_positions.copy()
         
         # waveform data bounds
@@ -329,7 +328,8 @@ class WaveformPositionManager(object):
                       
     def get_transformation(self):
         return self.box_positions, self.box_size
-                      
+                 
+                 
     # Internal methods
     # ----------------
     def save_box_size(self, w, h, arrangement=None):
@@ -432,7 +432,7 @@ class WaveformPositionManager(object):
         return xmin, ymin, xmax, ymax
         
 
-class WaveformDataManager(object):
+class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
@@ -529,9 +529,10 @@ class WaveformDataManager(object):
     
     
     
-class WaveformTemplate(DefaultTemplate):
+class WaveformVisual(Visual):
     def initialize(self, npoints=None, nclusters=None, nchannels=None, 
         nsamples=None, nspikes=None,
+        position0=None, mask=None, cluster=None, channel=None, highlight=None,
         **kwargs):
         
         self.npoints = npoints
@@ -541,16 +542,22 @@ class WaveformTemplate(DefaultTemplate):
         self.nclusters = nclusters
         self.nchannels = nchannels
         
+        # self.position0 = position0
+        # self.mask = mask
+        # self.cluster = cluster
+        # self.channel = channel
+        # self.highlight = highlight
+        
         self.bounds = np.arange(0, self.npoints + 1, 
                                 self.nsamples, dtype=np.int32)
-        self.primitive_type = PrimitiveType.LineStrip
+        self.primitive_type = 'LINE_STRIP'
         
         
-        self.add_attribute("position0", vartype="float", ndim=2)
-        self.add_attribute("mask", vartype="float", ndim=1)
-        self.add_attribute("cluster", vartype="int", ndim=1)
-        self.add_attribute("channel", vartype="int", ndim=1)
-        self.add_attribute("highlight", vartype="int", ndim=1)
+        self.add_attribute("position0", vartype="float", ndim=2, data=position0)
+        self.add_attribute("mask", vartype="float", ndim=1, data=mask)
+        self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
+        self.add_attribute("channel", vartype="int", ndim=1, data=channel)
+        self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
         
         self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
         self.add_uniform("nchannels", vartype="int", ndim=1, data=nchannels)
@@ -568,7 +575,7 @@ class WaveformTemplate(DefaultTemplate):
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
         
-        self.initialize_default(**kwargs)
+        # self.initialize_default(**kwargs)
     
     
 class WaveformPaintManager(PaintManager):
@@ -576,7 +583,7 @@ class WaveformPaintManager(PaintManager):
     def get_uniform_value(self, name):
         if name == "box_size":
             w, h = self.position_manager.load_box_size()
-            return (np.float32(w), np.float32(h))
+            return (w, h)
         if name == "box_size_margin":
             w, h = self.position_manager.load_box_size()
             alpha, beta = self.position_manager.alpha, self.position_manager.beta
@@ -592,10 +599,10 @@ class WaveformPaintManager(PaintManager):
     
     def auto_update_uniforms(self, *names):
         dic = dict([(name, self.get_uniform_value(name)) for name in names])
-        self.set_data(dataset=self.ds_waveforms, **dic)
+        self.set_data(visual='waveforms', **dic)
     
     def initialize(self):
-        self.ds_waveforms = self.create_dataset(WaveformTemplate,
+        self.add_visual(WaveformVisual,
             npoints=self.data_manager.npoints,
             nchannels=self.data_manager.nchannels,
             nclusters=self.data_manager.nclusters,
@@ -606,6 +613,7 @@ class WaveformPaintManager(PaintManager):
             cluster= self.data_manager.full_clusters,
             channel=self.data_manager.full_channels,
             highlight=self.highlight_manager.highlight_mask,
+            name='waveforms'
         )
         
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
@@ -758,10 +766,10 @@ class WaveformView(GalryWidget):
         self.constrain_navigation = False
         self.set_bindings(WaveformBindings)
         self.set_companion_classes(
-                paint_manager=WaveformPaintManager,
-                interaction_manager=WaveformInteractionManager,
                 data_manager=WaveformDataManager,
                 position_manager=WaveformPositionManager,
+                interaction_manager=WaveformInteractionManager,
+                paint_manager=WaveformPaintManager,
                 highlight_manager=WaveformHighlightManager,
                 )
         

@@ -140,15 +140,19 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         """
         # TODO: better design with the slot being in the target widgets directly
+        
         # highlighting occurred in the feature widget
-        if sender == self.feature_widget.view:
-            if hasattr(self, 'waveform_widget'):
-                self.waveform_widget.view.highlight_spikes(spikes)
+        if hasattr(self, 'feature_widget'):
+            if sender == self.feature_widget.view:
+                if hasattr(self, 'waveform_widget'):
+                    self.waveform_widget.view.highlight_spikes(spikes)
             
         # highlighting occurred in the waveform widget
-        elif sender == self.waveform_widget.view:
-            if hasattr(self, 'feature_widget'):
-                self.feature_widget.view.highlight_spikes(spikes)
+        if hasattr(self, 'waveform_widget'):
+            if sender == self.waveform_widget.view:
+                if hasattr(self, 'feature_widget'):
+                    self.feature_widget.view.highlight_spikes(spikes)
+    
     
     # User preferences related methods
     # --------------------------------

@@ -2,7 +2,7 @@ from galry import *
 import numpy.random as rdn
 
 VERTEX_SHADER = """
-    vec3 color = vec3(1, 1, 1);
+    //vec3 color = vec3(1, 1, 1);
 
     float margin = 0.05;
     float a = 1.0 / (nclusters * (1 + 2 * margin));
@@ -47,7 +47,7 @@ def get_histogram_points(hist):
     return x, y
 
 
-class HistogramDataManager(object):
+class HistogramDataManager(Manager):
     def set_data(self, histograms=None, nclusters=None, cluster_colors=None):
         # self.clusters = clusters
         # self.nclusters = nclusters
@@ -73,10 +73,13 @@ class HistogramDataManager(object):
         self.position[:,1] = Y.ravel()
         
         
-class HistogramTemplate(PlotTemplate):
+class HistogramVisual(PlotVisual):
     def initialize(self, nclusters=None, nhistograms=None, nsamples=None,
-        **kwargs):
-        self.primitive_type = PrimitiveType.TriangleStrip
+        position=None, color=None):
+        
+        self.size = position.shape[0]
+        self.primitive_type = 'TRIANGLE_STRIP'
+        
         self.position_attribute_name = "transformed_position"
         
         # get the cluster indices
@@ -97,31 +100,38 @@ class HistogramTemplate(PlotTemplate):
         # the off-diagonal
         color_array_size = nclusters + 1
         
+        
+        super(HistogramVisual, self).initialize(position=position, color=color,
+            nprimitives=nhistograms, color_array_index=color_array_index,
+            # position_attribute_name="transformed_position"
+            )
+        
         self.add_attribute("cluster", vartype="int", ndim=2, data=clusters)
         self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
         
         # call the parent initialize with the right parameters
-        kwargs.update(nprimitives=nhistograms, nsamples=nsamples,
-            single_color=False, colors_ndim=3,
-            use_color_array=True,
-            color_array_index=color_array_index,
-            color_array_size=color_array_size,
-            )
-        super(HistogramTemplate, self).initialize(**kwargs)
+        # kwargs.update(nprimitives=nhistograms, nsamples=nsamples,
+            # single_color=False, colors_ndim=3,
+            # use_color_array=True,
+            # color_array_index=color_array_index,
+            # color_array_size=color_array_size,
+            # )
+        # super(HistogramVisual, self).initialize(position=position, color=color)
     
-        self.add_vertex_main(VERTEX_SHADER, index=-2)
-        
+        self.add_vertex_main(VERTEX_SHADER)
         
 class HistogramPaintManager(PaintManager):
     def initialize(self, **kwargs):
+        
         # create dataset
-        self.create_dataset(HistogramTemplate,
+        self.add_visual(HistogramVisual,
             nclusters=self.data_manager.nclusters,
             nsamples=self.data_manager.nsamples,
             nhistograms=self.data_manager.nhistograms,
             color=self.data_manager.cluster_colors,
             # cluster=self.data_manager.clusters,
-            position=self.data_manager.position)
+            position=self.data_manager.position,
+            name='histogram')
         
 
 class CorrelogramsView(GalryWidget):
