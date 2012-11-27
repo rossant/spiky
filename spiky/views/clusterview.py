@@ -4,10 +4,9 @@ from galry import *
 from collections import OrderedDict
 from signals import *
 
+
 __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
            'ClusterTreeView']
-
-
 
 
 class TreeItem(object):
@@ -402,9 +401,6 @@ class ClusterGroupManager(TreeModel):
 
         
 class ClusterTreeView(QtGui.QTreeView):
-    # def __init__(self, *args):
-        # super(ClusterTreeView, self).__init__(*args)
-        
     class ClusterDelegate(QtGui.QStyledItemDelegate):
         def paint(self, painter, option, index):
             """Disable the color column so that the color remains the same even
@@ -422,7 +418,6 @@ class ClusterTreeView(QtGui.QTreeView):
         self.header().resizeSection(1, 80)
         # set color column size
         self.header().resizeSection(2, 40)
-        # self.selectionChanged = self.selectionChanged
         self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.expandAll()
         self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -433,8 +428,8 @@ class ClusterTreeView(QtGui.QTreeView):
    
     def selectionChanged(self, selected, deselected):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
-        # emit the ClusterSelectionChanged signal
-        emit(self, "ClusterSelectionChanged",
+        # emit the ClusterSelectionToChange signal
+        emit(self, "ClusterSelectionToChange",
             np.sort(np.array(self.selected_clusters(), dtype=np.int32)))
         
         

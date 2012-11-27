@@ -18,6 +18,7 @@ class SpikySignals(QtCore.QObject):
     HighlightSpikes = QtCore.pyqtSignal(object, np.ndarray)
     
     # Projections have changed, the parameters are: coord, channel, feature
+    ProjectionToChange = QtCore.pyqtSignal(object, int, int, int)
     ProjectionChanged = QtCore.pyqtSignal(object, int, int, int)
     
     # Toggle waveform superposition
@@ -26,6 +27,7 @@ class SpikySignals(QtCore.QObject):
     
     AutomaticProjection = QtCore.pyqtSignal(object)
     
+    ClusterSelectionToChange = QtCore.pyqtSignal(object, np.ndarray)
     ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
     
 

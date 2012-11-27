@@ -21,6 +21,40 @@ QStatusBar::item
 
 __all__ = ['SpikyMainWindow']
 
+
+
+class DataUpdater(QtGui.QWidget):
+    """"Handle data updating in the data holder, responding to signals
+    emitted by widgets.
+    
+    When a widget wants to update the data, it raises a signal with a 
+    "ToChange" postfix. This signal means that some part of the data needs
+    to change. The only object handling these signals is the DataUpdater,
+    which responds to them and updates the DataHolder accordingly.
+    Then, the DataUpdater raises new "Changed"-postfixed signals, that can
+    be handled by any widget.
+    
+    """
+    def __init__(self, dh):
+        super(DataUpdater, self).__init__()
+        self.dh = dh
+        self.initialize_connections()
+        
+    def initialize_connections(self):
+        SIGNALS.ProjectionToChange.connect(self.slotProjectionToChange)
+        SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange)
+        
+    def slotClusterSelectionToChange(self, sender, clusters):
+        self.dh.select_clusters(clusters)
+        emit(sender, 'ClusterSelectionChanged', clusters)
+        
+    def slotProjectionToChange(self, sender, coord, channel, feature):
+        emit(sender, 'ProjectionChanged', coord, channel, feature)
+        
+
+
+
+
 class SpikyMainWindow(QtGui.QMainWindow):
     window_title = "Spiky"
     
@@ -91,6 +125,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         provider = MockDataProvider()
         self.dh = provider.load(nspikes=100)
         self.sdh = SelectDataHolder(self.dh)
+        
+        # create the DataUpdater, which handles the ToChange signals and
+        # change data in the DataHolder.
+        self.du = DataUpdater(self.sdh)
         
         # central window, the dockable widgets are arranged around it
         self.feature_widget = self.add_central(FeatureWidget)

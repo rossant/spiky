@@ -128,12 +128,13 @@ class HighlightManager(Manager):
     def initialize(self):
         self.highlight_box = None
         # self.paint_manager.ds_highlight_rectangle = \
-        self.paint_manager.add_visual(RectanglesVisual,
-                coordinates=(0., 0., 0., 0.),
-                color=self.highlight_rectangle_color,
-                is_static=True,
-                visible=False,
-                name='highlight_rectangle')
+        if not self.paint_manager.get_visual('highlight_rectangle'):
+            self.paint_manager.add_visual(RectanglesVisual,
+                                    coordinates=(0., 0., 0., 0.),
+                                    color=self.highlight_rectangle_color,
+                                    is_static=True,
+                                    visible=False,
+                                    name='highlight_rectangle')
     
     def highlight(self, enclosing_box):
         # get the enclosing box in the window relative coordinates

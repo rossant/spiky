@@ -298,12 +298,12 @@ class WaveformPositionManager(Manager):
         # retrieve info
         channel_positions = self.channel_positions[self.spatial_arrangement]
         
-        # size = self.load_box_size()
-        # if size is None:
-            # w = h = 0.
-        # else:
-            # w, h = size
-        w, h = self.load_box_size()
+        size = self.load_box_size()
+        if size is None:
+            w = h = 0.
+        else:
+            w, h = size
+        # w, h = self.load_box_size()
         
         # update translation vector
         # order: cluster, channel
@@ -527,31 +527,23 @@ class WaveformDataManager(Manager):
         return i0, i1
     
     
-    
+# TODO
+MAX_CLUSTERS = 10000
     
 class WaveformVisual(Visual):
-    def initialize(self, npoints=None, nclusters=None, nchannels=None, 
-        nsamples=None, nspikes=None,
-        position0=None, mask=None, cluster=None, channel=None, highlight=None,
-        **kwargs):
+    @staticmethod
+    def get_size_bounds(nsamples=None, npoints=None):
+        size = npoints
+        bounds = np.arange(0, npoints + 1, nsamples)
+        return size, bounds
+
+    def initialize(self, nclusters=None, nchannels=None, 
+        nsamples=None, npoints=None, #nspikes=None,
+        position0=None, mask=None, cluster=None, channel=None, highlight=None):
+
+        self.size, self.bounds = WaveformVisual.get_size_bounds(nsamples, npoints)
         
-        self.npoints = npoints
-        self.nsamples = nsamples
-        self.nspikes = nspikes
-        self.size = self.npoints
-        self.nclusters = nclusters
-        self.nchannels = nchannels
-        
-        # self.position0 = position0
-        # self.mask = mask
-        # self.cluster = cluster
-        # self.channel = channel
-        # self.highlight = highlight
-        
-        self.bounds = np.arange(0, self.npoints + 1, 
-                                self.nsamples, dtype=np.int32)
         self.primitive_type = 'LINE_STRIP'
-        
         
         self.add_attribute("position0", vartype="float", ndim=2, data=position0)
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
@@ -566,9 +558,9 @@ class WaveformVisual(Visual):
         self.add_uniform("probe_scale", vartype="float", ndim=2)
         self.add_uniform("superimposed", vartype="bool", ndim=1)
         self.add_uniform("cluster_colors", vartype="float", ndim=3,
-            size=self.nclusters)
+            size=MAX_CLUSTERS)
         self.add_uniform("channel_positions", vartype="float", ndim=2,
-            size=self.nchannels)
+            size=nchannels)
         
         self.add_varying("varying_color", vartype="float", ndim=4)
         
@@ -582,12 +574,20 @@ class WaveformPaintManager(PaintManager):
     
     def get_uniform_value(self, name):
         if name == "box_size":
-            w, h = self.position_manager.load_box_size()
+            size = self.position_manager.load_box_size()
+            if size is None:
+                w = h = 0.
+            else:
+                w, h = size
             return (w, h)
         if name == "box_size_margin":
-            w, h = self.position_manager.load_box_size()
+            size = self.position_manager.load_box_size()
+            if size is None:
+                w = h = 0.
+            else:
+                w, h = size
             alpha, beta = self.position_manager.alpha, self.position_manager.beta
-            return (np.float32(w * (1 + 2 * alpha)), np.float32(h * (1 + 2 * beta)))
+            return (w * (1 + 2 * alpha), h * (1 + 2 * beta))
         if name == "probe_scale":
             return self.position_manager.probe_scale
         if name == "superimposed":
@@ -602,24 +602,38 @@ class WaveformPaintManager(PaintManager):
         self.set_data(visual='waveforms', **dic)
     
     def initialize(self):
-        self.add_visual(WaveformVisual,
+        self.add_visual(WaveformVisual, name='waveforms',
             npoints=self.data_manager.npoints,
             nchannels=self.data_manager.nchannels,
             nclusters=self.data_manager.nclusters,
             nsamples=self.data_manager.nsamples,
-            nspikes=self.data_manager.nspikes,
+            # nspikes=self.data_manager.nspikes,
             position0=self.data_manager.normalized_data,
             mask=self.data_manager.full_masks,
-            cluster= self.data_manager.full_clusters,
+            cluster=self.data_manager.full_clusters,
             channel=self.data_manager.full_channels,
-            highlight=self.highlight_manager.highlight_mask,
-            name='waveforms'
-        )
+            highlight=self.highlight_manager.highlight_mask)
         
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
             "superimposed", "cluster_colors", "channel_positions",)
         
-        
+    def update(self):
+        size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples, self.data_manager.npoints)
+        # print bounds
+        self.set_data(visual='waveforms', 
+            size=size,
+            bounds=bounds,
+            nchannels=self.data_manager.nchannels,
+            nclusters=self.data_manager.nclusters,
+            position0=self.data_manager.normalized_data,
+            mask=self.data_manager.full_masks,
+            cluster=self.data_manager.full_clusters,
+            # box_size=self.data_manager.box_size,
+            # box_size_margin=self.data_manager.box_size_margin,
+            # cluster_colors=self.data_manager.cluster_colors,
+            channel=self.data_manager.full_channels,
+            highlight=self.highlight_manager.highlight_mask)
+        self.auto_update_uniforms('box_size', 'box_size_margin', 'cluster_colors')
         
         
 class WaveformInteractionManager(InteractionManager):
@@ -775,7 +789,12 @@ class WaveformView(GalryWidget):
         
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
+        # update?
+        if self.initialized:
+            self.paint_manager.update()
+            self.updateGL()
 
+        
     # Signals-related methods
     # -----------------------
     def highlight_spikes(self, spikes):

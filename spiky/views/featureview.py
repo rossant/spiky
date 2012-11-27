@@ -131,8 +131,12 @@ class FeatureDataManager(Manager):
         log_info("TODO: automatic projection")
         
         
+    
+# TODO
+MAX_CLUSTERS = 10000
+
 class FeatureVisual(Visual):
-    def initialize(self, npoints=None, nclusters=None, 
+    def initialize(self, npoints=None, #nclusters=None, 
                     position0=None,
                     mask=None,
                     cluster=None,
@@ -142,8 +146,6 @@ class FeatureVisual(Visual):
         
         self.primitive_type = 'POINTS'
         self.size = npoints
-        self.npoints = npoints
-        self.nclusters = nclusters
         
         self.add_attribute("position0", vartype="float", ndim=2, data=position0)
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
@@ -152,32 +154,41 @@ class FeatureVisual(Visual):
         self.add_attribute("selection", vartype="int", ndim=1, data=selection)
         
         self.add_uniform("cluster_colors", vartype="float", ndim=3,
-            size=self.nclusters, data=cluster_colors)
+            size=MAX_CLUSTERS, data=cluster_colors)
         
         self.add_varying("varying_color", vartype="float", ndim=4)
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
         
-        # self.initialize_default(**kwargs)
-        
         
 class FeaturePaintManager(PaintManager):
+    def update_points(self):
+        self.set_data(position0=self.data_manager.normalized_data,
+            mask=self.data_manager.full_masks, visual='features')
+        
     def initialize(self):
-        self.add_visual(FeatureVisual,
+        self.add_visual(FeatureVisual, name='features',
             npoints=self.data_manager.npoints,
-            nclusters=self.data_manager.nclusters,
             position0=self.data_manager.normalized_data,
             mask=self.data_manager.full_masks,
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
-            cluster_colors=self.data_manager.cluster_colors,
-            name='features')
+            cluster_colors=self.data_manager.cluster_colors,)
         
-    def update_points(self):
-        self.set_data(position0=self.data_manager.normalized_data,
-            mask=self.data_manager.full_masks, visual='features')
+    def update(self):
+        
+        self.set_data(visual='features', 
+            size=self.data_manager.npoints,
+            position0=self.data_manager.normalized_data,
+            mask=self.data_manager.full_masks,
+            cluster=self.data_manager.clusters_rel,
+            highlight=self.highlight_manager.highlight_mask,
+            selection=self.selection_manager.selection_mask,
+            cluster_colors=self.data_manager.cluster_colors
+            )
+        
         
         
 class FeatureHighlightManager(HighlightManager):
@@ -255,13 +266,13 @@ class FeatureSelectionManager(Manager):
         return self.points[:self.npoints + 2,:]
     
     def initialize(self):
-        # self.paint_manager.ds_selection_polygon = \
-        self.paint_manager.add_visual(PlotVisual,
-                position=self.points,
-                color=self.selection_polygon_color,
-                primitive_type='LINE_LOOP',
-                visible=False,
-                name='selection_polygon')
+        if not self.paint_manager.get_visual('selection_polygon'):
+            self.paint_manager.add_visual(PlotVisual,
+                                    position=self.points,
+                                    color=self.selection_polygon_color,
+                                    primitive_type='LINE_LOOP',
+                                    visible=False,
+                                    name='selection_polygon')
                 
         self.selection_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.selected_spikes = []
@@ -437,7 +448,8 @@ class FeatureNavigationBindings(DefaultBindingSet):
         
     def extend(self):
         self.set_highlight()
-   
+
+
 # Selection mode
 # --------------
 class FeatureSelectionBindings(FeatureNavigationBindings):
@@ -483,6 +495,9 @@ class FeatureView(GalryWidget):
     
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
+        if self.initialized:
+            self.paint_manager.update()
+            self.updateGL()
         
     # Signals-related methods
     # -----------------------

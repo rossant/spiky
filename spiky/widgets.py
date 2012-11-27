@@ -20,6 +20,7 @@ __all__ = ['WaveformWidget',
 
 
 
+
 class VisualizationWidget(QtGui.QWidget):
     def __init__(self, main_window, dataholder):
         super(VisualizationWidget, self).__init__()
@@ -85,41 +86,43 @@ class VisualizationWidget(QtGui.QWidget):
 class WaveformWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
-        view = WaveformView()
-        view.set_data(dh.waveforms,
-                      clusters=dh.clusters,
-                      cluster_colors=dh.cluster_colors,
-                      geometrical_positions=dh.probe.positions,
-                      masks=dh.masks)
-        return view
-
-    # def initialize_connections(self):
-        # SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        self.view = WaveformView()
+        self.update_view()
+        return self.view
+        
+    def update_view(self):
+        self.view.set_data(self.dh.waveforms,
+                      clusters=self.dh.clusters,
+                      cluster_colors=self.dh.cluster_colors,
+                      geometrical_positions=self.dh.probe.positions,
+                      masks=self.dh.masks)
+    
+    def initialize_connections(self):
+        SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
+        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         
     def slotClusterSelectionChanged(self, sender, clusters):
-        dh = self.dh
-        # select clusters in the select data handler
-        dh.select_clusters(clusters)
+        self.update_view()
         
-        # pass the selected data to the view
-        self.view.clear()
-        self.view.set_data(dh.waveforms,
-                      clusters=dh.clusters,
-                      cluster_colors=dh.cluster_colors,
-                      geometrical_positions=dh.probe.positions,
-                      masks=dh.masks)
-        self.view.reinit()
+    def slotProjectionChanged(self, sender, coord, channel, feature):
+        pass
+        
+        
+        
     
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
-        view = FeatureView()
-        view.set_data(fetdim=dh.fetdim,
-                      features=dh.features,
-                      clusters=dh.clusters,
-                      cluster_colors=dh.cluster_colors,
-                      masks=dh.masks)
-        return view
+        self.view = FeatureView()
+        self.update_view()
+        return self.view
+        
+    def update_view(self):
+        self.view.set_data(fetdim=self.dh.fetdim,
+                      features=self.dh.features,
+                      clusters=self.dh.clusters,
+                      cluster_colors=self.dh.cluster_colors,
+                      masks=self.dh.masks)
 
     def create_toolbar(self):
         toolbar = QtGui.QToolBar(self)
@@ -146,18 +149,7 @@ class FeatureWidget(VisualizationWidget):
         SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         
     def slotClusterSelectionChanged(self, sender, clusters):
-        dh = self.dh
-        # select clusters in the select data handler
-        dh.select_clusters(clusters)
-        
-        # pass the selected data to the view
-        self.view.clear()
-        self.view.set_data(fetdim=dh.fetdim,
-                           features=dh.features,
-                           clusters=dh.clusters,
-                           cluster_colors=dh.cluster_colors,
-                           masks=dh.masks)
-        self.view.reinit()
+        self.update_view()
         
     def slotProjectionChanged(self, sender, coord, channel, feature):
         """Process the ProjectionChanged signal."""
@@ -173,7 +165,6 @@ class FeatureWidget(VisualizationWidget):
         self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
                                       (coord, channel, feature))
         
-        
     def set_channel_box(self, coord, channel):
         """Select the adequate line in the channel selection combo box."""
         self.channel_box[coord].setCurrentIndex(channel)
@@ -184,13 +175,13 @@ class FeatureWidget(VisualizationWidget):
         
     def select_feature(self, coord, fet=0):
         """Select channel coord, feature fet."""
-        # raise the ProjectionChanged signal, and keep the previously
+        # raise the ProjectionToChange signal, and keep the previously
         # selected channel
-        emit(self, "ProjectionChanged", coord, self.projection[coord][0], fet)
+        emit(self, "ProjectionToChange", coord, self.projection[coord][0], fet)
         
     def select_channel_text(self, text, coord=0):
         """Detect the selected channel when the text in the combo box changes,
-        and emit the ProjectionChanged signal if necessary."""
+        and emit the ProjectionToChange signal if necessary."""
         text = text.lower()
         channel = None
         # select time dimension
@@ -203,15 +194,15 @@ class FeatureWidget(VisualizationWidget):
             if g:
                 channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
         if channel is not None:
-            # raise the ProjectionChanged signal, and keep the previously
+            # raise the ProjectionToChange signal, and keep the previously
             # selected feature
-            # emit(self, "ProjectionChanged", coord, channel,
+            # emit(self, "ProjectionToChange", coord, channel,
                  # self.projection[coord][1])
             self.set_channel_box(coord, channel)
         
     def select_channel(self, channel, coord=0):
-        """Raise the ProjectionChanged signal when the channel is changed."""
-        emit(self, "ProjectionChanged", coord, channel,
+        """Raise the ProjectionToChange signal when the channel is changed."""
+        emit(self, "ProjectionToChange", coord, channel,
                  self.projection[coord][1])
         
     def _select_feature_getter(self, coord, fet):

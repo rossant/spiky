@@ -64,6 +64,7 @@ class DataHolder(object):
         filter_info: a FilterInfo dic
     """
 
+    
 class SelectDataHolder(object):
     """Provides access to the data related to selected clusters."""
     def __init__(self, dataholder):
@@ -76,7 +77,8 @@ class SelectDataHolder(object):
             'masks',
             ]
         # DEBUG
-        self.select_clusters([0,1,2])
+        # self.select_clusters([0,1,2])
+        self.select_clusters([])
         
     def get_correlograms(self, clusters):
         nclusters = len(clusters)
