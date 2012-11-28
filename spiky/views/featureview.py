@@ -133,7 +133,7 @@ class FeatureDataManager(Manager):
         
     
 # TODO
-MAX_CLUSTERS = 10000
+MAX_CLUSTERS = 100
 
 class FeatureVisual(Visual):
     def initialize(self, npoints=None, #nclusters=None, 
@@ -178,7 +178,9 @@ class FeaturePaintManager(PaintManager):
             cluster_colors=self.data_manager.cluster_colors,)
         
     def update(self):
-        
+
+        # print self.data_manager.normalized_data
+    
         self.set_data(visual='features', 
             size=self.data_manager.npoints,
             position0=self.data_manager.normalized_data,
@@ -188,9 +190,8 @@ class FeaturePaintManager(PaintManager):
             selection=self.selection_manager.selection_mask,
             cluster_colors=self.data_manager.cluster_colors
             )
-        
-        
-        
+
+
 class FeatureHighlightManager(HighlightManager):
     def initialize(self):
         super(FeatureHighlightManager, self).initialize()
@@ -252,8 +253,8 @@ class FeatureHighlightManager(HighlightManager):
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
-       
-       
+
+
 class FeatureSelectionManager(Manager):
     
     selection_polygon_color = (1., 1., 1., .5)
@@ -369,8 +370,8 @@ class FeatureSelectionManager(Manager):
                 visual='selection_polygon')
         self.set_selected_spikes(np.array([]))
         self.is_selection_pending = False
-        
-        
+
+
 class FeatureInteractionManager(InteractionManager):
     def initialize(self):
         # self.channel = 0
@@ -411,8 +412,8 @@ class FeatureInteractionManager(InteractionManager):
         self.data_manager.set_projection(*parameter)  # coord, channel, feature
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
-        
-        
+
+
 FeatureEventEnum = enum(
     "HighlightSpikeEvent",
     
@@ -496,8 +497,11 @@ class FeatureView(GalryWidget):
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
         if self.initialized:
+            log_info("Updating data for features")
             self.paint_manager.update()
             self.updateGL()
+        else:
+            log_info("Initializing data for features")
         
     # Signals-related methods
     # -----------------------

@@ -131,11 +131,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.du = DataUpdater(self.sdh)
         
         # central window, the dockable widgets are arranged around it
-        self.feature_widget = self.add_central(FeatureWidget)
-        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
-        self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         self.cluster_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+
+        self.feature_widget = self.add_central(FeatureWidget)
+        # self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        # self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         
     def initialize_actions(self):
         """Initialize all global actions."""
