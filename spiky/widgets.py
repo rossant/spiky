@@ -10,7 +10,8 @@ import re
 
 SETTINGS = tools.init_settings()
 
-__all__ = ['WaveformWidget',
+__all__ = ['VisualizationWidget',
+           'WaveformWidget',
            'FeatureWidget',
            'CorrelogramsWidget',
            'CorrelationMatrixWidget',
@@ -86,7 +87,7 @@ class VisualizationWidget(QtGui.QWidget):
 class WaveformWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
-        self.view = WaveformView()
+        self.view = WaveformView(getfocus=False)
         self.update_view()
         return self.view
         
@@ -113,7 +114,7 @@ class WaveformWidget(VisualizationWidget):
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
-        self.view = FeatureView()
+        self.view = FeatureView(getfocus=False)
         self.view.set_data(fetdim=self.dh.fetdim,
                       features=self.dh.features,
                       clusters=self.dh.clusters,
@@ -308,8 +309,16 @@ class CorrelationMatrixWidget(VisualizationWidget):
 
 class ClusterWidget(QtGui.QWidget):
     
-    def __init__(self, main_window, dh):
+    def __init__(self, main_window, dh, getfocus=True):
         super(ClusterWidget, self).__init__()
+        
+        
+        # Capture keyboard events.
+        if getfocus:
+            self.setFocusPolicy(QtCore.Qt.WheelFocus)
+        
+        
+        
         self.main_window = main_window
         # put the controller and the view vertically
         vbox = QtGui.QVBoxLayout()
@@ -318,8 +327,8 @@ class ClusterWidget(QtGui.QWidget):
         self.add_menu()
         
         # add controller
-        self.controller = QtGui.QPushButton()
-        vbox.addWidget(self.controller, stretch=1)
+        # self.controller = QtGui.QPushButton()
+        # vbox.addWidget(self.controller, stretch=1)
         
         # add the tree view
         self.view = self.create_tree_view(dh)

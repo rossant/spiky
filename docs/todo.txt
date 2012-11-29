@@ -1,4 +1,34 @@
 
+  * remove all arrow shortcuts in views (currently they all are bound
+    to all widgets)
+    
+  * clusterview: nav with keyboard?
+  
+  * P for automatic projection in feature view
+    
+  * save clusterview arrangement
+  
+  * function for automatic zoom in waveformview as a function of
+    channels and clusters
+    
+  * keyboard shortcuts for probe/box rescaling in waveformview
+  
+  * featureview controller: buttons for channel up/down
+  
+  * overlay: make the spikes with the same size?
+  
+  * cluster group renaming
+  
+  * feature view: toggle transparency (T)
+
+  * channel selection in waveformview
+  
+  * correlograms computation
+  
+  * cluster merge with button / M press
+  
+  * cluster split with button / S press
+
   * trace view
 
   * lowlight: gray or original colors

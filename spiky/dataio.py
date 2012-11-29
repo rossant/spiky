@@ -164,7 +164,7 @@ class MockDataProvider(DataProvider):
                        dict(name='MUA')]
         self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         self.holder.clusters_info = Info(
-            colors=np.arange(nclusters),
+            colors=np.mod(np.arange(nclusters), len(COLORMAP)),
             names=['cluster%d' % i for i in xrange(nclusters)],
             rates=rdn.rand(nclusters) * 20,
             groups_info=groups_info,

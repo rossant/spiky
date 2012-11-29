@@ -171,7 +171,7 @@ class FeatureVisual(Visual):
         self.add_varying("vmask", vartype="float", ndim=1)
         
         
-        self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
+        # self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
         
         self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
         self.add_varying("vhighlight", vartype="int", ndim=1)
@@ -239,14 +239,13 @@ class FeaturePaintManager(PaintManager):
 
         cluster = self.data_manager.clusters_rel
         cluster_colors = self.data_manager.cluster_colors
-    
         cmap_index = cluster_colors[cluster]
     
         self.set_data(visual='features', 
             size=self.data_manager.npoints,
             position0=self.data_manager.normalized_data,
             mask=self.data_manager.full_masks,
-            cluster=self.data_manager.clusters_rel,
+            # cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
             cmap_index=cmap_index

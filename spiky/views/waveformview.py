@@ -7,6 +7,7 @@ import time
 from galry import *
 from common import *
 from signals import emit
+from colors import COLORMAP
 
 __all__ = ['WaveformView']
 
@@ -31,18 +32,29 @@ VERTEX_SHADER = """
     vec2 position = position0 * 0.5 * box_size + box_position;
     
     // compute the color: cluster color and mask for the transparency
-    varying_color.xyz = cluster_colors[int(cluster)];
-    varying_color.w = mask;
+    //varying_color.xyz = cluster_colors[int(cluster)];
+    //varying_color.w = mask;
+    
+    
+    vhighlight = highlight;
+    cmap_vindex = cmap_index;
+    vmask = mask;
     
     // highlighting: change color, not transparency
     // HACK: when OLDGLSL is enabled, highlight is not a bool but a number
     // because attributes cannot be bools. so this test works in both cases
-    if (highlight > 0)
-        varying_color = vec4(1, 1, 1, varying_color.w);
+    //if (highlight > 0)
+        //varying_color = vec4(1, 1, 1, varying_color.w);
+        //vhighlight = highlight;
 """
         
 FRAGMENT_SHADER = """
-    out_color = varying_color;
+    //out_color = varying_color;
+    float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
+    out_color = texture1D(cmap, index);
+    if (vhighlight > 0)
+        out_color.xyz = vec3(1., 1., 1.);
+    out_color.w = vmask;
 """
 
 HIGHLIGHT_CLOSE_BOXES_COUNT = 4
@@ -321,7 +333,10 @@ class WaveformPositionManager(Manager):
             clusters = np.tile(np.arange(self.nclusters), (self.nchannels, 1))
             Tx += w * (1 + 2 * self.alpha) * \
                                     (.5 + clusters - self.nclusters / 2.)
-        
+
+        # print Tx
+        # print self.nclusters
+                             
         # record box positions and size
         self.box_positions = Tx, Ty
         self.box_size = (w, h)
@@ -348,29 +363,34 @@ class WaveformPositionManager(Manager):
         if self.nclusters == 0:
             return 0., 0.
         do_save = (spatial_arrangement is None) and (superposition is None)
-        if spatial_arrangement is None:
-            spatial_arrangement = self.spatial_arrangement
-        if superposition is None:
-            superposition = self.superposition
+        # if spatial_arrangement is None:
+            # spatial_arrangement = self.spatial_arrangement
+        # if superposition is None:
+            # superposition = self.superposition
             
-        if spatial_arrangement == WaveformSpatialArrangement.Linear:
-            if superposition == WaveformSuperposition.Superimposed:
-                w = 2./(1+2*self.alpha)
-                h = 2./(self.nchannels*(1+self.beta))
-            elif superposition == WaveformSuperposition.Separated:
-                w = 2./(self.nclusters*(1+2*self.alpha))
-                h = 2./(self.nchannels*(1+2*self.beta))
-        elif spatial_arrangement == WaveformSpatialArrangement.Geometrical:
-            if superposition == WaveformSuperposition.Superimposed:
-                w = 2./(self.diffxc*(1+2*self.beta))
-                h = 2./(self.diffyc*(1+2*self.beta))
-            elif superposition == WaveformSuperposition.Separated:
-                w = 2./((1+2*self.alpha)*(1+2*self.beta)*self.nclusters*
-                                self.diffxc)
-                h = 2./((1+2*self.beta)*self.diffyc)
+        # if spatial_arrangement == WaveformSpatialArrangement.Linear:
+            # if superposition == WaveformSuperposition.Superimposed:
+                # w = 2./(1+2*self.alpha)
+                # h = 2./(self.nchannels*(1+self.beta))
+            # elif superposition == WaveformSuperposition.Separated:
+                # w = 2./(self.nclusters*(1+2*self.alpha))
+                # h = 2./(self.nchannels*(1+2*self.beta))
+        # elif spatial_arrangement == WaveformSpatialArrangement.Geometrical:
+            # if superposition == WaveformSuperposition.Superimposed:
+                # w = 2./(self.diffxc*(1+2*self.beta))
+                # h = 2./(self.diffyc*(1+2*self.beta))
+            # elif superposition == WaveformSuperposition.Separated:
+                # w = 2./((1+2*self.alpha)*(1+2*self.beta)*self.nclusters*
+                                # self.diffxc)
+                # h = 2./((1+2*self.beta)*self.diffyc)
+        
+        w = .5
+        h = .1
+        
         if do_save:
             self.save_box_size(w, h)
         return w, h
+        
         
     # Interactive update methods
     # --------------------------
@@ -527,8 +547,6 @@ class WaveformDataManager(Manager):
         return i0, i1
     
     
-# TODO
-MAX_CLUSTERS = 10000
     
 class WaveformVisual(Visual):
     @staticmethod
@@ -539,30 +557,63 @@ class WaveformVisual(Visual):
 
     def initialize(self, nclusters=None, nchannels=None, 
         nsamples=None, npoints=None, #nspikes=None,
-        position0=None, mask=None, cluster=None, channel=None, highlight=None):
+        position0=None, mask=None, cluster=None, 
+        cluster_colors=None, channel=None, highlight=None):
 
         self.size, self.bounds = WaveformVisual.get_size_bounds(nsamples, npoints)
         
         self.primitive_type = 'LINE_STRIP'
         
         self.add_attribute("position0", vartype="float", ndim=2, data=position0)
+        
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
+        self.add_varying("vmask", vartype="float", ndim=1)
+        
+        
         self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
         self.add_attribute("channel", vartype="int", ndim=1, data=channel)
+        
         self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
+        self.add_varying("vhighlight", vartype="int", ndim=1)
+        
         
         self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
-        self.add_uniform("nchannels", vartype="int", ndim=1, data=nchannels)
+        # self.add_uniform("nchannels", vartype="int", ndim=1, data=nchannels)
         self.add_uniform("box_size", vartype="float", ndim=2)
         self.add_uniform("box_size_margin", vartype="float", ndim=2)
         self.add_uniform("probe_scale", vartype="float", ndim=2)
         self.add_uniform("superimposed", vartype="bool", ndim=1)
-        self.add_uniform("cluster_colors", vartype="float", ndim=3,
-            size=MAX_CLUSTERS)
+        # self.add_uniform("cluster_colors", vartype="float", ndim=3,
+            # size=MAX_CLUSTERS)
         self.add_uniform("channel_positions", vartype="float", ndim=2,
             size=nchannels)
         
-        self.add_varying("varying_color", vartype="float", ndim=4)
+        # self.add_varying("varying_color", vartype="float", ndim=4)
+        
+        
+        ncolors = COLORMAP.shape[0]
+        ncomponents = COLORMAP.shape[1]
+        
+        
+        colormap = COLORMAP.reshape((1, ncolors, ncomponents))
+        
+        cmap_index = cluster_colors[cluster]
+        
+        self.add_texture('cmap', ncomponents=ncomponents, ndim=1, data=colormap)
+        self.add_attribute('cmap_index', ndim=1, vartype='int', data=cmap_index)
+        self.add_varying('cmap_vindex', vartype='int', ndim=1)
+        
+        
+        dx = 1. / ncolors
+        offset = dx / 2.
+        
+        # print ncolors, dx, offset
+        
+        global FRAGMENT_SHADER
+        FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_OFFSET%', "%.5f" % offset)
+        FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_STEP%', "%.5f" % dx)
+        
+        
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
@@ -592,14 +643,18 @@ class WaveformPaintManager(PaintManager):
             return self.position_manager.probe_scale
         if name == "superimposed":
             return self.position_manager.superposition == WaveformSuperposition.Superimposed
-        if name == "cluster_colors":
-            return self.data_manager.cluster_colors
+        # if name == "cluster_colors":
+            # return self.data_manager.cluster_colors
         if name == "channel_positions":
-            return self.position_manager.get_channel_positions()
+            pos = self.position_manager.get_channel_positions()
+            # print pos
+            return pos
     
     def auto_update_uniforms(self, *names):
         dic = dict([(name, self.get_uniform_value(name)) for name in names])
         self.set_data(visual='waveforms', **dic)
+    
+    
     
     def initialize(self):
         self.add_visual(WaveformVisual, name='waveforms',
@@ -609,31 +664,48 @@ class WaveformPaintManager(PaintManager):
             nsamples=self.data_manager.nsamples,
             # nspikes=self.data_manager.nspikes,
             position0=self.data_manager.normalized_data,
+            cluster_colors=self.data_manager.cluster_colors,
             mask=self.data_manager.full_masks,
             cluster=self.data_manager.full_clusters,
             channel=self.data_manager.full_channels,
             highlight=self.highlight_manager.highlight_mask)
         
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
-            "superimposed", "cluster_colors", "channel_positions",)
+            "superimposed", "channel_positions",)
         
     def update(self):
+        
+        # self.position_manager.update_arrangement()
+        
+        
         size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples, self.data_manager.npoints)
         # print bounds
+        
+        cluster = self.data_manager.full_clusters
+        cluster_colors = self.data_manager.cluster_colors
+        cmap_index = cluster_colors[cluster]
+    
+        # self.position_manager.find_box_size()
+        
         self.set_data(visual='waveforms', 
             size=size,
             bounds=bounds,
-            nchannels=self.data_manager.nchannels,
+            # nchannels=self.data_manager.nchannels,
             nclusters=self.data_manager.nclusters,
             position0=self.data_manager.normalized_data,
             mask=self.data_manager.full_masks,
             cluster=self.data_manager.full_clusters,
+            cmap_index=cmap_index,
             # box_size=self.data_manager.box_size,
             # box_size_margin=self.data_manager.box_size_margin,
             # cluster_colors=self.data_manager.cluster_colors,
             channel=self.data_manager.full_channels,
             highlight=self.highlight_manager.highlight_mask)
-        self.auto_update_uniforms('box_size', 'box_size_margin', 'cluster_colors')
+        self.auto_update_uniforms('box_size', 'box_size_margin',
+            # "probe_scale",
+            # "superimposed",
+            "channel_positions"
+            )
         
         
 class WaveformInteractionManager(InteractionManager):
@@ -746,8 +818,8 @@ class WaveformBindings(DefaultBindingSet):
         self.set(UserActions.RightButtonMouseMoveAction,
                  WaveformEventEnum.ChangeProbeScaleEvent,
                  key_modifier=QtCore.Qt.Key_Control,
-                 param_getter=lambda p: (p["mouse_position_diff"][0]*1,
-                                         p["mouse_position_diff"][1]*1))
+                 param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
+                                         p["mouse_position_diff"][1] * .5))
 
     def set_highlight(self):
         # highlight

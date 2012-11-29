@@ -60,6 +60,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
     
     def __init__(self):
         super(SpikyMainWindow, self).__init__()
+        # list all dock and central widgets
+        
+        
+        self.allwidgets = []
+        
+        self.setFocusPolicy(QtCore.Qt.WheelFocus)
+        
         # parameters related to docking
         self.setAnimated(False)
         self.setTabPosition(
@@ -92,7 +99,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Add a dockable widget"""
         if name is None:
             name = widget_class.__name__
-        widget = widget_class(self, self.sdh)
+        widget = widget_class(self, self.sdh)#, getfocus=False)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         dockwidget = QtGui.QDockWidget(name)
@@ -103,17 +110,21 @@ class SpikyMainWindow(QtGui.QMainWindow):
             QtGui.QDockWidget.DockWidgetFloatable | \
             QtGui.QDockWidget.DockWidgetMovable)
         self.addDockWidget(position, dockwidget)
+        if isinstance(widget, VisualizationWidget):
+            self.allwidgets.append(widget)
         return widget
         
     def add_central(self, widget_class, name=None, minsize=None):
         """Add a central widget in the main window."""
         if name is None:
             name = widget_class.__name__
-        widget = widget_class(self, self.sdh)
+        widget = widget_class(self, self.sdh)#, getfocus=False)
         widget.setObjectName(name)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         self.setCentralWidget(widget)
+        if isinstance(widget, VisualizationWidget):
+            self.allwidgets.append(widget)
         return widget
     
     # Initialization
@@ -134,7 +145,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.cluster_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
 
         self.feature_widget = self.add_central(FeatureWidget)
-        # self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
         # self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
         # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         
@@ -163,6 +174,26 @@ class SpikyMainWindow(QtGui.QMainWindow):
         file_menu.addAction(self.quit_action)
         
         
+    
+    def redirect_event(self, event_name, e):
+        for widget in self.allwidgets:
+            getattr(widget.view, event_name)(e)
+        
+    def keyPressEvent(self, e):
+        self.redirect_event('keyPressEvent', e)
+
+    def keyReleaseEvent(self, e):
+        self.redirect_event('keyReleaseEvent', e)
+
+    def mousePressEvent(self, e):
+        self.redirect_event('mousePressEvent', e)
+
+    def mouseReleaseEvent(self, e):
+        self.redirect_event('mouseReleaseEvent', e)
+
+            
+            
+            
     # Signals
     # -------
     def initialize_connections(self):

@@ -401,6 +401,10 @@ class ClusterGroupManager(TreeModel):
 
         
 class ClusterTreeView(QtGui.QTreeView):
+    
+    # def __init__(self, *args, **kwargs):
+        # super(ClusterTreeView, self).__init__(self, *args, **kwargs)
+        
     class ClusterDelegate(QtGui.QStyledItemDelegate):
         def paint(self, painter, option, index):
             """Disable the color column so that the color remains the same even
@@ -413,6 +417,18 @@ class ClusterTreeView(QtGui.QTreeView):
             super(ClusterTreeView.ClusterDelegate, self).paint(painter, option, index)
     
     def set_model(self, model):
+        # Capture keyboard events.
+        # getfocus = False
+        # if getfocus:
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
+    
+        self.setStyleSheet("""
+        QTreeView::item:selected {
+            background-color: #3399ff;
+            color: #ffffff;
+        }
+        """);
+        
         self.setModel(model)
         # set rate column size
         self.header().resizeSection(1, 80)
