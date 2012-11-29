@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.random as rdn
 from galry import *
-import colors
+from views.colors import COLORMAP
 from tools import Info
 
 
@@ -164,8 +164,7 @@ class MockDataProvider(DataProvider):
                        dict(name='MUA')]
         self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         self.holder.clusters_info = Info(
-            colors=np.array(colors.generate_colors(nclusters),
-                                    dtype=np.float32),
+            colors=np.arange(nclusters),
             names=['cluster%d' % i for i in xrange(nclusters)],
             rates=rdn.rand(nclusters) * 20,
             groups_info=groups_info,

@@ -114,7 +114,12 @@ class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
         self.view = FeatureView()
-        self.update_view()
+        self.view.set_data(fetdim=self.dh.fetdim,
+                      features=self.dh.features,
+                      clusters=self.dh.clusters,
+                      # colormap=self.dh.colormap,
+                      cluster_colors=self.dh.cluster_colors,
+                      masks=self.dh.masks)
         return self.view
         
     def update_view(self):

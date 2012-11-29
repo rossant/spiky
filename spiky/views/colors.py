@@ -1,6 +1,9 @@
 # import colorsys
 import matplotlib.colors as cl
+import numpy as np
 colconv = cl.ColorConverter()
+
+__all__ = ['COLORMAP', 'COLORS', 'COLORS_COUNT', 'generate_colors']
 
 """
 website: http://phrogz.net/css/distinct-colors.html
@@ -15,7 +18,11 @@ COLORS_STRING = """ #ff0000, #0066ff, #00ff22, #ffaa00, #cc00ff, #eeff00,
 COLORS = map(colconv.to_rgb, map(str.strip, COLORS_STRING.split(",")))
 COLORS_COUNT = len(COLORS)
 
-def generate_colors(n):
+COLORMAP = np.array(COLORS)
+
+def generate_colors(n=None):
+    if n is None:
+        n = COLORS_COUNT
     if n < COLORS_COUNT:
         return COLORS[:n]
     else:

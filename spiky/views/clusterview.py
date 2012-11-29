@@ -3,7 +3,7 @@ import numpy.random as rnd
 from galry import *
 from collections import OrderedDict
 from signals import *
-
+from colors import COLORMAP
 
 __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
            'ClusterTreeView']
@@ -199,7 +199,7 @@ class ClusterItem(TreeItem):
     def __init__(self, parent=None, name=None, clusteridx=None, color=None,
             rate=None):
         if color is None:
-            color = (1., 1., 1.)
+            color = 0#(1., 1., 1.)
         data = OrderedDict()
         # different columns fields
         data['name'] = name
@@ -343,7 +343,7 @@ class ClusterGroupManager(TreeModel):
             # color
             elif col == self.columnCount() - 1:
                 if role == QtCore.Qt.BackgroundRole:
-                    color = np.array(item.color()) * 255
+                    color = np.array(COLORMAP[item.color()]) * 255
                     return QtGui.QColor(*color)
                     
         # default

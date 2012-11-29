@@ -8,6 +8,7 @@ from matplotlib.path import Path
 from galry import *
 from common import *
 from signals import *
+from colors import COLORMAP
 
 # import colors
 # from probes import Probe
@@ -22,16 +23,19 @@ VERTEX_SHADER = """
     vec2 position = position0;
     
     // compute the color: cluster color and mask for the transparency
-    varying_color.xyz = cluster_colors[int(cluster)];
-    varying_color.w = mask;
+    //varying_color.xyz = cluster_colors[int(cluster)];
+    //varying_color.w = mask;
     
     // highlighting: change color, not transparency
-    if (highlight > 0)
-        varying_color = vec4(1, 1, 1, varying_color.w);
-        
+    //if (highlight > 0)
+    //    varying_color = vec4(1, 1, 1, varying_color.w);
+
+    vhighlight = highlight;
+    cmap_vindex = cmap_index;
+    vmask = mask;
+    
     // selection
     if (selection > 0)
-        //varying_color = vec4(1, 1, 1, varying_color.w);
         gl_PointSize = 6.;
     else
         gl_PointSize = 3.;
@@ -39,7 +43,12 @@ VERTEX_SHADER = """
      
      
 FRAGMENT_SHADER = """
-    out_color = varying_color;
+    //out_color = varying_color;
+    float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
+    out_color = texture1D(cmap, index);
+    if (vhighlight > 0)
+        out_color.xyz = vec3(1., 1., 1.);
+    out_color.w = vmask;
 """
 
 def polygon_contains_points(polygon, points):
@@ -67,7 +76,8 @@ class FeatureDataManager(Manager):
     
     # Initialization methods
     # ----------------------
-    def set_data(self, features=None, fetdim=None, clusters=None, cluster_colors=None,
+    def set_data(self, features=None, fetdim=None, clusters=None,
+                cluster_colors=None, #colormap=None,
                  masks=None, spike_ids=None):
         
         assert fetdim is not None
@@ -77,6 +87,7 @@ class FeatureDataManager(Manager):
         self.nchannels = (self.ndim - 1) // self.fetdim
         self.npoints = features.shape[0]
         self.features = features
+        # self.colormap = colormap
         
         # data organizer: reorder data according to clusters
         self.data_organizer = SpikeDataOrganizer(features,
@@ -133,30 +144,75 @@ class FeatureDataManager(Manager):
         
     
 # TODO
-MAX_CLUSTERS = 100
+# MAX_CLUSTERS = 100
 
 class FeatureVisual(Visual):
+    # def cluster_color_compound(self, cluster_colors):
+        # cmap_index = cluster_colors[cluster]
+        # return dict(cmap_index=cmap_index)
+
     def initialize(self, npoints=None, #nclusters=None, 
                     position0=None,
                     mask=None,
                     cluster=None,
                     highlight=None,
                     selection=None,
-                    cluster_colors=None):
+                    cluster_colors=None,
+                    # colormap=None
+                    ):
+        # cluster_colors gives, for each cluster, the index in the colormap
         
         self.primitive_type = 'POINTS'
         self.size = npoints
         
         self.add_attribute("position0", vartype="float", ndim=2, data=position0)
+        
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
+        self.add_varying("vmask", vartype="float", ndim=1)
+        
+        
         self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
+        
         self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
+        self.add_varying("vhighlight", vartype="int", ndim=1)
+        
         self.add_attribute("selection", vartype="int", ndim=1, data=selection)
+        # self.cluster = cluster
+        # color map for cluster colors, each spike has an index of the color
+        # in the color map
+        ncolors = COLORMAP.shape[0]
+        ncomponents = COLORMAP.shape[1]
         
-        self.add_uniform("cluster_colors", vartype="float", ndim=3,
-            size=MAX_CLUSTERS, data=cluster_colors)
+        # self.ncolors = ncolors
+        # self.ncomponents = ncomponents
         
-        self.add_varying("varying_color", vartype="float", ndim=4)
+        # associate the cluster color to each spike
+        # cmap = cmap[cluster, :]
+        # give the correct shape to cmap
+        colormap = COLORMAP.reshape((1, ncolors, ncomponents))
+        
+        cmap_index = cluster_colors[cluster]
+        
+        self.add_texture('cmap', ncomponents=ncomponents, ndim=1, data=colormap)
+        self.add_attribute('cmap_index', ndim=1, vartype='int', data=cmap_index)
+        self.add_varying('cmap_vindex', vartype='int', ndim=1)
+        
+        
+        dx = 1. / ncolors
+        offset = dx / 2.
+        
+        # print ncolors, dx, offset
+        
+        global FRAGMENT_SHADER
+        FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_OFFSET%', "%.5f" % offset)
+        FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_STEP%', "%.5f" % dx)
+        
+        # print FRAGMENT_SHADER
+        
+        # self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
+        # self.add_uniform("cluster_colors", vartype="float", ndim=3,
+            # size=MAX_CLUSTERS, data=cluster_colors)
+        # self.add_varying("varying_color", vartype="float", ndim=4)
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
@@ -175,11 +231,16 @@ class FeaturePaintManager(PaintManager):
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
-            cluster_colors=self.data_manager.cluster_colors,)
+            cluster_colors=self.data_manager.cluster_colors,
+            # colormap=self.data_manager.colormap,
+            )
         
     def update(self):
 
-        # print self.data_manager.normalized_data
+        cluster = self.data_manager.clusters_rel
+        cluster_colors = self.data_manager.cluster_colors
+    
+        cmap_index = cluster_colors[cluster]
     
         self.set_data(visual='features', 
             size=self.data_manager.npoints,
@@ -188,7 +249,7 @@ class FeaturePaintManager(PaintManager):
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
-            cluster_colors=self.data_manager.cluster_colors
+            cmap_index=cmap_index
             )
 
 

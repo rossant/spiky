@@ -41,7 +41,6 @@ class SpikeDataOrganizer(object):
         self.data = enforce_dtype(data, np.float32)
         self.clusters = enforce_dtype(clusters, np.int32)
         self.masks = enforce_dtype(masks, np.float32)
-        self.cluster_colors = enforce_dtype(cluster_colors, np.float32)
         
         # unique clusters
         self.clusters_unique = np.unique(clusters)
@@ -49,8 +48,9 @@ class SpikeDataOrganizer(object):
         self.nclusters = len(self.clusters_unique)
         
         if cluster_colors is None:
-            cluster_colors = np.ones((self.nclusters, 3))
-        self.cluster_colors = self.cluster_colors[:self.nclusters,:]
+            cluster_colors = np.ones(self.nclusters)
+        cluster_colors = enforce_dtype(cluster_colors, np.int32)
+        self.cluster_colors = cluster_colors[:self.nclusters,...]
         
         # same as clusters, but with relative indexing instead of absolute
         if self.nclusters > 0:
