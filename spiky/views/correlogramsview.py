@@ -1,4 +1,6 @@
 from galry import *
+from common import *
+from colors import COLORMAP
 import numpy.random as rdn
 
 VERTEX_SHADER = """
@@ -12,6 +14,7 @@ VERTEX_SHADER = """
     box_position.y = 1 - a * (1 + 2 * margin) * (2 * cluster.x + 1);
     
     vec2 transformed_position = box_position + a * position;
+    //vec2 transformed_position = position;
 """
 
 
@@ -26,6 +29,8 @@ def get_histogram_points(hist):
         histograms, a
       
     """
+    if hist.size == 0:
+        return np.array([[]]), np.array([[]])
     n, nsamples = hist.shape
     dx = 2. / nsamples
     
@@ -48,14 +53,17 @@ def get_histogram_points(hist):
 
 
 class HistogramDataManager(Manager):
-    def set_data(self, histograms=None, nclusters=None, cluster_colors=None):
+    def set_data(self, histograms=None, #nclusters=None, 
+        cluster_colors=None):
+        
         # self.clusters = clusters
         # self.nclusters = nclusters
         self.histograms = histograms
         self.nhistograms, self.nbins = histograms.shape
         self.nprimitives = self.nhistograms
         # index 0 = heterogeneous clusters, index>0 ==> cluster index + 1
-        self.cluster_colors = np.vstack((np.array([1.,1.,1.]), cluster_colors))
+        # self.cluster_colors = np.vstack((np.array([1.,1.,1.]), cluster_colors))
+        self.cluster_colors = cluster_colors
         
         # one histogram per cluster pair (i,j) 
         # assert self.nhistograms == self.nclusters * (self.nclusters + 1) / 2
@@ -72,77 +80,150 @@ class HistogramDataManager(Manager):
         self.position[:,0] = X.ravel()
         self.position[:,1] = Y.ravel()
         
+        # cluster i and j for each histogram in the view
+        clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j <= i]
+        self.clusters = np.array(clusters, dtype=np.int32)
+        
+        
+        
+        color_array_index = np.zeros(self.nhistograms, dtype=np.int32)
+        
+        # indices of histograms on the diagonal
+        if self.nclusters:
+            identity = self.clusters[:,0] == self.clusters[:,1]
+        else:
+            identity = []
+        
+        color_array_index[identity] = cluster_colors + 1
+        
+        # color_array_size = nclusters + 1
+        self.color = np.vstack((np.ones((1, 3)), COLORMAP))
+        
+        # colormap, color_array_index
+        
+        self.color_array_index = color_array_index
+        
+        self.clusters = np.repeat(self.clusters, self.nsamples, axis=0)
+        self.color_array_index = np.repeat(self.color_array_index, self.nsamples, axis=0)
+        
         
 class HistogramVisual(PlotVisual):
-    def initialize(self, nclusters=None, nhistograms=None, nsamples=None,
-        position=None, color=None):
+    
+    # @staticmethod
+    # def get_clusters(nclusters):
+        # clusters = [(i,j) for i in xrange(nclusters) for j in xrange(nclusters) if j <= i]
+        # clusters = np.array(clusters, dtype=np.int32)
+        # return clusters
+    
+    # @staticmethod
+    # def get_colors(nclusters, nhistograms, cluster_colors):
+        # color_array_index = np.zeros(nhistograms, dtype=np.int32)
         
-        self.size = position.shape[0]
-        self.primitive_type = 'TRIANGLE_STRIP'
+
+        # # indices of histograms on the diagonal
+        # if nclusters:
+            # identity = clusters[:,0] == clusters[:,1]
+        # else:
+            # identity = []
+        
+        # color_array_index[identity] = cluster_colors + 1
+        
+        # color_array_size = nclusters + 1
+        # colormap = np.vstack((COLORMAP, np.ones((1, 3))))
+        
+        # return colormap, color_array_index
+    
+    def initialize(self, nclusters=None, nhistograms=None, #nsamples=None,
+        position=None, color=None, color_array_index=None, clusters=None):
         
         self.position_attribute_name = "transformed_position"
         
-        # get the cluster indices
-        # clusters = np.zeros((nhistograms * nsamples, 2), dtype=np.float32)
-        clusters = [(i,j) for i in xrange(nclusters) for j in xrange(nclusters) if j <= i]
-        clusters = np.array(clusters, dtype=np.int32)
-        # indices of histograms on the diagonal
-        clusters = np.repeat(clusters, nsamples, axis=0)
-        if nclusters:
-            identity = clusters[:,0] == clusters[:,1]
-        else:
-            identity = []
-        # for each histogram, index of the color
-        color_array_index = np.zeros(self.size, dtype=np.int32)
-        color_array_index[identity] = np.array(np.repeat(np.arange(1, nclusters + 1),
-            nsamples), np.int32)
-        # size of the array with all colors: one color per cluster + one for
-        # the off-diagonal
-        color_array_size = nclusters + 1
-        
-        
-        super(HistogramVisual, self).initialize(position=position, color=color,
-            nprimitives=nhistograms, color_array_index=color_array_index,
-            # position_attribute_name="transformed_position"
+        super(HistogramVisual, self).initialize(
+            position=position,
+            nprimitives=nhistograms,
+            color=color,
+            color_array_index=color_array_index,
             )
+            
+        self.primitive_type = 'TRIANGLE_STRIP'
+        # self.primitive_type = 'LINE_STRIP'
         
         self.add_attribute("cluster", vartype="int", ndim=2, data=clusters)
         self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
         
-        # call the parent initialize with the right parameters
-        # kwargs.update(nprimitives=nhistograms, nsamples=nsamples,
-            # single_color=False, colors_ndim=3,
-            # use_color_array=True,
-            # color_array_index=color_array_index,
-            # color_array_size=color_array_size,
-            # )
-        # super(HistogramVisual, self).initialize(position=position, color=color)
-    
         self.add_vertex_main(VERTEX_SHADER)
+        
         
 class HistogramPaintManager(PaintManager):
     def initialize(self, **kwargs):
         
+        # nclusters=None, nhistograms=None, nsamples=None,
+        # position=None, color=None, color_array_index=None, clusters=None
+        
         # create dataset
         self.add_visual(HistogramVisual,
             nclusters=self.data_manager.nclusters,
-            nsamples=self.data_manager.nsamples,
+            # nsamples=self.data_manager.nsamples,
             nhistograms=self.data_manager.nhistograms,
-            color=self.data_manager.cluster_colors,
-            # cluster=self.data_manager.clusters,
             position=self.data_manager.position,
-            name='histogram')
+            color=self.data_manager.color,
+            color_array_index=self.data_manager.color_array_index,
+            clusters=self.data_manager.clusters,
+            name='correlograms')
         
+        
+    def update(self):
+        # color = self.data_manager.color
+        # ncolors = color.shape[0]
+        # ncomponents = color.shape[1]
+        # color = color.reshape((1, ncolors, ncomponents))
+        
+        # size = self.data_manager.position.shape[0]
+        # nsamples = size // self.data_manager.nprimitives
+        # bounds = np.arange(0, size + 1, size // nsamples)
+            
+        # self.set_data(visual='correlograms', 
+            # size=self.data_manager.position.shape[0],
+            # nclusters=self.data_manager.nclusters,
+            # # nsamples=self.data_manager.nsamples,
+            # # nprimitives=self.data_manager.nhistograms,
+            # position=self.data_manager.position,
+            # colormap=color,
+            # index=self.data_manager.color_array_index,
+            # cluster=self.data_manager.clusters,
+            # )
+        self.reinitialize_visual(
+            size=self.data_manager.position.shape[0],
+            nclusters=self.data_manager.nclusters,
+            # nsamples=self.data_manager.nsamples,
+            nhistograms=self.data_manager.nhistograms,
+            position=self.data_manager.position,
+            color=self.data_manager.color,
+            color_array_index=self.data_manager.color_array_index,
+            clusters=self.data_manager.clusters,
+            visual='correlograms')
+
+
+class HistogramBindings(SpikyDefaultBindingSet):
+    pass
+
 
 class CorrelogramsView(GalryWidget):
     def initialize(self):
         self.constrain_ratio = True
         self.constrain_navigation = True
+        self.set_bindings(HistogramBindings)
         self.set_companion_classes(paint_manager=HistogramPaintManager,
-            data_manager=HistogramDataManager)
+            data_manager=HistogramDataManager,)
     
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
     
+        if self.initialized:
+            log_info("Updating data for correlograms")
+            self.paint_manager.update()
+            self.updateGL()
+        else:
+            log_info("Initializing data for correlograms")
     
     

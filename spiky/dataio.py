@@ -64,11 +64,63 @@ class DataHolder(object):
         filter_info: a FilterInfo dic
     """
 
+def get_correlogram(x, y, nbins=20, bin=.002):
+    # TODO (this is the most efficient way of computing correlograms ever)
+    return np.random.rand(nbins)
+    
+class CorrelogramManager(object):
+    def __init__(self, dh, sdh):
+        self.dh = dh
+        self.sdh = sdh
+        # cache correlograms
+        self.correlograms = {}
+        
+    def reset(self):
+        self.correlograms.clear()
+    
+    def invalidate(self, clusters):
+        """Remove from the cache all correlograms related to the given
+        clusters."""
+        correlograms_new = {}
+        # copy in the new dictionary all correlograms which do not refer
+        # to clusters in the given list of invalidated clusters
+        for (i, j), corr in self.correlograms.iteritems():
+            if i not in clusters and j not in clusters:
+                correlograms_new[(i, j)] = self.correlograms[(i, j)]
+        self.correlograms = correlograms_new
+    
+    def compute(self, cluster0, cluster1=None):
+        if cluster1 is None:
+            cluster1 = cluster0
+        x = self.sdh.get_spiketimes(cluster0)
+        y = self.sdh.get_spiketimes(cluster1)
+        corr = get_correlogram(x, y)
+        self.correlograms[(cluster0, cluster1)] = corr
+        return corr
+        
+    def get_correlogram(self, cluster0, cluster1=None):
+        if cluster1 is None:
+            cluster1 = cluster0
+        if (cluster0, cluster1) not in self.correlograms:
+            self.compute(cluster0, cluster1)
+        return self.correlograms[(cluster0, cluster1)]
+    
+    def get_correlograms(self, clusters):
+        if len(clusters) == 0:
+            return np.array([[]])
+        # TODO: speed that up!
+        correlograms = []
+        for i in xrange(len(clusters)):
+            for j in xrange(i, len(clusters)):
+                correlograms.append(self.get_correlogram(clusters[i], clusters[j]))
+        return np.vstack(correlograms)
+        
     
 class SelectDataHolder(object):
     """Provides access to the data related to selected clusters."""
     def __init__(self, dataholder):
         self.dataholder = dataholder
+        self.corr_manager = CorrelogramManager(dataholder, self)
         self.spike_dependent_variables = [
             'spiketimes',
             'waveforms',
@@ -81,10 +133,11 @@ class SelectDataHolder(object):
         self.select_clusters([])
         
     def get_correlograms(self, clusters):
-        nclusters = len(clusters)
+        # nclusters = len(clusters)
         # TODO
-        return rdn.rand(nclusters * (nclusters + 1) / 2,
-            self.correlograms_info.nsamples) 
+        # return rdn.rand(nclusters * (nclusters + 1) / 2,
+            # self.correlograms_info.nsamples) 
+        return self.corr_manager.get_correlograms(clusters)
             
     def _selector_ufunc(self, clusters=None):
         """Create a custom ufunc for cluster selection."""
@@ -111,6 +164,9 @@ class SelectDataHolder(object):
         for varname in self.spike_dependent_variables:
             if hasattr(self.dataholder, varname):
                 setattr(self, varname, getattr(self.dataholder, varname)[select_mask,...])
+        
+    def get_spiketimes(self, cluster):
+        return self.dataholder.spiketimes[self.dataholder.clusters == cluster]
         
     def __getattr__(self, name):
         """Fallback mechanism for selecting variables in data holder and that
@@ -143,9 +199,15 @@ class MockDataProvider(DataProvider):
         
         self.holder = DataHolder()
         
+        self.freq = 20000.
+        
         self.holder.nspikes = nspikes
         self.holder.nclusters = nclusters
         self.holder.nchannels = nchannels
+        
+        # construct spike times from random interspike interval
+        self.holder.spiketimes = np.cumsum(np.random.randint(size=nspikes,
+            low=int(self.freq*.005), high=int(self.freq*10)))
         
         self.holder.waveforms = rdn.randn(nspikes, nsamples, nchannels)
         self.holder.waveforms_info = Info(nsamples=nsamples)

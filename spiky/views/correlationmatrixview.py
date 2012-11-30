@@ -1,4 +1,5 @@
 from galry import *
+from common import *
 import numpy.random as rdn
 from matplotlib.colors import hsv_to_rgb
 
@@ -44,11 +45,17 @@ class CorrelationMatrixPaintManager(PaintManager):
         self.add_visual(TextureVisual, texture=self.texture, name='correlationmatrix')
 
         
+class CorrelationMatrixBindings(SpikyDefaultBindingSet):
+    pass
+        
+        
 class CorrelationMatrixView(GalryWidget):
     def initialize(self, **kwargs):
         self.constrain_ratio = True
         self.constrain_navigation = True
-        self.set_companion_classes(paint_manager=CorrelationMatrixPaintManager)
+        self.set_bindings(CorrelationMatrixBindings)
+        self.set_companion_classes(paint_manager=CorrelationMatrixPaintManager,
+            )
     
     def set_data(self, data):
         self.paint_manager.load_data(data)

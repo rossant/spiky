@@ -294,12 +294,24 @@ class FeatureWidget(VisualizationWidget):
     
 class CorrelogramsWidget(VisualizationWidget):
     def create_view(self, dh):
+        self.dh = dh
         view = CorrelogramsView()
         view.set_data(histograms=dh.correlograms,
                       cluster_colors=dh.cluster_colors)
         return view
+        
+    def update_view(self):
+        self.view.set_data(histograms=self.dh.correlograms,
+                      cluster_colors=self.dh.cluster_colors)
 
+    def initialize_connections(self):
+        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
     
+    def slotClusterSelectionChanged(self, sender, clusters):
+        self.update_view()
+        
+        
+        
 class CorrelationMatrixWidget(VisualizationWidget):
     def create_view(self, dh):
         view = CorrelationMatrixView()

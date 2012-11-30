@@ -4,7 +4,8 @@ import operator
 from galry import *
 
 
-__all__ = ['SpikeDataOrganizer', 'HighlightManager']
+__all__ = ['SpikeDataOrganizer', 'HighlightManager', 'SpikyDefaultBindingSet',
+           ]
 
 
 class SpikeDataOrganizer(object):
@@ -166,3 +167,11 @@ class HighlightManager(Manager):
             self.highlight_box = None
     
 
+class SpikyDefaultBindingSet(DefaultBindingSet):
+    def set_panning_keyboard(self):
+        pass
+        
+    def set_zooming_keyboard(self):
+        pass
+    
+    

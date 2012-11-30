@@ -730,7 +730,7 @@ class WaveformInteractionManager(InteractionManager):
             self.cursor = cursors.CrossCursor
         
   
-class WaveformBindings(DefaultBindingSet):
+class WaveformBindings(SpikyDefaultBindingSet):
     def set_panning(self):
         # Panning: left button mouse, wheel
         self.set(UserActions.LeftButtonMouseMoveAction, InteractionEvents.PanEvent,

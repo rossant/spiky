@@ -489,7 +489,7 @@ FeatureEventEnum = enum(
         
 # Navigation mode
 # --------------
-class FeatureNavigationBindings(DefaultBindingSet):
+class FeatureNavigationBindings(SpikyDefaultBindingSet):
     def set_highlight(self):
         # highlight
         self.set(UserActions.MiddleButtonMouseMoveAction,

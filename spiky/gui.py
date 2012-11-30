@@ -52,9 +52,6 @@ class DataUpdater(QtGui.QWidget):
         emit(sender, 'ProjectionChanged', coord, channel, feature)
         
 
-
-
-
 class SpikyMainWindow(QtGui.QMainWindow):
     window_title = "Spiky"
     
@@ -134,7 +131,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # load mock data
         provider = MockDataProvider()
-        self.dh = provider.load(nspikes=100)
+        self.dh = provider.load(nspikes=1000)
         self.sdh = SelectDataHolder(self.dh)
         
         # create the DataUpdater, which handles the ToChange signals and
@@ -146,8 +143,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
 
         self.feature_widget = self.add_central(FeatureWidget)
         self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        # self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
-        # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         
     def initialize_actions(self):
         """Initialize all global actions."""
@@ -191,7 +188,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def mouseReleaseEvent(self, e):
         self.redirect_event('mouseReleaseEvent', e)
 
-            
+    def contextMenuEvent(self, e):
+        return
             
             
     # Signals

@@ -1,4 +1,6 @@
 
+  * put COLORMAP in the data holder and remove dependencies 
+
   * remove all arrow shortcuts in views (currently they all are bound
     to all widgets)
     
@@ -40,6 +42,7 @@
   * feature view: toggle show/hide masked points
 
   * waveformview: fully reset the view (box scale, etc.)
+  
   * save default view in geometrical form
 
   
