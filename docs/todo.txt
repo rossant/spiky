@@ -1,48 +1,22 @@
-
+  * waveformview: fully reset the view (box scale, etc.)
   * put COLORMAP in the data holder and remove dependencies 
-
-  * remove all arrow shortcuts in views (currently they all are bound
-    to all widgets)
-    
   * clusterview: nav with keyboard?
-  
+  * channel selection in waveformview
   * P for automatic projection in feature view
-    
-  * save clusterview arrangement
-  
   * function for automatic zoom in waveformview as a function of
     channels and clusters
-    
-  * keyboard shortcuts for probe/box rescaling in waveformview
-  
-  * featureview controller: buttons for channel up/down
-  
   * overlay: make the spikes with the same size?
-  
+  * keyboard shortcuts for probe/box rescaling in waveformview
+  * featureview controller: buttons for channel up/down
   * cluster group renaming
-  
   * feature view: toggle transparency (T)
-
-  * channel selection in waveformview
-  
   * correlograms computation
-  
   * cluster merge with button / M press
-  
   * cluster split with button / S press
-
-  * trace view
-
-  * lowlight: gray or original colors
-  
-  * transient recoloring
-  
-  * move data manager into templates, so that templates contain everything
-
   * feature view: toggle show/hide masked points
-
-  * waveformview: fully reset the view (box scale, etc.)
-  
+  * trace view
+  * lowlight: gray or original colors
+  * transient recoloring
+  * move data manager into templates, so that templates contain everything
+  * save clusterview arrangement
   * save default view in geometrical form
-
-  
