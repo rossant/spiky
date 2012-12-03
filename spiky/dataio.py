@@ -227,7 +227,7 @@ class KlustersDataProvider(DataProvider):
         spiketimes = features[:,-1]
         # features = features[:,:-1]
         
-        masks = load_text(filename + ".fmask.1", np.float32, skiprows=1)
+        masks = load_text(filename + ".mask.1", np.float32, skiprows=1)
         masks = masks[:,:-1:3]
         
         waveforms = load_binary(filename + ".spk.1")

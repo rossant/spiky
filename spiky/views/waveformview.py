@@ -51,12 +51,19 @@ FRAGMENT_SHADER = """
     //out_color = varying_color;
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
+    
+    // TODO
+    if (vmask == 0)
+        out_color = vec4(.5, .5, .5, .5);
+        
     if (vhighlight > 0)
-        out_color.xyz = vec3(1., 1., 1.);
-    out_color.w = vmask;
+        //out_color.xyz = vec3(1., 1., 1.);
+        out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
+        
+    //out_color.w = vmask;
 """
 
-HIGHLIGHT_CLOSE_BOXES_COUNT = 4
+HIGHLIGHT_CLOSE_BOXES_COUNT = 32
 
 WaveformSpatialArrangement = enum("Linear", "Geometrical")
 WaveformSuperposition = enum("Superimposed", "Separated")
@@ -129,7 +136,9 @@ class WaveformHighlightManager(HighlightManager):
             # waveforms = positioned_data[start:end,:]
             # find the indices of the points in the enclosed box
             # inverse transformation of x => ax+u, y => by+v
-            indices = ((masks > 0) & \
+            indices = (
+                      # TODO
+                      # (masks > 0) & \
                       (waveforms[:,0] >= (xmin-u)/a) & (waveforms[:,0] <= (xmax-u)/a) & \
                       (waveforms[:,1] >= (ymin-v)/b) & (waveforms[:,1] <= (ymax-v)/b))
             # absolute indices in the data

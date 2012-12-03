@@ -48,7 +48,8 @@ FRAGMENT_SHADER = """
     out_color = texture1D(cmap, index);
     if (vhighlight > 0)
         out_color.xyz = vec3(1., 1., 1.);
-    out_color.w = vmask;
+    // TODO
+    //out_color.w = vmask;
 """
 
 def polygon_contains_points(polygon, points):
@@ -271,7 +272,8 @@ class FeatureHighlightManager(HighlightManager):
         features = self.data_manager.normalized_data
         masks = self.data_manager.full_masks
 
-        indices = ((masks > 0) & \
+        indices = (
+                  # (masks > 0) & \
                   (features[:,0] >= xmin) & (features[:,0] <= xmax) & \
                   (features[:,1] >= ymin) & (features[:,1] <= ymax))
         # absolute indices in the data
@@ -369,7 +371,8 @@ class FeatureSelectionManager(Manager):
             polygon = self.polygon()
         features = self.data_manager.normalized_data
         masks = self.data_manager.full_masks
-        indices = (masks > 0) & polygon_contains_points(polygon, features)
+        # indices = (masks > 0) & polygon_contains_points(polygon, features)
+        indices = polygon_contains_points(polygon, features)
         spkindices = np.nonzero(indices)[0]
         spkindices = np.unique(spkindices)
         return spkindices
