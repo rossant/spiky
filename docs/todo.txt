@@ -1,6 +1,5 @@
   * waveformview: fully reset the view (box scale, etc.)
   * put COLORMAP in the data holder and remove dependencies 
-  * clusterview: nav with keyboard?
   * channel selection in waveformview
   * P for automatic projection in feature view
   * function for automatic zoom in waveformview as a function of
@@ -20,3 +19,5 @@
   * move data manager into templates, so that templates contain everything
   * save clusterview arrangement
   * save default view in geometrical form
+  * force cleaning up of widgets upon closing
+  * make sure the GUI work in IPython

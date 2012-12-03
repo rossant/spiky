@@ -11,7 +11,6 @@ from colors import COLORMAP
 
 __all__ = ['WaveformView']
 
-
 VERTEX_SHADER = """
     // get channel position
     vec2 channel_position = channel_positions[int(channel)];
@@ -70,9 +69,6 @@ WaveformEventEnum = enum(
     )
     
 
-
-    
-    
 class WaveformHighlightManager(HighlightManager):
     def initialize(self):
         """Set info from the data manager."""
@@ -231,10 +227,15 @@ class WaveformPositionManager(Manager):
         
         w, h = self.find_box_size(spatial_arrangement=spatial_arrangement)
     
+        # HACK: if the normalization depends on the number of clusters,
+        # the positions will change whenever the cluster selection changes
+        # k = self.nclusters
+        k = 3
+        
         if xmin == xmax:
             ax = 0.
         else:
-            ax = (2 - self.nclusters * w * (1 + 2 * self.alpha)) / (xmax - xmin)
+            ax = (2 - k * w * (1 + 2 * self.alpha)) / (xmax - xmin)
         if ymin == ymax:
             ay = 0.
         else:
@@ -265,8 +266,9 @@ class WaveformPositionManager(Manager):
         """
         self.nchannels = nchannels
         self.nclusters = nclusters
+        
         # HEURISTIC
-        self.diffxc, self.diffyc = [np.sqrt(float(self.nchannels))] * 2
+        # self.diffxc, self.diffyc = [np.sqrt(float(self.nchannels))] * 2
         
         linear_positions = np.zeros((self.nchannels, 2), dtype=np.float32)
         linear_positions[:,1] = np.linspace(1., -1., self.nchannels)
@@ -336,6 +338,7 @@ class WaveformPositionManager(Manager):
 
         # print Tx
         # print self.nclusters
+        # print self.probe_scale
                              
         # record box positions and size
         self.box_positions = Tx, Ty
@@ -430,6 +433,7 @@ class WaveformPositionManager(Manager):
         self.update_arrangement(superposition=self.superposition,
                                 spatial_arrangement=self.spatial_arrangement)
         self.paint_manager.auto_update_uniforms("channel_positions", "box_size", "box_size_margin")
+        
         
     # Get methods
     # -----------
@@ -547,7 +551,6 @@ class WaveformDataManager(Manager):
         return i0, i1
     
     
-    
 class WaveformVisual(Visual):
     @staticmethod
     def get_size_bounds(nsamples=None, npoints=None):
@@ -618,8 +621,6 @@ class WaveformVisual(Visual):
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
         
-        # self.initialize_default(**kwargs)
-    
     
 class WaveformPaintManager(PaintManager):
     
@@ -845,11 +846,10 @@ class WaveformBindings(SpikyDefaultBindingSet):
         self.set_highlight()
     
     
-    
-    
 class WaveformView(GalryWidget):
     def initialize(self):
-        self.constrain_navigation = False
+        self.constrain_navigation = True
+        self.constrain_ratio = True
         self.set_bindings(WaveformBindings)
         self.set_companion_classes(
                 data_manager=WaveformDataManager,

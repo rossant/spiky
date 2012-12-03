@@ -124,6 +124,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.allwidgets.append(widget)
         return widget
     
+    
     # Initialization
     # --------------
     def initialize(self):
@@ -131,7 +132,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # load mock data
         provider = MockDataProvider()
-        self.dh = provider.load(nspikes=1000)
+        self.dh = provider.load(nspikes=10000, nclusters=20)
         self.sdh = SelectDataHolder(self.dh)
         
         # create the DataUpdater, which handles the ToChange signals and
@@ -226,6 +227,24 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # User preferences related methods
     # --------------------------------
     def save_geometry(self):
+        """Save the arrangement of all widgets into a INI file."""
+        # save main window geometry
+        self.save_mainwindow_geometry()
+        # save geometry of all widgets
+        for widget in self.allwidgets:
+            if hasattr(widget, 'save_geometry'):
+                widget.save_geometry()
+        
+    def restore_geometry(self):
+        """Restore the arrangement of all widgets from a INI file."""
+        # restore main window geometry
+        self.restore_mainwindow_geometry()
+        # save geometry of all widgets
+        for widget in self.allwidgets:
+            if hasattr(widget, 'restore_geometry'):
+                widget.restore_geometry()
+        
+    def save_mainwindow_geometry(self):
         """Save the arrangement of the whole window into a INI file."""
         SETTINGS.set("mainWindow/geometry", self.saveGeometry())
         SETTINGS.set("mainWindow/windowState", self.saveState())
@@ -233,7 +252,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         SETTINGS.set("mainWindow/size", self.size())
         SETTINGS.set("mainWindow/pos", self.pos())
         
-    def restore_geometry(self):
+    def restore_mainwindow_geometry(self):
         """Restore the arrangement of the whole window from a INI file."""
         g = SETTINGS.get("mainWindow/geometry")
         w = SETTINGS.get("mainWindow/windowState")
@@ -241,11 +260,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
             self.restoreGeometry(g)
         if w:
             self.restoreState(w)
+            
         
+    # Cleaning up
+    # -----------
     def closeEvent(self, e):
         """Automatically save the arrangement of the window when closing
         the window."""
         self.save_geometry()
+        # TODO: clean up all widgets
         super(SpikyMainWindow, self).closeEvent(e)
 
 

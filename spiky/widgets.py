@@ -8,7 +8,9 @@ from tools import Info
 from collections import OrderedDict
 import re
 
+
 SETTINGS = tools.init_settings()
+
 
 __all__ = ['VisualizationWidget',
            'WaveformWidget',
@@ -17,9 +19,6 @@ __all__ = ['VisualizationWidget',
            'CorrelationMatrixWidget',
            'ClusterWidget',
            ]
-
-
-
 
 
 class VisualizationWidget(QtGui.QWidget):
@@ -109,8 +108,6 @@ class WaveformWidget(VisualizationWidget):
         pass
         
         
-        
-    
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
@@ -311,7 +308,6 @@ class CorrelogramsWidget(VisualizationWidget):
         self.update_view()
         
         
-        
 class CorrelationMatrixWidget(VisualizationWidget):
     def create_view(self, dh):
         view = CorrelationMatrixView()
@@ -324,12 +320,9 @@ class ClusterWidget(QtGui.QWidget):
     def __init__(self, main_window, dh, getfocus=True):
         super(ClusterWidget, self).__init__()
         
-        
         # Capture keyboard events.
         if getfocus:
             self.setFocusPolicy(QtCore.Qt.WheelFocus)
-        
-        
         
         self.main_window = main_window
         # put the controller and the view vertically
@@ -345,6 +338,8 @@ class ClusterWidget(QtGui.QWidget):
         # add the tree view
         self.view = self.create_tree_view(dh)
         vbox.addWidget(self.view, stretch=100)
+        
+        # self.restore_geometry()
         
         # set the VBox as layout of the widget
         self.setLayout(vbox)
@@ -385,4 +380,20 @@ class ClusterWidget(QtGui.QWidget):
         if errors:
             msg = "Non-empty groups were not deleted."
             self.main_window.statusBar().showMessage(msg, 5000)
+    
+    
+    # Save and restore geometry
+    # -------------------------
+    def save_geometry(self):
+        SETTINGS.set("clusterWidget/geometry", self.view.saveGeometry())
+        SETTINGS.set("clusterWidget/headerState", self.view.header().saveState())
+        
+    def restore_geometry(self):
+        g = SETTINGS.get("clusterWidget/geometry")
+        h = SETTINGS.get("clusterWidget/headerState")
+        if g:
+            self.view.restoreGeometry(g)
+        if h:
+            self.view.header().restoreState(h)
+    
     

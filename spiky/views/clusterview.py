@@ -401,10 +401,6 @@ class ClusterGroupManager(TreeModel):
 
         
 class ClusterTreeView(QtGui.QTreeView):
-    
-    # def __init__(self, *args, **kwargs):
-        # super(ClusterTreeView, self).__init__(self, *args, **kwargs)
-        
     class ClusterDelegate(QtGui.QStyledItemDelegate):
         def paint(self, painter, option, index):
             """Disable the color column so that the color remains the same even
@@ -430,10 +426,6 @@ class ClusterTreeView(QtGui.QTreeView):
         """);
         
         self.setModel(model)
-        # set rate column size
-        self.header().resizeSection(1, 80)
-        # set color column size
-        self.header().resizeSection(2, 40)
         self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.expandAll()
         self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -442,15 +434,27 @@ class ClusterTreeView(QtGui.QTreeView):
         # select full rows
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
+        # # set rate column size
+        # self.header().resizeSection(1, 80)
+        # # set color column size
+        self.header().resizeSection(2, 40)
+        
+        
         # self.setRootIsDecorated(False)
         self.setItemDelegate(self.ClusterDelegate())
     
+    
+    # Cluster methods
+    # ---------------
     def get_clusters(self):
         return self.model().get_clusters()
     
     def get_cluster(self, clusteridx):
         return self.model().get_cluster(clusteridx)
     
+    
+    # Selection methods
+    # -----------------
     def selectionChanged(self, selected, deselected):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
         # emit the ClusterSelectionToChange signal
@@ -472,13 +476,12 @@ class ClusterTreeView(QtGui.QTreeView):
         # now, cluster shoud be a ClusterItem, so we take the QModelIndex
         if isinstance(cluster, ClusterItem):
             cluster = cluster.index
-        
-        # print "select", cluster
-        # print
+        # finally, cluster should be a QModelIndex instance here
         
         sel_model = self.selectionModel()
-        sel_model.clearSelection()
-        sel_model.select(cluster, sel_model.Select | sel_model.Rows)
+        # sel_model.clearSelection()
+        # sel_model.setCurrentIndex(cluster, sel_model.Current)
+        sel_model.select(cluster, sel_model.SelectCurrent | sel_model.Rows)
         
     def select_cluster(self, direction):
         # list of all cluster indices
@@ -528,7 +531,10 @@ class ClusterTreeView(QtGui.QTreeView):
                     for v in self.selectedIndexes() \
                         if v.column() == 0 and \
                            type(v.internalPointer()) == GroupItem]
-                                
+                
+
+    # Event methods
+    # -------------
     def keyPressEvent(self, e):
         key = e.key()
         if key == QtCore.Qt.Key_Up:
