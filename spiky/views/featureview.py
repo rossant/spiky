@@ -557,11 +557,11 @@ class FeatureView(GalryWidget):
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
         if self.initialized:
-            log_info("Updating data for features")
+            log_debug("Updating data for features")
             self.paint_manager.update()
             self.updateGL()
         else:
-            log_info("Initializing data for features")
+            log_debug("Initializing data for features")
         
     # Signals-related methods
     # -----------------------

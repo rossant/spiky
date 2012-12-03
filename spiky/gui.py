@@ -107,8 +107,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
             QtGui.QDockWidget.DockWidgetFloatable | \
             QtGui.QDockWidget.DockWidgetMovable)
         self.addDockWidget(position, dockwidget)
-        if isinstance(widget, VisualizationWidget):
-            self.allwidgets.append(widget)
+        # if isinstance(widget, VisualizationWidget):
+        self.allwidgets.append(widget)
         return widget
         
     def add_central(self, widget_class, name=None, minsize=None):
@@ -120,8 +120,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if minsize is not None:
             widget.setMinimumSize(*minsize)
         self.setCentralWidget(widget)
-        if isinstance(widget, VisualizationWidget):
-            self.allwidgets.append(widget)
+        # if isinstance(widget, VisualizationWidget):
+        self.allwidgets.append(widget)
         return widget
     
     # Initialization
@@ -171,7 +171,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         file_menu.addAction(self.quit_action)
         
         
-    
+    # Event methods
+    # -------------
     def redirect_event(self, event_name, e):
         for widget in self.allwidgets:
             getattr(widget.view, event_name)(e)

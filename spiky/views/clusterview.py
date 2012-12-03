@@ -439,18 +439,84 @@ class ClusterTreeView(QtGui.QTreeView):
         self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.setAllColumnsShowFocus(True)
         self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
+        # select full rows
+        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        
         # self.setRootIsDecorated(False)
         self.setItemDelegate(self.ClusterDelegate())
-   
+    
+    def get_clusters(self):
+        return self.model().get_clusters()
+    
+    def get_cluster(self, clusteridx):
+        return self.model().get_cluster(clusteridx)
+    
     def selectionChanged(self, selected, deselected):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
         # emit the ClusterSelectionToChange signal
         emit(self, "ClusterSelectionToChange",
             np.sort(np.array(self.selected_clusters(), dtype=np.int32)))
         
+    def select(self, cluster):
+        """Select a cluster.
+        
+        Arguments:
+          * cluster: either a clusteridx integer, ClusterItem instance,
+            or a QModelIndex instance.
+          
+        """
+        # if cluster is an int, get the ClusterItem
+        if (type(cluster) == int or type(cluster) == np.int32 or
+                type(cluster) == np.int64):
+            cluster = self.get_cluster(cluster)
+        # now, cluster shoud be a ClusterItem, so we take the QModelIndex
+        if isinstance(cluster, ClusterItem):
+            cluster = cluster.index
+        
+        # print "select", cluster
+        # print
+        
+        sel_model = self.selectionModel()
+        sel_model.clearSelection()
+        sel_model.select(cluster, sel_model.Select | sel_model.Rows)
+        
+    def select_cluster(self, direction):
+        # list of all cluster indices
+        clusters = [cluster.clusteridx() for cluster in self.get_clusters()]
+        if not clusters:
+            return
+        # list of selected cluster indices
+        selected = self.selected_clusters()
+        # selected.sort()
+        # print clusters
+        # print selected
+        
+        # find the cluster to select
+        to_select = None
+        # previous case
+        if direction == 'previous':
+            if len(selected) == 0:
+                to_select = clusters[-1]
+            else:
+                i = max(0, clusters.index(selected[0]) - 1)
+                to_select = clusters[i]
+        # next case
+        if direction == 'next':
+            if len(selected) == 0:
+                to_select = clusters[0]
+            else:
+                i = min(len(clusters) - 1, clusters.index(selected[-1]) + 1)
+                to_select = clusters[i]
+                
+        # print to_select
+        # print
+        
+        # select the cluster
+        if to_select is not None:
+            self.select(to_select)
         
     def selected_clusters(self):
-        """Return the list of selected clusters."""
+        """Return the list of selected cluster indices."""
         return [(v.internalPointer().clusteridx()) \
                     for v in self.selectedIndexes() \
                         if v.column() == 0 and \
@@ -463,3 +529,12 @@ class ClusterTreeView(QtGui.QTreeView):
                         if v.column() == 0 and \
                            type(v.internalPointer()) == GroupItem]
                                 
+    def keyPressEvent(self, e):
+        key = e.key()
+        if key == QtCore.Qt.Key_Up:
+            self.select_cluster('previous')
+        if key == QtCore.Qt.Key_Down:
+            self.select_cluster('next')
+            
+    
+    

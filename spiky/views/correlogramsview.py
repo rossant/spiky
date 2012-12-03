@@ -220,10 +220,10 @@ class CorrelogramsView(GalryWidget):
         self.data_manager.set_data(*args, **kwargs)
     
         if self.initialized:
-            log_info("Updating data for correlograms")
+            log_debug("Updating data for correlograms")
             self.paint_manager.update()
             self.updateGL()
         else:
-            log_info("Initializing data for correlograms")
+            log_debug("Initializing data for correlograms")
     
     
