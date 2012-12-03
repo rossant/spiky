@@ -1,23 +1,64 @@
-  * waveformview: fully reset the view (box scale, etc.)
-  * put COLORMAP in the data holder and remove dependencies 
-  * channel selection in waveformview
-  * P for automatic projection in feature view
-  * function for automatic zoom in waveformview as a function of
-    channels and clusters
-  * overlay: make the spikes with the same size?
+
+
+TO DISCUSS
+----------
+
+Keyboard shortcuts
+
+  * Next/Previous cluster
+  
+  * Merge/Split
+  
+  * Automatic projection in FeatureView
+  
+  * Change channel in FeatureView
+  
+  * Toggle overlay in WaveformView
+  
+  * Toggle spatial arrangement in WaveformView
+  
+  * Change box/probe scaling in WaveformView
+  
+  
+
+
+
+
+Metadata/user preferences: what to store in the data file, and in the user
+preferences files? (eg waveform view scaling, arrangement, etc)
+
+
+
+How to implement the automatic projection in the FeatureView?
+
+
+
+Most efficient way of computing the correlograms?
+
+
+
+
+TODO
+----
+
   * keyboard shortcuts for probe/box rescaling in waveformview
+  * P for automatic projection in feature view
   * featureview controller: buttons for channel up/down
   * cluster group renaming
+
+  * channel selection in waveformview
+  * function for automatic zoom in waveformview as a function of
+    channels and clusters
   * feature view: toggle transparency (T)
+  * feature view: toggle show/hide masked points
+  * put COLORMAP in the data holder and remove dependencies 
   * correlograms computation
   * cluster merge with button / M press
   * cluster split with button / S press
-  * feature view: toggle show/hide masked points
   * trace view
   * lowlight: gray or original colors
   * transient recoloring
   * move data manager into templates, so that templates contain everything
-  * save clusterview arrangement
-  * save default view in geometrical form
   * force cleaning up of widgets upon closing
   * make sure the GUI work in IPython
+

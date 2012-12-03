@@ -255,7 +255,9 @@ class WaveformPositionManager(Manager):
         return self.channel_positions[self.spatial_arrangement]
     
     def set_info(self, nchannels, nclusters, 
-                       geometrical_positions=None):
+                       geometrical_positions=None,
+                       spatial_arrangement=None, superposition=None,
+                       box_size=None, probe_scale=None):
         """Specify the information needed to position the waveforms in the
         widget.
         
@@ -285,7 +287,10 @@ class WaveformPositionManager(Manager):
               
         
         # set waveform positions
-        self.update_arrangement()
+        self.update_arrangement(spatial_arrangement=spatial_arrangement,
+                                superposition=superposition,
+                                box_size=box_size,
+                                probe_scale=probe_scale)
         
     def update_arrangement(self, spatial_arrangement=None, superposition=None,
                                  box_size=None, probe_scale=None):
@@ -460,7 +465,9 @@ class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
-                 masks=None, geometrical_positions=None, spike_ids=None):
+                 masks=None, geometrical_positions=None, spike_ids=None,
+                 spatial_arrangement=None, superposition=None,
+                 box_size=None, probe_scale=None):
         """
         waveforms is a Nspikes x Nsamples x Nchannels array.
         clusters is a Nspikes array, with the cluster absolute index for each
@@ -513,7 +520,11 @@ class WaveformDataManager(Manager):
         
         # position waveforms
         self.position_manager.set_info(self.nchannels, self.nclusters, 
-                                       geometrical_positions=self.geometrical_positions)
+                                       geometrical_positions=self.geometrical_positions,
+                                       spatial_arrangement=spatial_arrangement,
+                                       superposition=superposition,
+                                       box_size=box_size,
+                                       probe_scale=probe_scale)
         
         # update the highlight manager
         self.highlight_manager.initialize()

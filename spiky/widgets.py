@@ -87,7 +87,26 @@ class WaveformWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
         self.view = WaveformView(getfocus=False)
-        self.update_view()
+        
+        # load user preferences
+        geometry_preferences = self.restore_geometry()
+        if geometry_preferences is None:
+            geometry_preferences = {}
+        
+        self.view.set_data(self.dh.waveforms,
+                      clusters=self.dh.clusters,
+                      cluster_colors=self.dh.cluster_colors,
+                      geometrical_positions=self.dh.probe.positions,
+                      masks=self.dh.masks,
+                      **geometry_preferences
+                      # user preferences
+                      # TODO: store this in the data file, or in the user
+                      # preferences
+                      # spatial_arrangement=geometry_preferences.get('spatial_arrangement', None),
+                      # superposition=geometry_preferencesget('superposition', None),
+                      # box_size=geometry_preferencesget('box_size', None),
+                      # probe_scale=geometry_preferencesget('probe_scale', None)
+                      )
         return self.view
         
     def update_view(self):
@@ -95,7 +114,8 @@ class WaveformWidget(VisualizationWidget):
                       clusters=self.dh.clusters,
                       cluster_colors=self.dh.cluster_colors,
                       geometrical_positions=self.dh.probe.positions,
-                      masks=self.dh.masks)
+                      masks=self.dh.masks
+                      )
     
     def initialize_connections(self):
         SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
@@ -107,6 +127,22 @@ class WaveformWidget(VisualizationWidget):
     def slotProjectionChanged(self, sender, coord, channel, feature):
         pass
         
+        
+    # Save and restore geometry
+    # -------------------------
+    def save_geometry(self):
+        geometry_preferences = {
+            'spatial_arrangement': self.view.position_manager.spatial_arrangement,
+            'superposition': self.view.position_manager.superposition,
+            'box_size': self.view.position_manager.load_box_size(),
+            'probe_scale': self.view.position_manager.probe_scale,
+        }
+        SETTINGS.set("waveformWidget/geometry", geometry_preferences)
+        
+    def restore_geometry(self):
+        """Return a dictionary with the user preferences regarding geometry
+        in the WaveformView."""
+        return SETTINGS.get("waveformWidget/geometry")
         
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
