@@ -144,6 +144,7 @@ class WaveformWidget(VisualizationWidget):
         in the WaveformView."""
         return SETTINGS.get("waveformWidget/geometry")
         
+        
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
@@ -389,8 +390,7 @@ class ClusterWidget(QtGui.QWidget):
         """Create the Tree View widget, and populates it using the data 
         handler `dh`."""
         # pass the cluster data to the ClusterView
-        self.model = ClusterGroupManager(clusters=dh.clusters,
-                                    clusters_info=dh.clusters_info)
+        self.model = ClusterGroupManager(clusters_info=dh.clusters_info)
         
         # set the QTreeView options
         view = ClusterTreeView()

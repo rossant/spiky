@@ -1,21 +1,39 @@
 import numpy as np
 import numpy.random as rdn
+import h5py
 from galry import *
 from views.colors import COLORMAP
 from tools import Info
-
-
 
 
 __all__ = [
     'DataHolder',
     'SelectDataHolder',
     'DataProvider',
+    'SpikeDetektH5DataProvider',
+    'KlustersDataProvider',
     'H5DataProvider',
     'MockDataProvider',
     ]
 
-    
+
+
+
+def load_text(file, dtype, skiprows=0):
+    return np.loadtxt(file, dtype=dtype, skiprows=skiprows)
+        
+def load_binary(file, dtype=None, count=None):
+    if dtype is None:
+        dtype = np.dtype(np.int16)
+    if count is None:
+        X = np.fromfile(file, dtype=dtype)
+    else:
+        X = np.fromfile(file, dtype=dtype, count=count)
+    return X
+
+
+
+
     
 # class Probe(object):
 """dict
@@ -23,7 +41,6 @@ nchannels: number of channels in the probe
 positions: a nchannels*2 array with the coordinates of each channel
 defaut_view: a dict with the info of the default view in waveformview
 """
-    
     
 # class ClustersInfo(object):
 """dict
@@ -34,36 +51,8 @@ colors: a nclusters*3 array with the color of each cluster
 """
 
 
-class DataHolder(object):
-    """This class holds all the data related to a spike sorting session.
-    Some variables may not be in-memory arrays, but rather HDF5 proxies.
-    Actual data from selected clusters can be obtained through
-    SelectDataHolder.
-
-    List of variables:
-    
-        freq: a float with the sampling frequency
-        nchannels: number of channels in the probe
-        nspikes: total number of spikes
-        probe: a Probe dic
-        fetdim: number of features per channel
-        total_duration: total duration, in samples count, of the current dataset
-        current_window: a tuple with the interval, in samples count, of the current window
-        spiketimes: an array with the spike times of the spikes, in samples count
-        waveforms: a nspikes*nsamples*nchannels array with all waveforms
-        waveforms_info: a dict with the info about the waveforms
-        clusters: an array with the cluster index for each spike
-        clusters_info: a ClustersInfo dic
-        correlograms: a (nclusters * (nclusters + 1) / 2) x nsamples_correlograms matrix
-        correlograms_info: Info(nsamples_correlograms)
-        correlationmatrix: a nclusters * nclusters matrix
-        features: a nspikes*nchannels*fetdim array with the features of each spike, in each channel
-        masks: a nspikes array with the mask for each spike, as a float in [0,1]
-        raw_trace: a total_duration*nchannels array with the raw trace (or a HDF5 proxy with the same interface)
-        filtered_trace: like raw trace, but with the filtered trace
-        filter_info: a FilterInfo dic
-    """
-
+# Correlograms
+# ------------
 def get_correlogram(x, y, nbins=20, bin=.002):
     # TODO (this is the most efficient way of computing correlograms ever)
     return np.random.rand(nbins)
@@ -116,6 +105,38 @@ class CorrelogramManager(object):
         return np.vstack(correlograms)
         
     
+# Data holder
+# -----------
+class DataHolder(object):
+    """This class holds all the data related to a spike sorting session.
+    Some variables may not be in-memory arrays, but rather HDF5 proxies.
+    Actual data from selected clusters can be obtained through
+    SelectDataHolder.
+
+    List of variables:
+    
+        freq: a float with the sampling frequency
+        nchannels: number of channels in the probe
+        nspikes: total number of spikes
+        probe: a Probe dic
+        fetdim: number of features per channel
+        total_duration: total duration, in samples count, of the current dataset
+        current_window: a tuple with the interval, in samples count, of the current window
+        spiketimes: an array with the spike times of the spikes, in samples count
+        waveforms: a nspikes*nsamples*nchannels array with all waveforms
+        waveforms_info: a dict with the info about the waveforms
+        clusters: an array with the cluster index for each spike
+        clusters_info: a ClustersInfo dic
+        correlograms: a (nclusters * (nclusters + 1) / 2) x nsamples_correlograms matrix
+        correlograms_info: Info(nsamples_correlograms)
+        correlationmatrix: a nclusters * nclusters matrix
+        features: a nspikes*nchannels*fetdim array with the features of each spike, in each channel
+        masks: a nspikes array with the mask for each spike, as a float in [0,1]
+        raw_trace: a total_duration*nchannels array with the raw trace (or a HDF5 proxy with the same interface)
+        filtered_trace: like raw trace, but with the filtered trace
+        filter_info: a FilterInfo dic
+    """
+
 class SelectDataHolder(object):
     """Provides access to the data related to selected clusters."""
     def __init__(self, dataholder):
@@ -155,6 +176,7 @@ class SelectDataHolder(object):
         
         # nspikes is the number of True elements in select_mask
         self.nspikes = select_mask.sum()
+        # TODO: move that outside dataio
         self.correlograms = self.get_correlograms(clusters)
         self.nclusters = len(clusters)
         self.cluster_colors = self.dataholder.clusters_info.colors[clusters]
@@ -174,6 +196,8 @@ class SelectDataHolder(object):
         return getattr(self.dataholder, name)
         
 
+# Data providers
+# --------------
 class DataProvider(object):
     """Provide import/export functions to load/save a DataHolder instance."""
     data_holder = None
@@ -186,7 +210,137 @@ class DataProvider(object):
         pass
 
 
+class KlustersDataProvider(DataProvider):
+    """Legacy Klusters data provider with the old format."""
+    def load(self, filename):
+        # klusters tests
+        nchannels = 32
+        nspikes = 10000
+        nsamples = 20
+        
+        clusters = load_text(filename + ".clu.1", np.int32)
+        nclusters = clusters[0]
+        clusters = clusters[1:]
+        
+        features = load_text(filename + ".fet.1", np.int32, skiprows=1)
+        features = features.reshape((-1, 97))
+        spiketimes = features[:,-1]
+        # features = features[:,:-1]
+        
+        masks = load_text(filename + ".fmask.1", np.float32, skiprows=1)
+        masks = masks[:,:-1:3]
+        
+        waveforms = load_binary(filename + ".spk.1")
+        waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
+        
+        self.holder = DataHolder()
+        
+        self.freq = 20000.
+        
+        self.holder.nspikes = nspikes
+        self.holder.nclusters = nclusters
+        self.holder.nchannels = nchannels
+        
+        # construct spike times from random interspike interval
+        self.holder.spiketimes = spiketimes
+        
+        self.holder.waveforms = waveforms
+        self.holder.waveforms_info = Info(nsamples=nsamples)
+        
+        fetdim = 3
+        self.holder.fetdim = fetdim
+        self.holder.features = features
+        
+        self.holder.masks = masks
+        
+        # a list of dict with the info about each group
+        groups_info = [dict(name='Group')]
+        self.holder.clusters = clusters
+        self.holder.clusters_info = Info(
+            colors=np.mod(np.arange(nclusters), len(COLORMAP)),
+            names=['cluster%d' % i for i in xrange(nclusters)],
+            rates=np.zeros(nclusters),
+            groups_info=groups_info,
+            groups=np.zeros(nclusters),
+            )
+
+        self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
+        
+        # cross correlograms
+        nsamples_correlograms = 20
+        self.holder.correlograms_info = Info(nsamples=nsamples_correlograms)
+        
+        self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
+        
+        return self.holder
+        
+    def save(self, filename):
+        pass
+
+        
+class SpikeDetektH5DataProvider(DataProvider):
+    """Legacy SpikeDetekt HDF5 data provider with the old format."""
+    def load(self, filename):
+        
+        pass
+        # self.holder = DataHolder()
+        
+        # self.freq = 20000.
+        
+        # self.holder.nspikes = nspikes
+        # self.holder.nclusters = nclusters
+        # self.holder.nchannels = nchannels
+        
+        # # construct spike times from random interspike interval
+        # self.holder.spiketimes = np.cumsum(np.random.randint(size=nspikes,
+            # low=int(self.freq*.005), high=int(self.freq*10)))
+        
+        # self.holder.waveforms = rdn.randn(nspikes, nsamples, nchannels)
+        # self.holder.waveforms_info = Info(nsamples=nsamples)
+        
+        # fetdim = 3
+        # # TODO
+        # # self.holder.features = rdn.randn(nspikes, nchannels, fetdim)
+        # self.holder.fetdim = fetdim
+        # self.holder.features = rdn.randn(nspikes, nchannels * fetdim + 1)
+        
+        # self.holder.masks = rdn.rand(nspikes, nchannels)
+        # self.holder.masks[self.holder.masks < .25] = 0
+        
+        # # a list of dict with the info about each group
+        # groups_info = [dict(name='Interneurons'),
+                       # dict(name='MUA')]
+        # self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
+        # self.holder.clusters_info = Info(
+            # colors=np.mod(np.arange(nclusters), len(COLORMAP)),
+            # names=['cluster%d' % i for i in xrange(nclusters)],
+            # rates=rdn.rand(nclusters) * 20,
+            # groups_info=groups_info,
+            # groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))
+
+        # self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
+        
+        # # cross correlograms
+        # nsamples_correlograms = 20
+        # # self.holder.correlograms = rdn.rand(nclusters * (nclusters + 1) / 2,
+            # # nsamples_correlograms)
+        # self.holder.correlograms_info = Info(nsamples=nsamples_correlograms)
+        
+        # self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
+        
+        
+        # return self.holder
+        
+        
+        
+        
+        
+    def save(self, filename):
+        pass
+
+
 class H5DataProvider(DataProvider):
+    """Spiky HDF5 data provider with the future format."""
     def load(self, filename):
         pass
         
@@ -195,6 +349,7 @@ class H5DataProvider(DataProvider):
 
 
 class MockDataProvider(DataProvider):
+    """Mock data provider with totally random data."""
     def load(self, nspikes=100, nsamples=20, nclusters=5, nchannels=32):
         
         self.holder = DataHolder()
@@ -245,10 +400,8 @@ class MockDataProvider(DataProvider):
         
         return self.holder
         
-        
     def save(self, filename):
         pass
-
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ QStatusBar::item
 }
 """
 
-__all__ = ['SpikyMainWindow']
+__all__ = ['SpikyMainWindow', 'show_window']
 
 
 
@@ -80,6 +80,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.initialize_menu()
         # initialize all signals/slots connections between widgets
         self.initialize_connections()
+        
+        self.initialize_data()
+        
         # make the UI initialization
         self.initialize()
         # set stylesheet
@@ -127,13 +130,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
     
     # Initialization
     # --------------
-    def initialize(self):
-        """Make the UI initialization."""
-        
+    def initialize_data(self):
         # load mock data
         provider = MockDataProvider()
         self.dh = provider.load(nspikes=10000, nclusters=20)
         self.sdh = SelectDataHolder(self.dh)
+        
+    def initialize(self):
+        """Make the UI initialization."""
         
         # create the DataUpdater, which handles the ToChange signals and
         # change data in the DataHolder.
@@ -273,6 +277,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
 
 
 if __name__ == '__main__':
+    # NOTE: not putting "window=" results in weird QT thread warnings upon
+    # closing (??)
     window = show_window(SpikyMainWindow)
 
 

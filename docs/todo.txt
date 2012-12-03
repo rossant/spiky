@@ -45,6 +45,9 @@ TODO
   * P for automatic projection in feature view
   * featureview controller: buttons for channel up/down
   * cluster group renaming
+  * refactoring correlograms: put the actual computations outside dataio
+  
+  * lightweight hdf5 text viewer
 
   * channel selection in waveformview
   * function for automatic zoom in waveformview as a function of

@@ -243,7 +243,7 @@ class GroupItem(TreeItem):
 class ClusterGroupManager(TreeModel):
     headers = ['name', 'rate', 'color']
     
-    def __init__(self, clusters=None, clusters_info=None):
+    def __init__(self, clusters_info=None):
         """Initialize the tree model.
         
         Arguments:
@@ -254,9 +254,9 @@ class ClusterGroupManager(TreeModel):
         
         """
         super(ClusterGroupManager, self).__init__(self.headers)
-        self.initialize(clusters=clusters, clusters_info=clusters_info)
+        self.initialize(clusters_info=clusters_info)
         
-    def initialize(self, clusters=None, clusters_info=None):
+    def initialize(self, clusters_info=None):
         for idx, groupinfo in enumerate(clusters_info.groups_info):
             groupitem = self.add_group(idx, groupinfo['name'])
             clusterindices = sorted(np.nonzero(clusters_info.groups == idx)[0])
