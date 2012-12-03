@@ -163,6 +163,7 @@ class FeatureWidget(VisualizationWidget):
                       clusters=self.dh.clusters,
                       cluster_colors=self.dh.cluster_colors,
                       masks=self.dh.masks)
+        self.update_nspikes_viewer(self.dh.nspikes, 0)
 
     def create_toolbar(self):
         toolbar = QtGui.QToolBar(self)
@@ -187,6 +188,10 @@ class FeatureWidget(VisualizationWidget):
     def initialize_connections(self):
         SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
         SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes)
+        
+    def slotHighlightSpikes(self, parent, highlighted):
+        self.update_nspikes_viewer(self.dh.nspikes, len(highlighted))
         
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()
@@ -297,6 +302,18 @@ class FeatureWidget(VisualizationWidget):
         
         return gridLayout
         
+    def create_nspikes_viewer(self):
+        self.nspikes_viewer = QtGui.QLabel("", self)
+        return self.nspikes_viewer
+        
+    # @staticmethod
+    def get_nspikes_text(self, nspikes, nspikes_highlighted):
+        return "Spikes: %d. Highlighted: %d." % (nspikes, nspikes_highlighted)
+        
+    def update_nspikes_viewer(self, nspikes, nspikes_highlighted):
+        text = self.get_nspikes_text(nspikes, nspikes_highlighted)
+        self.nspikes_viewer.setText(text)
+        
     def create_controller(self):
         box = super(FeatureWidget, self).create_controller()
         
@@ -308,6 +325,10 @@ class FeatureWidget(VisualizationWidget):
         # add navigation toolbar
         self.toolbar = self.create_toolbar()
         box.addWidget(self.toolbar)
+
+        # add number of spikes
+        self.nspikes_viewer = self.create_nspikes_viewer()
+        box.addWidget(self.nspikes_viewer)
         
         # add feature widget
         self.feature_widget1 = self.create_feature_widget(0)

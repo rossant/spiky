@@ -30,31 +30,19 @@ VERTEX_SHADER = """
     // move the vertex to its position0
     vec2 position = position0 * 0.5 * box_size + box_position;
     
-    // compute the color: cluster color and mask for the transparency
-    //varying_color.xyz = cluster_colors[int(cluster)];
-    //varying_color.w = mask;
-    
-    
     vhighlight = highlight;
     cmap_vindex = cmap_index;
     vmask = mask;
     
-    // highlighting: change color, not transparency
-    // HACK: when OLDGLSL is enabled, highlight is not a bool but a number
-    // because attributes cannot be bools. so this test works in both cases
-    //if (highlight > 0)
-        //varying_color = vec4(1, 1, 1, varying_color.w);
-        //vhighlight = highlight;
 """
         
 FRAGMENT_SHADER = """
-    //out_color = varying_color;
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
     
     // TODO
     if (vmask == 0)
-        out_color = vec4(.5, .5, .5, .5);
+        out_color = vec4(.15, .15, .15, .15);
         
     if (vhighlight > 0)
         //out_color.xyz = vec3(1., 1., 1.);
@@ -63,7 +51,10 @@ FRAGMENT_SHADER = """
     //out_color.w = vmask;
 """
 
-HIGHLIGHT_CLOSE_BOXES_COUNT = 32
+# Maximum number of boxes that can be highlighted for performance reasons.
+# None = no limit, it can become slow when selecting all channels with 
+# a lot of spikes
+HIGHLIGHT_CLOSE_BOXES_COUNT = None
 
 WaveformSpatialArrangement = enum("Linear", "Geometrical")
 WaveformSuperposition = enum("Superimposed", "Separated")
@@ -115,7 +106,10 @@ class WaveformHighlightManager(HighlightManager):
         dist = (np.abs(Tx - xp) * sx) ** 2 + (np.abs(Ty - yp) * sy) ** 2
         # find the K closest boxes, with K at least HIGHLIGHT_CLOSE_BOXES_COUNT
         # or nclusters (so that all spikes are selected in superimposed mode
-        closest = np.argsort(dist.ravel())[:HIGHLIGHT_CLOSE_BOXES_COUNT]
+        if HIGHLIGHT_CLOSE_BOXES_COUNT is None:
+            closest = np.argsort(dist.ravel())
+        else:
+            closest = np.argsort(dist.ravel())[:HIGHLIGHT_CLOSE_BOXES_COUNT]
         
         spkindices = []
         for index in closest:

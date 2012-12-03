@@ -10,9 +10,6 @@ from common import *
 from signals import *
 from colors import COLORMAP
 
-# import colors
-# from probes import Probe
-# from waveformtest import *
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
            'FeatureSelectionBindings', 'FeatureEventEnum']
@@ -22,14 +19,6 @@ VERTEX_SHADER = """
     // move the vertex to its position
     vec2 position = position0;
     
-    // compute the color: cluster color and mask for the transparency
-    //varying_color.xyz = cluster_colors[int(cluster)];
-    //varying_color.w = mask;
-    
-    // highlighting: change color, not transparency
-    //if (highlight > 0)
-    //    varying_color = vec4(1, 1, 1, varying_color.w);
-
     vhighlight = highlight;
     cmap_vindex = cmap_index;
     vmask = mask;
@@ -43,11 +32,12 @@ VERTEX_SHADER = """
      
      
 FRAGMENT_SHADER = """
-    //out_color = varying_color;
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
     if (vhighlight > 0)
-        out_color.xyz = vec3(1., 1., 1.);
+        out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
+        //out_color.xyz = vec3(1., 1., 1.);
+        
     // TODO
     //out_color.w = vmask;
 """
@@ -115,9 +105,14 @@ class FeatureDataManager(Manager):
         
         # prepare GPU data
         self.data = np.empty((self.nspikes, 2), dtype=np.float32)
-        self.set_projection(0, 0, 0, False)
-        self.set_projection(1, 0, 1)
         
+        if self.projection[0] is None or self.projection[1] is None:
+            self.set_projection(0, 0, 0, False)
+            self.set_projection(1, 0, 1)
+        else:
+            self.set_projection(0, self.projection[0][0], self.projection[0][1], False)
+            self.set_projection(1, self.projection[1][0], self.projection[1][1])
+            
         # update the highlight manager
         self.highlight_manager.initialize()
         self.selection_manager.initialize()
@@ -143,10 +138,6 @@ class FeatureDataManager(Manager):
         log_info("TODO: automatic projection")
         
         
-    
-# TODO
-# MAX_CLUSTERS = 100
-
 class FeatureVisual(Visual):
     # def cluster_color_compound(self, cluster_colors):
         # cmap_index = cluster_colors[cluster]

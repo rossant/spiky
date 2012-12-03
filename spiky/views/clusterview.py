@@ -470,14 +470,13 @@ class ClusterTreeView(QtGui.QTreeView):
           
         """
         # if cluster is an int, get the ClusterItem
-        if (type(cluster) == int or type(cluster) == np.int32 or
-                type(cluster) == np.int64):
+        if (type(cluster) != QtCore.QModelIndex and 
+                type(cluster) != ClusterItem):
             cluster = self.get_cluster(cluster)
         # now, cluster shoud be a ClusterItem, so we take the QModelIndex
         if isinstance(cluster, ClusterItem):
             cluster = cluster.index
         # finally, cluster should be a QModelIndex instance here
-        
         sel_model = self.selectionModel()
         # sel_model.clearSelection()
         # sel_model.setCurrentIndex(cluster, sel_model.Current)

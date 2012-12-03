@@ -19,7 +19,9 @@ Keyboard shortcuts
   
   * Change box/probe scaling in WaveformView
   
-  
+  * Reset view in WaveformView/FeatureView
+
+
 
 
 Feature view
@@ -29,7 +31,7 @@ Feature view
   * selection of masked spikes or not?
   
 
-measure of cluster quality: ratio of mask/unmask on each channel
+Measure of cluster quality: ratio of mask/unmask on each channel
   
 
 Metadata/user preferences: what to store in the data file, and in the user
@@ -41,7 +43,7 @@ How to implement the automatic projection in the FeatureView?
 
 
 
-Most efficient way of computing the correlograms?
+Most efficient way of computing the correlation matrix?
 
 
 
@@ -49,7 +51,7 @@ Most efficient way of computing the correlograms?
 TODO
 ----
 
-  * number of spikes and highlighted spikes in a box, in the featureview
+  * small widget with text information (number of spikes, highlighted spikes...)
 
   * keyboard shortcuts for probe/box rescaling in waveformview
   * P for automatic projection in feature view
@@ -63,8 +65,6 @@ TODO
   * function for automatic zoom in waveformview as a function of
     channels and clusters
     
-  * [later] fetdim variable in controller widget (1 to ?)
-  
   * bug in cluster view with auto scrolling
   * trivial mask if mask not provided
     
@@ -72,6 +72,8 @@ TODO
   * feature view: toggle between: everything colored, masked = gray, with transparency for fmask
   
   
+  
+  * fetdim variable in controller widget (1 to ?)
   * put COLORMAP in the data holder and remove dependencies 
   * correlograms computation
   * cluster merge with button / M press
