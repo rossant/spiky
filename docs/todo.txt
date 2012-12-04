@@ -1,5 +1,3 @@
-
-
 TO DISCUSS
 ----------
 
@@ -7,9 +5,7 @@ Keyboard shortcuts
 
   * Next/Previous cluster: UP/DOWN
   
-  * Merge/Split: M/S
-  
-  * Automatic projection in FeatureView: P
+  * Merge/Split: M/S + icon
   
   * Change channel in FeatureView: CTRL+UP/DOWN for X, SHIFT+UP/DOWN for Y
   
@@ -17,9 +13,9 @@ Keyboard shortcuts
   
   * Toggle spatial arrangement in WaveformView: G
   
-  * Change box/probe scaling in WaveformView: ??
+  * Change box/probe scaling in WaveformView: 
   
-  * Reset view in WaveformView/FeatureView: R
+  * Reset view in WaveformView/FeatureView: R   OK
 
 
 Feature view
@@ -28,10 +24,51 @@ Feature view
 
   * selection of masked spikes or not?
   
+  
+  (0,0) axes in feature view
+  
 
 Measure of cluster quality: ratio of mask/unmask on each channel
   
+  
+  
+  * Automatic projection in FeatureView: P
 
+  split with different clusters: split everything
+  
+  interaction buttons: shading
+  
+  
+  button for resetting the view
+  
+  keep the old clu
+  
+  default groups: good, noise (SH DEL), multiunit (DEL) move to groups
+  
+  
+  option to transiently recolor all clusters in one group with one color
+  ON by default for MUA (white)
+  
+  low light: mask 
+  
+  possibility to t change the color of clusters permanently
+  
+  left arrow in cluster view to close group tree
+  
+  
+  correlation matrix: later (lower priority)
+  
+  
+  key => buttons
+  
+  XML file with metadata related to visualization
+  load metadata from xml (sampling rzate, etc)
+  
+  no firing rate but n of spikes in clusterview
+  
+  
+  
+  
 Metadata/user preferences: what to store in the data file, and in the user
 preferences files? (eg waveform view scaling, arrangement, etc)
 
@@ -46,8 +83,16 @@ Most efficient way of computing the correlation matrix?
 
 
 
+
 TODO
 ----
+  
+  * waveform: unmasked at the top
+  
+    mean waveform
+  
+    feature view: selection does not select masked clusters
+    (not high priority) option to totally hide features
   
   * function for automatic zoom in waveformview as a function of
     channels and clusters
