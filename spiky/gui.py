@@ -1,5 +1,6 @@
 from galry import *
 from views import *
+from views.signals import SIGNALS
 import tools
 import numpy as np
 from dataio import *
@@ -37,12 +38,18 @@ class DataUpdater(QtGui.QWidget):
     """
     def __init__(self, dh):
         super(DataUpdater, self).__init__()
+        
+        # reset_signals()
+        # print "reset"
+        # global SIGNALS
+        # SIGNALS = SpikySignals()
+        
         self.dh = dh
         self.initialize_connections()
         
     def initialize_connections(self):
-        SIGNALS.ProjectionToChange.connect(self.slotProjectionToChange)
-        SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange)
+        SIGNALS.ProjectionToChange.connect(self.slotProjectionToChange, QtCore.Qt.UniqueConnection)
+        SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionToChange(self, sender, clusters):
         self.dh.select_clusters(clusters)
@@ -160,12 +167,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.autoproj_action.setShortcut("P")
         self.autoproj_action.setStatusTip("Automatically choose the best " +
             "projection in the FeatureView.")
-        self.autoproj_action.triggered.connect(lambda e: emit(self, "AutomaticProjection"))
+        self.autoproj_action.triggered.connect(lambda e: emit(self, "AutomaticProjection"), QtCore.Qt.UniqueConnection)
         
         # exit action
         self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
-        self.quit_action.triggered.connect(self.close)
+        self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
     def initialize_menu(self):
         """Initialize the menu."""
@@ -203,7 +210,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # -------
     def initialize_connections(self):
         """Initialize the signals/slots connections between widgets."""
-        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes)
+        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
 
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
@@ -272,6 +279,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def closeEvent(self, e):
         """Automatically save the arrangement of the window when closing
         the window."""
+        # reset all signals so that they are not bound several times to 
+        # the same slots in an interactive session
+        SIGNALS.reset()
         self.save_geometry()
         # TODO: clean up all widgets
         super(SpikyMainWindow, self).closeEvent(e)

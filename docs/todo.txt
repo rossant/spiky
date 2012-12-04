@@ -1,3 +1,22 @@
+Multiplatform notes
+-------------------
+
+pyside: crash when running the software = erase the .INI file
+
+PySide: bug when runnin python test.py, one needs to do ipython then run...
+
+MacOSX/pyside channel boxes not working
+
+macosx/nvidia: galry 3D examples look funny
+
+INI file bug between pyqt and pyside related to waveformview geometry saving
+make sure to use native formats for objects
+
+windows/pyside cluster view: cluster selection not blue but gray (style not working?)
+
+initial launch: default window geometry config
+
+
 TO DISCUSS
 ----------
 

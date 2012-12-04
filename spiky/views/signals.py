@@ -2,7 +2,7 @@ from galry import *
 import numpy as np
 
 
-__all__ = ['SIGNALS', 'emit']
+__all__ = ['SIGNALS', 'emit', 'reset_signals', 'SpikySignals']
 
 
 class SpikySignals(QtCore.QObject):
@@ -21,9 +21,6 @@ class SpikySignals(QtCore.QObject):
     ProjectionToChange = QtCore.pyqtSignal(object, int, int, int)
     ProjectionChanged = QtCore.pyqtSignal(object, int, int, int)
     
-    # Toggle waveform superposition
-    ToggleWaveformSuperposition = QtCore.pyqtSignal(object)
-    
     # Automatic projection in FeatureView
     AutomaticProjection = QtCore.pyqtSignal(object)
     
@@ -31,14 +28,27 @@ class SpikySignals(QtCore.QObject):
     ClusterSelectionToChange = QtCore.pyqtSignal(object, np.ndarray)
     ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
     
-    # ChannelSelection
-    # ChannelSelection = QtCore.pyqtSignal(object, int, int)
+    def reset(self):
+        self.HighlightSpikes.disconnect()
+        self.ProjectionToChange.disconnect()
+        self.ProjectionChanged.disconnect()
+        self.AutomaticProjection.disconnect()
+        self.ClusterSelectionToChange.disconnect()
+        self.ClusterSelectionChanged.disconnect()
+        
+        
     
+SIGNALS = None
 
-SIGNALS = SpikySignals()
+def reset_signals():
+    global SIGNALS
+    SIGNALS = SpikySignals()
 
 def emit(sender, signalname, *args):
     # we add the sender to the arguments
     args = (sender,) + args
     getattr(SIGNALS, signalname).emit(*args)
+
+reset_signals()
+
 

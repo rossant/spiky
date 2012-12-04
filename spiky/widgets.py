@@ -118,8 +118,8 @@ class WaveformWidget(VisualizationWidget):
                       )
     
     def initialize_connections(self):
-        SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
-        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
+        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()
@@ -186,10 +186,9 @@ class FeatureWidget(VisualizationWidget):
         return toolbar
         
     def initialize_connections(self):
-        SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
-        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
-        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes)
-        # SIGNALS.ChannelSelection.connect(self.slotChannelSelection)
+        SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
+        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         
     def slotHighlightSpikes(self, parent, highlighted):
         self.update_nspikes_viewer(self.dh.nspikes, len(highlighted))
@@ -281,7 +280,7 @@ class FeatureWidget(VisualizationWidget):
         
     def _select_feature_getter(self, coord, fet):
         """Return the callback function for the feature selection."""
-        return lambda e: self.select_feature(coord, fet)
+        return lambda *args: self.select_feature(coord, fet)
         
     def _select_channel_getter(self, coord):
         """Return the callback function for the channel selection."""
@@ -306,8 +305,8 @@ class FeatureWidget(VisualizationWidget):
         comboBox.setEditable(True)
         comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
         comboBox.addItems(["Channel %d" % i for i in xrange(self.dh.nchannels)])
-        comboBox.editTextChanged.connect(self._select_channel_text_getter(coord))
-        comboBox.currentIndexChanged.connect(self._select_channel_getter(coord))
+        comboBox.editTextChanged.connect(self._select_channel_text_getter(coord), QtCore.Qt.UniqueConnection)
+        comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
         comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.channel_box[coord] = comboBox
         gridLayout.addWidget(comboBox, 0, 0, 1, 3)
@@ -326,7 +325,7 @@ class FeatureWidget(VisualizationWidget):
             if coord == i:
                 pushButton.setChecked(True)
             pushButton.setMaximumSize(QtCore.QSize(widths[i], 20))
-            pushButton.clicked.connect(self._select_feature_getter(coord, i))
+            pushButton.clicked.connect(self._select_feature_getter(coord, i), QtCore.Qt.UniqueConnection)
             pushButtonGroup.addButton(pushButton, i)
             self.feature_buttons[coord][i] = pushButton
             gridLayout.addWidget(pushButton, 1, i)
@@ -391,7 +390,7 @@ class CorrelogramsWidget(VisualizationWidget):
                       cluster_colors=self.dh.cluster_colors)
 
     def initialize_connections(self):
-        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
     
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()
