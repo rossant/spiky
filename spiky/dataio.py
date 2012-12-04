@@ -218,7 +218,12 @@ class KlustersDataProvider(DataProvider):
         nspikes = 10000
         nsamples = 20
         
-        clusters = load_text(filename + ".clu.1", np.int32)
+        try:
+            clusters = load_text(filename + ".clu.1", np.int32)
+        except Exception as e:
+            log_warn("CLU file '%s' not found" % filename)
+            clusters = np.zeros(nspikes + 1, dtype=np.int32)
+            clusters[0] = 1
         nclusters = clusters[0]
         clusters = clusters[1:]
         
@@ -227,11 +232,19 @@ class KlustersDataProvider(DataProvider):
         spiketimes = features[:,-1]
         # features = features[:,:-1]
         
-        masks = load_text(filename + ".mask.1", np.float32, skiprows=1)
-        masks = masks[:,:-1:3]
+        try:
+            masks = load_text(filename + ".mask.1", np.float32, skiprows=1)
+            masks = masks[:,:-1:3]
+        except Exception as e:
+            log_warn("MASK file '%s' not found" % filename)
+            masks = np.ones((nspikes, nchannels))
         
-        waveforms = load_binary(filename + ".spk.1")
-        waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
+        try:
+            waveforms = load_binary(filename + ".spk.1")
+            waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
+        except Exception as e:
+            log_warn("SPK file '%s' not found" % filename)
+            waveforms = np.zeros((nspikes, nsamples, nchannels))
         
         self.holder = DataHolder()
         

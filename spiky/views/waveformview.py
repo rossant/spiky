@@ -41,14 +41,14 @@ FRAGMENT_SHADER = """
     out_color = texture1D(cmap, index);
     
     // TODO
-    if (vmask == 0)
-        out_color = vec4(.2, .2, .2, .2);
+    if (vmask == 0) {
+        out_color.xyz = vec3(.5, .5, .5);
+    }
+    out_color.w = .25 + .75 * vmask;
         
-    if (vhighlight > 0)
-        //out_color.xyz = vec3(1., 1., 1.);
+    if (vhighlight > 0)  {
         out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
-        
-    //out_color.w = vmask;
+    }
 """
 
 # Maximum number of boxes that can be highlighted for performance reasons.
@@ -64,6 +64,8 @@ WaveformEventEnum = enum(
     "ChangeBoxScaleEvent",
     "ChangeProbeScaleEvent",
     "HighlightSpikeEvent",
+    "SelectChannelXEvent",
+    "SelectChannelYEvent",
     )
     
 
@@ -463,6 +465,22 @@ class WaveformPositionManager(Manager):
         ymax += self.h * my
         return xmin, ymin, xmax, ymax
         
+    def find_box(self, xp, yp):
+        
+        # transformation
+        box_positions, box_size = self.get_transformation()
+        Tx, Ty = box_positions
+        w, h = box_size
+        a, b = w / 2, h / 2
+        
+        # find the enclosed channels and clusters
+        sx, sy = self.interaction_manager.sx, self.interaction_manager.sy
+        dist = (np.abs(Tx - xp) * sx) ** 2 + (np.abs(Ty - yp) * sy) ** 2
+        closest = np.argmin(dist.ravel())
+        channel, cluster_rel = closest // self.nclusters, np.mod(closest, self.nclusters)
+        
+        return channel, cluster_rel
+        
 
 class WaveformDataManager(Manager):
     # Initialization methods
@@ -724,6 +742,14 @@ class WaveformPaintManager(PaintManager):
         
         
 class WaveformInteractionManager(InteractionManager):
+    def select_channel(self, coord, parameter):
+        # normalized coordinates
+        xp, yp = self.get_data_coordinates(*parameter)
+        # find closest channel
+        channel, cluster_rel = self.position_manager.find_box(xp, yp)
+        # emit the ChannelSelection signal
+        emit(self.parent, 'ChannelSelection', coord, channel)
+    
     def process_none_event(self):
         super(WaveformInteractionManager, self).process_none_event()
         self.highlight_manager.cancel_highlight()
@@ -743,7 +769,12 @@ class WaveformInteractionManager(InteractionManager):
         if event == WaveformEventEnum.HighlightSpikeEvent:
             self.highlight_manager.highlight(parameter)
             self.cursor = cursors.CrossCursor
-        
+        # channel selection
+        if event == WaveformEventEnum.SelectChannelXEvent:
+            self.select_channel(0, parameter)
+        if event == WaveformEventEnum.SelectChannelYEvent:
+            self.select_channel(1, parameter)
+  
   
 class WaveformBindings(SpikyDefaultBindingSet):
     def set_panning(self):
@@ -853,11 +884,22 @@ class WaveformBindings(SpikyDefaultBindingSet):
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
+    def set_channel_selection(self):
+        # CTRL + left click for selecting a channel for coordinate X in feature view
+        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelXEvent,
+                 key_modifier=QtCore.Qt.Key_Control,
+                 param_getter=lambda p: p["mouse_position"])
+        # SHIFT + left click for selecting a channel for coordinate Y in feature view
+        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelYEvent,
+                 key_modifier=QtCore.Qt.Key_Shift,
+                 param_getter=lambda p: p["mouse_position"])
+        
     def extend(self):
         self.set_arrangement_toggling()
         self.set_box_scaling()
         self.set_probe_scaling()
         self.set_highlight()
+        self.set_channel_selection()
     
     
 class WaveformView(GalryWidget):

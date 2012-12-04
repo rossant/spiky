@@ -35,21 +35,20 @@ FRAGMENT_SHADER = """
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
         
-    // TODO
-    // mask
+    // toggle mask and masked points
     if ((vmask < 1) && (toggle_mask > 0)) {
-        out_color.xyz = vec3(.2, .2, .2);
-        //out_color.w = vmask;
+        out_color.xyz = vec3(.5, .5, .5);
+        // mask only for masked points in mask activated mode
+        out_color.w = .5 + .5 * vmask;
     }
     else {
         
     }
     
     // highlight
-    if (vhighlight > 0)
-        //out_color.xyz = vec3(1., 1., 1.);
+    if (vhighlight > 0) {
         out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
-        
+    }
 """
 
 def polygon_contains_points(polygon, points):

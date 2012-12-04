@@ -50,30 +50,24 @@ Most efficient way of computing the correlation matrix?
 
 TODO
 ----
-
-  * small widget with text information (number of spikes, highlighted spikes...)
-
-  * keyboard shortcuts for probe/box rescaling in waveformview
-  * featureview controller: buttons for channel up/down
-  * cluster group renaming
   
-  * lightweight hdf5 text viewer
-
-  * channel selection in waveformview
   * function for automatic zoom in waveformview as a function of
     channels and clusters
     
-  * trivial mask if mask not provided
+  * keyboard shortcuts for probe/box rescaling in waveformview
     
-    
-  
+  * cluster group renaming
+  * featureview controller: buttons for channel up/down
+  * small widget with text information (number of spikes, highlighted spikes...)
+  * lightweight hdf5 text viewer
   * refactoring correlograms: put the actual computations outside dataio
-  * fetdim variable in controller widget (1 to ?)
   * put COLORMAP in the data holder and remove dependencies 
   * correlograms computation
+  * factorize highlight logic in shaders  
   * cluster merge with button / M press
   * cluster split with button / S press
   * trace view
+  * fetdim variable in controller widget (1 to ?)
   * lowlight: gray or original colors
   * transient recoloring
   * move data manager into templates, so that templates contain everything

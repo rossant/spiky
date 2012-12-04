@@ -189,6 +189,7 @@ class FeatureWidget(VisualizationWidget):
         SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
         SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes)
+        SIGNALS.ChannelSelection.connect(self.slotChannelSelection)
         
     def slotHighlightSpikes(self, parent, highlighted):
         self.update_nspikes_viewer(self.dh.nspikes, len(highlighted))
@@ -209,6 +210,26 @@ class FeatureWidget(VisualizationWidget):
         # update the view
         self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
                                       (coord, channel, feature))
+        
+    def slotChannelSelection(self, sender, coord, channel):
+        # TODO: find feature
+        # feature = 0
+        # current channel and feature in the other coordinate
+        other_channel, other_feature = self.view.data_manager.projection[1 - coord]
+        fetdim = self.dh.fetdim
+        # first dimension: we force to 0
+        if coord == 0:
+            feature = 0
+        # other dimension: 0 if different channel, or next feature if the same
+        # channel
+        else:
+            # same channel case
+            if channel == other_channel:
+                feature = np.mod(other_feature + 1, fetdim)
+            # different channel case
+            else:
+                feature = 0
+        self.slotProjectionChanged(sender, coord, channel, feature)
         
     def set_channel_box(self, coord, channel):
         """Select the adequate line in the channel selection combo box."""

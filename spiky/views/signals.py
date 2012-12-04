@@ -24,11 +24,15 @@ class SpikySignals(QtCore.QObject):
     # Toggle waveform superposition
     ToggleWaveformSuperposition = QtCore.pyqtSignal(object)
     
-    
+    # Automatic projection in FeatureView
     AutomaticProjection = QtCore.pyqtSignal(object)
     
+    # ClusterSelection
     ClusterSelectionToChange = QtCore.pyqtSignal(object, np.ndarray)
     ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
+    
+    # ChannelSelection
+    ChannelSelection = QtCore.pyqtSignal(object, int, int)
     
 
 SIGNALS = SpikySignals()
