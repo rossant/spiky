@@ -68,6 +68,13 @@ Measure of cluster quality: ratio of mask/unmask on each channel
   
   
   
+  ctrl + left click: highlighting not so transient, click to deactive highlighting
+  
+  selection of cluster: not bigger points in feature view, butr highlited
+  and also in waveformview with signals
+  
+  
+  
   
 Metadata/user preferences: what to store in the data file, and in the user
 preferences files? (eg waveform view scaling, arrangement, etc)

@@ -92,7 +92,7 @@ class WaveformWidget(VisualizationWidget):
         geometry_preferences = self.restore_geometry()
         if geometry_preferences is None:
             geometry_preferences = {}
-        
+        # print geometry_preferences
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
                       cluster_colors=self.dh.cluster_colors,
@@ -297,7 +297,9 @@ class FeatureWidget(VisualizationWidget):
         
         gridLayout = QtGui.QGridLayout()
         gridLayout.setSpacing(0)
-        gridLayout.setMargin(0)
+        # HACK: pyside does not have this function
+        if hasattr(gridLayout, 'setMargin'):
+            gridLayout.setMargin(0)
         
         # channel selection
         comboBox = QtGui.QComboBox(self)

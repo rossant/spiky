@@ -149,7 +149,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.feature_widget = self.add_central(FeatureWidget)
         self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
         self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
-        self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        
+        # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         
     def initialize_actions(self):
         """Initialize all global actions."""
