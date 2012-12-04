@@ -480,7 +480,7 @@ class ClusterTreeView(QtGui.QTreeView):
         sel_model = self.selectionModel()
         # sel_model.clearSelection()
         # sel_model.setCurrentIndex(cluster, sel_model.Current)
-        sel_model.select(cluster, sel_model.SelectCurrent | sel_model.Rows)
+        sel_model.select(cluster, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
         self.scrollTo(cluster, QtGui.QAbstractItemView.EnsureVisible)
         
     def select_cluster(self, direction):
@@ -533,8 +533,21 @@ class ClusterTreeView(QtGui.QTreeView):
 
     # Event methods
     # -------------
+    modifiers = [QtCore.Qt.Key_Control, QtCore.Qt.Key_Shift, QtCore.Qt.Key_Alt]
+    modifier = False
+    def keyReleaseEvent(self, e):
+        key = e.key()
+        if key in self.modifiers:
+            self.modifier = False
+        # print "release", self.modifier
+            
     def keyPressEvent(self, e):
         key = e.key()
+        if key in self.modifiers:
+            self.modifier = True
+        # print "press", self.modifier
+        if self.modifier:
+            return
         
         # previous and next cluster
         if key == QtCore.Qt.Key_Up:
@@ -548,6 +561,8 @@ class ClusterTreeView(QtGui.QTreeView):
         if key == QtCore.Qt.Key_End:
             self.select_cluster('bottom')
             
-    
+    # def focusOutEvent(self, e):
+        # self.modifier = False
+        # print "out", self.modifier
     
     

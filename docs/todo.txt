@@ -5,23 +5,21 @@ TO DISCUSS
 
 Keyboard shortcuts
 
-  * Next/Previous cluster
+  * Next/Previous cluster: UP/DOWN
   
-  * Merge/Split
+  * Merge/Split: M/S
   
-  * Automatic projection in FeatureView
+  * Automatic projection in FeatureView: P
   
-  * Change channel in FeatureView
+  * Change channel in FeatureView: CTRL+UP/DOWN for X, SHIFT+UP/DOWN for Y
   
-  * Toggle overlay in WaveformView
+  * Toggle overlay in WaveformView: O
   
-  * Toggle spatial arrangement in WaveformView
+  * Toggle spatial arrangement in WaveformView: G
   
-  * Change box/probe scaling in WaveformView
+  * Change box/probe scaling in WaveformView: ??
   
-  * Reset view in WaveformView/FeatureView
-
-
+  * Reset view in WaveformView/FeatureView: R
 
 
 Feature view
@@ -54,21 +52,20 @@ TODO
   * function for automatic zoom in waveformview as a function of
     channels and clusters
     
-  * keyboard shortcuts for probe/box rescaling in waveformview
     
   * cluster group renaming
   * featureview controller: buttons for channel up/down
+  * keyboard shortcuts for probe/box rescaling in waveformview
   * small widget with text information (number of spikes, highlighted spikes...)
   * lightweight hdf5 text viewer
+  * correlograms computation
   * refactoring correlograms: put the actual computations outside dataio
   * put COLORMAP in the data holder and remove dependencies 
-  * correlograms computation
   * factorize highlight logic in shaders  
   * cluster merge with button / M press
   * cluster split with button / S press
   * trace view
   * fetdim variable in controller widget (1 to ?)
-  * lowlight: gray or original colors
   * transient recoloring
   * move data manager into templates, so that templates contain everything
   * force cleaning up of widgets upon closing

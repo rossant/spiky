@@ -64,8 +64,8 @@ WaveformEventEnum = enum(
     "ChangeBoxScaleEvent",
     "ChangeProbeScaleEvent",
     "HighlightSpikeEvent",
-    "SelectChannelXEvent",
-    "SelectChannelYEvent",
+    "SelectChannelEvent",
+    # "SelectChannelYEvent",
     )
     
 
@@ -742,13 +742,14 @@ class WaveformPaintManager(PaintManager):
         
         
 class WaveformInteractionManager(InteractionManager):
-    def select_channel(self, coord, parameter):
+    def select_channel(self, coord, xp, yp):
         # normalized coordinates
-        xp, yp = self.get_data_coordinates(*parameter)
+        xp, yp = self.get_data_coordinates(xp, yp)
         # find closest channel
         channel, cluster_rel = self.position_manager.find_box(xp, yp)
         # emit the ChannelSelection signal
-        emit(self.parent, 'ChannelSelection', coord, channel)
+        emit(self.parent, 'ProjectionToChange', coord, channel, -1)
+                
     
     def process_none_event(self):
         super(WaveformInteractionManager, self).process_none_event()
@@ -770,10 +771,8 @@ class WaveformInteractionManager(InteractionManager):
             self.highlight_manager.highlight(parameter)
             self.cursor = cursors.CrossCursor
         # channel selection
-        if event == WaveformEventEnum.SelectChannelXEvent:
-            self.select_channel(0, parameter)
-        if event == WaveformEventEnum.SelectChannelYEvent:
-            self.select_channel(1, parameter)
+        if event == WaveformEventEnum.SelectChannelEvent:
+            self.select_channel(*parameter)
   
   
 class WaveformBindings(SpikyDefaultBindingSet):
@@ -886,13 +885,13 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_channel_selection(self):
         # CTRL + left click for selecting a channel for coordinate X in feature view
-        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelXEvent,
+        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelEvent,
                  key_modifier=QtCore.Qt.Key_Control,
-                 param_getter=lambda p: p["mouse_position"])
+                 param_getter=lambda p: (0, p["mouse_position"][0], p["mouse_position"][1]))
         # SHIFT + left click for selecting a channel for coordinate Y in feature view
-        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelYEvent,
+        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelEvent,
                  key_modifier=QtCore.Qt.Key_Shift,
-                 param_getter=lambda p: p["mouse_position"])
+                 param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
     def extend(self):
         self.set_arrangement_toggling()

@@ -462,6 +462,21 @@ class FeatureInteractionManager(InteractionManager):
         if event == FeatureEventEnum.ToggleMaskEvent:
             self.paint_manager.toggle_mask()
             
+        # select neighbor channel
+        if event == FeatureEventEnum.SelectNeighborChannelEvent:
+            # print self.data_manager.projection
+            coord, channel_dir = parameter
+            # current channel and feature in the given coordinate
+            proj = self.data_manager.projection[coord]
+            if proj is None:
+                proj = (0, coord)
+            channel, feature = proj
+            # next or previous channel
+            channel = np.mod(channel + channel_dir, self.data_manager.nchannels)
+            # select projection
+            # self.select_projection((coord, channel, feature))
+            emit(self.parent, 'ProjectionToChange', coord, channel, feature)
+            
     def select_projection(self, parameter):
         """Select a projection for the given coordinate."""
         self.data_manager.set_projection(*parameter)  # coord, channel, feature
@@ -481,11 +496,13 @@ FeatureEventEnum = enum(
     
     "SelectProjectionEvent",
     "AutomaticProjectionEvent",
+    
+    "SelectNeighborChannelEvent",
     )
         
         
-# Navigation mode
-# --------------
+# Bindings
+# --------
 class FeatureBindings(SpikyDefaultBindingSet):
     def set_highlight(self):
         # highlight
@@ -509,14 +526,31 @@ class FeatureBindings(SpikyDefaultBindingSet):
                  FeatureEventEnum.ToggleMaskEvent,
                  key=QtCore.Qt.Key_T)
         
+    def set_neighbor_channel(self):
+        # select previous/next channel for coordinate 0
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+                 key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Control,
+                 param_getter=lambda p: (0, -1))
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+                 key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Control,
+                 param_getter=lambda p: (0, 1))
+                 
+        # select previous/next channel for coordinate 1
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+                 key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Shift,
+                 param_getter=lambda p: (1, -1))
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+                 key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Shift,
+                 param_getter=lambda p: (1, 1))
+        
+        
 class FeatureNavigationBindings(FeatureBindings):
     def extend(self):
         self.set_highlight()
         self.set_toggle_mask()
+        self.set_neighbor_channel()
 
 
-# Selection mode
-# --------------
 class FeatureSelectionBindings(FeatureBindings):
     def set_selection(self):
         # selection
@@ -540,6 +574,8 @@ class FeatureSelectionBindings(FeatureBindings):
     def extend(self):
         self.set_highlight()
         self.set_toggle_mask()
+        self.set_neighbor_channel()
+        
         self.set_base_cursor(cursors.CrossCursor)
         self.set_selection()
      

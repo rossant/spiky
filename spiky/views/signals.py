@@ -32,7 +32,7 @@ class SpikySignals(QtCore.QObject):
     ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
     
     # ChannelSelection
-    ChannelSelection = QtCore.pyqtSignal(object, int, int)
+    # ChannelSelection = QtCore.pyqtSignal(object, int, int)
     
 
 SIGNALS = SpikySignals()

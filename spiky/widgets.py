@@ -189,7 +189,7 @@ class FeatureWidget(VisualizationWidget):
         SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged)
         SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes)
-        SIGNALS.ChannelSelection.connect(self.slotChannelSelection)
+        # SIGNALS.ChannelSelection.connect(self.slotChannelSelection)
         
     def slotHighlightSpikes(self, parent, highlighted):
         self.update_nspikes_viewer(self.dh.nspikes, len(highlighted))
@@ -199,37 +199,45 @@ class FeatureWidget(VisualizationWidget):
         
     def slotProjectionChanged(self, sender, coord, channel, feature):
         """Process the ProjectionChanged signal."""
+        
+        # feature == -1 means that it should be automatically selected as
+        # a function of the current projection
+        if feature < 0:
+            # current channel and feature in the other coordinate
+            other_channel, other_feature = self.view.data_manager.projection[1 - coord]
+            fetdim = self.dh.fetdim
+            # first dimension: we force to 0
+            if coord == 0:
+                feature = 0
+            # other dimension: 0 if different channel, or next feature if the same
+            # channel
+            else:
+                # same channel case
+                if channel == other_channel:
+                    feature = np.mod(other_feature + 1, fetdim)
+                # different channel case
+                else:
+                    feature = 0
+        
+        # print sender
         log_info("Projection changed in coord %s, channel=%d, feature=%s" \
             % (('X', 'Y')[coord], channel, ('A', 'B', 'C')[feature]))
         # record the new projection
         self.projection[coord] = (channel, feature)
+        
+        # prevent the channelbox to raise signals when we change its state
+        # programmatically
+        self.channel_box[coord].blockSignals(True)
         # update the channel box
         self.set_channel_box(coord, channel)
         # update the feature button
         self.set_feature_button(coord, feature)
+        # reactive signals for the channel box
+        self.channel_box[coord].blockSignals(False)
+        
         # update the view
         self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
                                       (coord, channel, feature))
-        
-    def slotChannelSelection(self, sender, coord, channel):
-        # TODO: find feature
-        # feature = 0
-        # current channel and feature in the other coordinate
-        other_channel, other_feature = self.view.data_manager.projection[1 - coord]
-        fetdim = self.dh.fetdim
-        # first dimension: we force to 0
-        if coord == 0:
-            feature = 0
-        # other dimension: 0 if different channel, or next feature if the same
-        # channel
-        else:
-            # same channel case
-            if channel == other_channel:
-                feature = np.mod(other_feature + 1, fetdim)
-            # different channel case
-            else:
-                feature = 0
-        self.slotProjectionChanged(sender, coord, channel, feature)
         
     def set_channel_box(self, coord, channel):
         """Select the adequate line in the channel selection combo box."""
@@ -473,5 +481,9 @@ class ClusterWidget(QtGui.QWidget):
             self.view.restoreGeometry(g)
         if h:
             self.view.header().restoreState(h)
+    
+    
+    # def focusOutEvent(self, e):
+        # self.view.focusOutEvent(e)
     
     
