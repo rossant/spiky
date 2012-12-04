@@ -34,12 +34,22 @@ VERTEX_SHADER = """
 FRAGMENT_SHADER = """
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
-    if (vhighlight > 0)
-        out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
-        //out_color.xyz = vec3(1., 1., 1.);
         
     // TODO
-    //out_color.w = vmask;
+    // mask
+    if ((vmask < 1) && (toggle_mask > 0)) {
+        out_color.xyz = vec3(.2, .2, .2);
+        //out_color.w = vmask;
+    }
+    else {
+        
+    }
+    
+    // highlight
+    if (vhighlight > 0)
+        //out_color.xyz = vec3(1., 1., 1.);
+        out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
+        
 """
 
 def polygon_contains_points(polygon, points):
@@ -139,10 +149,6 @@ class FeatureDataManager(Manager):
         
         
 class FeatureVisual(Visual):
-    # def cluster_color_compound(self, cluster_colors):
-        # cmap_index = cluster_colors[cluster]
-        # return dict(cmap_index=cmap_index)
-
     def initialize(self, npoints=None, #nclusters=None, 
                     position0=None,
                     mask=None,
@@ -152,7 +158,6 @@ class FeatureVisual(Visual):
                     cluster_colors=None,
                     # colormap=None
                     ):
-        # cluster_colors gives, for each cluster, the index in the colormap
         
         self.primitive_type = 'POINTS'
         self.size = npoints
@@ -168,18 +173,15 @@ class FeatureVisual(Visual):
         self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
         self.add_varying("vhighlight", vartype="int", ndim=1)
         
+        self.add_uniform("toggle_mask", vartype="int", ndim=1, data=0)
+        
         self.add_attribute("selection", vartype="int", ndim=1, data=selection)
-        # self.cluster = cluster
         # color map for cluster colors, each spike has an index of the color
         # in the color map
         ncolors = COLORMAP.shape[0]
         ncomponents = COLORMAP.shape[1]
         
-        # self.ncolors = ncolors
-        # self.ncomponents = ncomponents
-        
         # associate the cluster color to each spike
-        # cmap = cmap[cluster, :]
         # give the correct shape to cmap
         colormap = COLORMAP.reshape((1, ncolors, ncomponents))
         
@@ -189,22 +191,12 @@ class FeatureVisual(Visual):
         self.add_attribute('cmap_index', ndim=1, vartype='int', data=cmap_index)
         self.add_varying('cmap_vindex', vartype='int', ndim=1)
         
-        
         dx = 1. / ncolors
         offset = dx / 2.
-        
-        # print ncolors, dx, offset
         
         global FRAGMENT_SHADER
         FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_OFFSET%', "%.5f" % offset)
         FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_STEP%', "%.5f" % dx)
-        
-        # print FRAGMENT_SHADER
-        
-        # self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
-        # self.add_uniform("cluster_colors", vartype="float", ndim=3,
-            # size=MAX_CLUSTERS, data=cluster_colors)
-        # self.add_varying("varying_color", vartype="float", ndim=4)
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
@@ -216,6 +208,8 @@ class FeaturePaintManager(PaintManager):
             mask=self.data_manager.full_masks, visual='features')
         
     def initialize(self):
+        self.toggle_mask_value = False
+        
         self.add_visual(FeatureVisual, name='features',
             npoints=self.data_manager.npoints,
             position0=self.data_manager.normalized_data,
@@ -243,6 +237,10 @@ class FeaturePaintManager(PaintManager):
             cmap_index=cmap_index
             )
 
+    def toggle_mask(self):
+        self.toggle_mask_value = 1 - self.toggle_mask_value
+        self.set_data(visual='features', toggle_mask=self.toggle_mask_value)
+            
 
 class FeatureHighlightManager(HighlightManager):
     def initialize(self):
@@ -461,6 +459,10 @@ class FeatureInteractionManager(InteractionManager):
         if event == FeatureEventEnum.AutomaticProjectionEvent:
             self.data_manager.automatic_projection()
             
+        # toggle mask
+        if event == FeatureEventEnum.ToggleMaskEvent:
+            self.paint_manager.toggle_mask()
+            
     def select_projection(self, parameter):
         """Select a projection for the given coordinate."""
         self.data_manager.set_projection(*parameter)  # coord, channel, feature
@@ -476,6 +478,8 @@ FeatureEventEnum = enum(
     "EndSelectionPointEvent",
     "CancelSelectionPointEvent",
     
+    "ToggleMaskEvent",
+    
     "SelectProjectionEvent",
     "AutomaticProjectionEvent",
     )
@@ -483,7 +487,7 @@ FeatureEventEnum = enum(
         
 # Navigation mode
 # --------------
-class FeatureNavigationBindings(SpikyDefaultBindingSet):
+class FeatureBindings(SpikyDefaultBindingSet):
     def set_highlight(self):
         # highlight
         self.set(UserActions.MiddleButtonMouseMoveAction,
@@ -501,13 +505,20 @@ class FeatureNavigationBindings(SpikyDefaultBindingSet):
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
+    def set_toggle_mask(self):
+        self.set(UserActions.KeyPressAction,
+                 FeatureEventEnum.ToggleMaskEvent,
+                 key=QtCore.Qt.Key_T)
+        
+class FeatureNavigationBindings(FeatureBindings):
     def extend(self):
         self.set_highlight()
+        self.set_toggle_mask()
 
 
 # Selection mode
 # --------------
-class FeatureSelectionBindings(FeatureNavigationBindings):
+class FeatureSelectionBindings(FeatureBindings):
     def set_selection(self):
         # selection
         self.set(UserActions.MouseMoveAction,
@@ -529,6 +540,7 @@ class FeatureSelectionBindings(FeatureNavigationBindings):
     
     def extend(self):
         self.set_highlight()
+        self.set_toggle_mask()
         self.set_base_cursor(cursors.CrossCursor)
         self.set_selection()
      

@@ -481,6 +481,7 @@ class ClusterTreeView(QtGui.QTreeView):
         # sel_model.clearSelection()
         # sel_model.setCurrentIndex(cluster, sel_model.Current)
         sel_model.select(cluster, sel_model.SelectCurrent | sel_model.Rows)
+        self.scrollTo(cluster, QtGui.QAbstractItemView.EnsureVisible)
         
     def select_cluster(self, direction):
         # list of all cluster indices
@@ -489,9 +490,6 @@ class ClusterTreeView(QtGui.QTreeView):
             return
         # list of selected cluster indices
         selected = self.selected_clusters()
-        # selected.sort()
-        # print clusters
-        # print selected
         
         # find the cluster to select
         to_select = None
@@ -509,10 +507,11 @@ class ClusterTreeView(QtGui.QTreeView):
             else:
                 i = min(len(clusters) - 1, clusters.index(selected[-1]) + 1)
                 to_select = clusters[i]
+        if direction == 'top':
+            to_select = clusters[0]
+        if direction == 'bottom':
+            to_select = clusters[-1]
                 
-        # print to_select
-        # print
-        
         # select the cluster
         if to_select is not None:
             self.select(to_select)
@@ -536,10 +535,19 @@ class ClusterTreeView(QtGui.QTreeView):
     # -------------
     def keyPressEvent(self, e):
         key = e.key()
+        
+        # previous and next cluster
         if key == QtCore.Qt.Key_Up:
             self.select_cluster('previous')
         if key == QtCore.Qt.Key_Down:
             self.select_cluster('next')
+        
+        # first and last cluster
+        if key == QtCore.Qt.Key_Home:
+            self.select_cluster('top')
+        if key == QtCore.Qt.Key_End:
+            self.select_cluster('bottom')
             
+    
     
     

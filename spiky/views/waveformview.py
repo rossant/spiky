@@ -42,7 +42,7 @@ FRAGMENT_SHADER = """
     
     // TODO
     if (vmask == 0)
-        out_color = vec4(.15, .15, .15, .15);
+        out_color = vec4(.2, .2, .2, .2);
         
     if (vhighlight > 0)
         //out_color.xyz = vec3(1., 1., 1.);

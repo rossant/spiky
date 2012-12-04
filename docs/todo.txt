@@ -54,10 +54,8 @@ TODO
   * small widget with text information (number of spikes, highlighted spikes...)
 
   * keyboard shortcuts for probe/box rescaling in waveformview
-  * P for automatic projection in feature view
   * featureview controller: buttons for channel up/down
   * cluster group renaming
-  * refactoring correlograms: put the actual computations outside dataio
   
   * lightweight hdf5 text viewer
 
@@ -65,14 +63,11 @@ TODO
   * function for automatic zoom in waveformview as a function of
     channels and clusters
     
-  * bug in cluster view with auto scrolling
   * trivial mask if mask not provided
     
     
-  * feature view: toggle between: everything colored, masked = gray, with transparency for fmask
   
-  
-  
+  * refactoring correlograms: put the actual computations outside dataio
   * fetdim variable in controller widget (1 to ?)
   * put COLORMAP in the data holder and remove dependencies 
   * correlograms computation
