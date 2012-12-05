@@ -477,6 +477,22 @@ class FeatureInteractionManager(InteractionManager):
             # self.select_projection((coord, channel, feature))
             emit(self.parent, 'ProjectionToChange', coord, channel, feature)
             
+        # select neighbor feature
+        if event == FeatureEventEnum.SelectNeighborFeatureEvent:
+            # print self.data_manager.projection
+            coord, feature_dir = parameter
+            # current channel and feature in the given coordinate
+            proj = self.data_manager.projection[coord]
+            if proj is None:
+                proj = (0, coord)
+            channel, feature = proj
+            # next or previous feature
+            feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
+            # select projection
+            # self.select_projection((coord, channel, feature))
+            emit(self.parent, 'ProjectionToChange', coord, channel, feature)
+            
+            
     def select_projection(self, parameter):
         """Select a projection for the given coordinate."""
         self.data_manager.set_projection(*parameter)  # coord, channel, feature
@@ -498,6 +514,7 @@ FeatureEventEnum = enum(
     "AutomaticProjectionEvent",
     
     "SelectNeighborChannelEvent",
+    "SelectNeighborFeatureEvent",
     )
         
         
@@ -543,12 +560,30 @@ class FeatureBindings(SpikyDefaultBindingSet):
                  key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (1, 1))
         
+    def set_neighbor_feature(self):
+        # select previous/next feature for coordinate 0
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+                 key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Control,
+                 param_getter=lambda p: (0, -1))
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+                 key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Control,
+                 param_getter=lambda p: (0, 1))
+                 
+        # select previous/next feature for coordinate 1
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+                 key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Shift,
+                 param_getter=lambda p: (1, -1))
+        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+                 key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Shift,
+                 param_getter=lambda p: (1, 1))
+        
         
 class FeatureNavigationBindings(FeatureBindings):
     def extend(self):
         self.set_highlight()
         self.set_toggle_mask()
         self.set_neighbor_channel()
+        self.set_neighbor_feature()
 
 
 class FeatureSelectionBindings(FeatureBindings):
@@ -575,10 +610,10 @@ class FeatureSelectionBindings(FeatureBindings):
         self.set_highlight()
         self.set_toggle_mask()
         self.set_neighbor_channel()
+        self.set_neighbor_feature()
         
         self.set_base_cursor(cursors.CrossCursor)
         self.set_selection()
-     
      
      
 class FeatureView(GalryWidget):

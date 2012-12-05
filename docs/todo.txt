@@ -28,6 +28,7 @@ TODO
   * correlograms computation
   * cluster merge with button / M press
   * cluster split with button / S press
+  * mac gestures
   
   
 File format

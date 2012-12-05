@@ -252,26 +252,26 @@ class FeatureWidget(VisualizationWidget):
         # selected channel
         emit(self, "ProjectionToChange", coord, self.projection[coord][0], fet)
         
-    def select_channel_text(self, text, coord=0):
-        """Detect the selected channel when the text in the combo box changes,
-        and emit the ProjectionToChange signal if necessary."""
-        text = text.lower()
-        channel = None
-        # select time dimension
-        if text == "time":
-            channel = -1
-        else:
-            # find if there is a number in the text, if so, it is the channel
-            # dimension
-            g = re.match("[^0-9]*([0-9]+)[^0-9]*", text)
-            if g:
-                channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
-        if channel is not None:
-            # raise the ProjectionToChange signal, and keep the previously
-            # selected feature
-            # emit(self, "ProjectionToChange", coord, channel,
-                 # self.projection[coord][1])
-            self.set_channel_box(coord, channel)
+    # def select_channel_text(self, text, coord=0):
+        # """Detect the selected channel when the text in the combo box changes,
+        # and emit the ProjectionToChange signal if necessary."""
+        # text = text.lower()
+        # channel = None
+        # # select time dimension
+        # if text == "time":
+            # channel = -1
+        # else:
+            # # find if there is a number in the text, if so, it is the channel
+            # # dimension
+            # g = re.match("[^0-9]*([0-9]+)[^0-9]*", text)
+            # if g:
+                # channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
+        # if channel is not None:
+            # # raise the ProjectionToChange signal, and keep the previously
+            # # selected feature
+            # # emit(self, "ProjectionToChange", coord, channel,
+                 # # self.projection[coord][1])
+            # self.set_channel_box(coord, channel)
         
     def select_channel(self, channel, coord=0):
         """Raise the ProjectionToChange signal when the channel is changed."""
