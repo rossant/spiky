@@ -275,8 +275,17 @@ class FeatureWidget(VisualizationWidget):
         
     def select_channel(self, channel, coord=0):
         """Raise the ProjectionToChange signal when the channel is changed."""
-        emit(self, "ProjectionToChange", coord, channel,
-                 self.projection[coord][1])
+        
+        try:
+            channel = int(channel)
+            emit(self, "ProjectionToChange", coord, channel,
+                     self.projection[coord][1])
+        except:
+            log_warn("'%s' is not a valid channel." % channel)
+        # g = re.match("([0-9]+)", channel)
+        # if g:
+            # channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
+        
         
     def _select_feature_getter(self, coord, fet):
         """Return the callback function for the feature selection."""
@@ -286,9 +295,9 @@ class FeatureWidget(VisualizationWidget):
         """Return the callback function for the channel selection."""
         return lambda channel: self.select_channel(channel, coord)
         
-    def _select_channel_text_getter(self, coord):
-        """Return the callback function for the channel selection."""
-        return lambda text: self.select_channel_text(text, coord)
+    # def _select_channel_text_getter(self, coord):
+        # """Return the callback function for the channel selection."""
+        # return lambda text: self.select_channel_text(text, coord)
         
     def create_feature_widget(self, coord=0):
         # coord => (channel, feature)
@@ -304,8 +313,8 @@ class FeatureWidget(VisualizationWidget):
         comboBox = QtGui.QComboBox(self)
         comboBox.setEditable(True)
         comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
-        comboBox.addItems(["Channel %d" % i for i in xrange(self.dh.nchannels)])
-        comboBox.editTextChanged.connect(self._select_channel_text_getter(coord), QtCore.Qt.UniqueConnection)
+        comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
+        comboBox.editTextChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
         comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
         comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.channel_box[coord] = comboBox
@@ -313,8 +322,8 @@ class FeatureWidget(VisualizationWidget):
         
         # TODO: use dh.fetdim instead of hard coded "3 features"
         # create 3 buttons for selecting the feature
-        widths = [60, 30, 30]
-        labels = ['A', 'B', 'C']
+        widths = [30] * self.dh.fetdim
+        labels = ['PC%d' % i for i in xrange(1, self.dh.fetdim + 1)]
         
         # ensure exclusivity of the group of buttons
         pushButtonGroup = QtGui.QButtonGroup(self)
