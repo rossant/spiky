@@ -53,14 +53,83 @@ colors: a nclusters*3 array with the color of each cluster
 
 # Correlograms
 # ------------
-def get_correlogram(x, y, nbins=20, bin=.002):
-    # TODO (this is the most efficient way of computing correlograms ever)
-    return np.random.rand(nbins)
+
+
+def brian(T1, T2, width=.02, bin=.001, T=None):
+    '''
+    Returns a cross-correlogram with lag in [-width,width] and given bin size.
+    T is the total duration (optional) and should be greater than the duration of T1 and T2.
+    The result is in Hz (rate of coincidences in each bin).
+
+    N.B.: units are discarded.
+    TODO: optimise?
+    '''
+    
+    n = int(np.ceil(width / bin)) # Histogram length
+    
+    # print T1, T2, width, bin
+    if (len(T1) == 0) or (len(T2) == 0): # empty spike train
+        # return np.zeros(2 * n)
+        return None
+    # Remove units
+    # width = float(width)
+    # T1 = np.array(T1)
+    # T2 = np.array(T2)
+    i = 0
+    j = 0
+    # n = int(np.ceil(width / bin)) # Histogram length
+    l = []
+    for t in T1:
+        while i < len(T2) and T2[i] < t - width: # other possibility use searchsorted
+            i += 1
+        while j < len(T2) and T2[j] < t + width:
+            j += 1
+        l.extend(T2[i:j] - t)
+    H, _ = np.histogram(l, bins=np.arange(2 * n + 1) * bin - n * bin) #, new = True)
+
+    # Divide by time to get rate
+    if T is None:
+        T = max(T1[-1], T2[-1]) - min(T1[0], T2[0])
+        
+        
+    # Windowing function (triangle)
+    W = np.zeros(2 * n)
+    W[:n] = T - bin * np.arange(n - 1, -1, -1)
+    W[n:] = T - bin * np.arange(n)
+
+    # print T
+    # print T1
+    # print T2
+    # print H
+    # print H / W
+    # print
+    
+    return H / W
+
+
+def get_correlogram(x, y, width=.021, bin=.001):
+    # TODO: this is highly unoptimized, optimize that
+    corr = brian(x, y, width=width, bin=bin)
+    # print corr
+    if corr is None:
+        return None
+    corr[len(corr)/2] = 0
+    return corr
+    
     
 class CorrelogramManager(object):
-    def __init__(self, dh, sdh):
+    def __init__(self, dh, sdh, width=None, bin=None):
         self.dh = dh
         self.sdh = sdh
+        
+        if width is None:
+            width = .02
+        if bin is None:
+            bin = .001
+        
+        self.width = width
+        self.bin = bin
+        self.histlen = 2 * int(np.ceil(width / bin))
         # cache correlograms
         self.correlograms = {}
         
@@ -83,7 +152,12 @@ class CorrelogramManager(object):
             cluster1 = cluster0
         x = self.sdh.get_spiketimes(cluster0)
         y = self.sdh.get_spiketimes(cluster1)
-        corr = get_correlogram(x, y)
+        
+        # convert into floats
+        x = x * 1. / self.dh.freq
+        y = y * 1. / self.dh.freq
+        
+        corr = get_correlogram(x, y, width=self.width, bin=self.bin)
         self.correlograms[(cluster0, cluster1)] = corr
         return corr
         
@@ -101,7 +175,12 @@ class CorrelogramManager(object):
         correlograms = []
         for i in xrange(len(clusters)):
             for j in xrange(i, len(clusters)):
-                correlograms.append(self.get_correlogram(clusters[i], clusters[j]))
+                c = self.get_correlogram(clusters[i], clusters[j])
+                if c is None:
+                    c = np.zeros(self.histlen)
+                correlograms.append(c)
+        # print len(correlograms)
+        # print [len(c) for c in correlograms]
         return np.vstack(correlograms)
         
     
@@ -154,10 +233,6 @@ class SelectDataHolder(object):
         self.select_clusters([])
         
     def get_correlograms(self, clusters):
-        # nclusters = len(clusters)
-        # TODO
-        # return rdn.rand(nclusters * (nclusters + 1) / 2,
-            # self.correlograms_info.nsamples) 
         return self.corr_manager.get_correlograms(clusters)
             
     def _selector_ufunc(self, clusters=None):
@@ -180,6 +255,8 @@ class SelectDataHolder(object):
         self.correlograms = self.get_correlograms(clusters)
         self.nclusters = len(clusters)
         self.cluster_colors = self.dataholder.clusters_info.colors[clusters]
+        # unique clusters
+        self.clusters_unique = clusters
         
         # override all spike dependent variables, where the first axis
         # is the spike index
@@ -248,7 +325,7 @@ class KlustersDataProvider(DataProvider):
         
         self.holder = DataHolder()
         
-        self.freq = 20000.
+        self.holder.freq = 20000.
         
         self.holder.nspikes = nspikes
         self.holder.nclusters = nclusters
@@ -367,7 +444,7 @@ class MockDataProvider(DataProvider):
         
         self.holder = DataHolder()
         
-        self.freq = 20000.
+        self.holder.freq = 20000.
         
         self.holder.nspikes = nspikes
         self.holder.nclusters = nclusters

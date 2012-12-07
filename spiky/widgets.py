@@ -112,6 +112,7 @@ class WaveformWidget(VisualizationWidget):
     def update_view(self):
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
+                      clusters_unique=self.dh.clusters_unique,
                       cluster_colors=self.dh.cluster_colors,
                       geometrical_positions=self.dh.probe.positions,
                       masks=self.dh.masks
@@ -162,6 +163,7 @@ class FeatureWidget(VisualizationWidget):
                       features=self.dh.features,
                       clusters=self.dh.clusters,
                       cluster_colors=self.dh.cluster_colors,
+                      clusters_unique=self.dh.clusters_unique,
                       masks=self.dh.masks)
         self.update_nspikes_viewer(self.dh.nspikes, 0)
 

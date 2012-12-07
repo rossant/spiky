@@ -16,7 +16,8 @@ class SpikeDataOrganizer(object):
         self.reorder()
         
     def set_data(self, data, clusters=None, cluster_colors=None, masks=None,
-                             nchannels=None, spike_ids=None):
+                             nchannels=None, spike_ids=None,
+                             clusters_unique=None):
         """
         Arguments:
           * data: a Nspikes x ?? (x ??) array
@@ -44,7 +45,10 @@ class SpikeDataOrganizer(object):
         self.masks = enforce_dtype(masks, np.float32)
         
         # unique clusters
-        self.clusters_unique = np.unique(clusters)
+        if clusters_unique is None:
+            self.clusters_unique = np.unique(clusters)
+        else:
+            self.clusters_unique = clusters_unique
         self.clusters_unique.sort()
         self.nclusters = len(self.clusters_unique)
         
@@ -89,6 +93,7 @@ class SpikeDataOrganizer(object):
             self.permutation = np.hstack(self.permutation)
         else:
             self.permutation = np.array([], dtype=np.int32)
+        # print self.cluster_sizes_dict
         return self.permutation
         
     def reorder(self, permutation=None):
@@ -102,12 +107,13 @@ class SpikeDataOrganizer(object):
             permutation = self.get_reordering()
             
         # reorder data
-        if self.ndim == 1:
-            self.data_reordered = self.data[permutation]
-        elif self.ndim == 2:
-            self.data_reordered = self.data[permutation,:]
-        elif self.ndim == 3:
-            self.data_reordered = self.data[permutation,:,:]
+        self.data_reordered = self.data[permutation,...]
+        # if self.ndim == 1:
+            # self.data_reordered = self.data[permutation]
+        # elif self.ndim == 2:
+            # self.data_reordered = self.data[permutation,:]
+        # elif self.ndim == 3:
+            # self.data_reordered = self.data[permutation,:,:]
             
         # reorder masks
         self.masks = self.masks[permutation,:]
@@ -118,6 +124,8 @@ class SpikeDataOrganizer(object):
         self.cluster_sizes = np.array(map(operator.itemgetter(1),
                                     sorted(self.cluster_sizes_dict.iteritems(),
                                             key=operator.itemgetter(0))))
+        
+        # print self.cluster_sizes
         
         return self.data_reordered
 

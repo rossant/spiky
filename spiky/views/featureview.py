@@ -77,7 +77,7 @@ class FeatureDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self, features=None, fetdim=None, clusters=None,
-                cluster_colors=None, #colormap=None,
+                cluster_colors=None, clusters_unique=None,
                  masks=None, spike_ids=None):
         
         assert fetdim is not None
@@ -93,6 +93,7 @@ class FeatureDataManager(Manager):
         self.data_organizer = SpikeDataOrganizer(features,
                                                 clusters=clusters,
                                                 cluster_colors=cluster_colors,
+                                                clusters_unique=clusters_unique,
                                                 masks=masks,
                                                 nchannels=self.nchannels,
                                                 spike_ids=spike_ids)

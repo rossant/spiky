@@ -10,11 +10,12 @@ VERTEX_SHADER = """
     float a = 1.0 / (nclusters * (1 + 2 * margin));
     
     vec2 box_position = vec2(0, 0);
-    box_position.x = -1 + a * (1 + 2 * margin) * (2 * cluster.y + 1);
-    box_position.y = 1 - a * (1 + 2 * margin) * (2 * cluster.x + 1);
+    box_position.x = -1 + a * (1 + 2 * margin) * (2 * cluster.x + 1);
+    box_position.y = -1 + a * (1 + 2 * margin) * (2 * cluster.y + 1);
     
-    vec2 transformed_position = box_position + a * position;
-    //vec2 transformed_position = position;
+    vec2 transformed_position = position;
+    transformed_position.y = 2 * transformed_position.y - 1;
+    transformed_position = box_position + a * transformed_position;
 """
 
 
@@ -37,7 +38,8 @@ def get_histogram_points(hist):
     x0 = -1 + dx * np.arange(nsamples)
     
     x = np.zeros((n, 5 * nsamples + 1))
-    y = -np.ones((n, 5 * nsamples + 1))
+    # y = -np.ones((n, 5 * nsamples + 1))
+    y = np.zeros((n, 5 * nsamples + 1))
     
     x[:,0:-1:5] = x0
     x[:,1::5] = x0
@@ -65,6 +67,10 @@ class HistogramDataManager(Manager):
         # self.cluster_colors = np.vstack((np.array([1.,1.,1.]), cluster_colors))
         self.cluster_colors = cluster_colors
         
+        # print histograms
+        # print histograms.shape
+        # print cluster_colors
+        
         # one histogram per cluster pair (i,j) 
         # assert self.nhistograms == self.nclusters * (self.nclusters + 1) / 2
         # deduce the number of clusters from the size of the histogram
@@ -81,9 +87,9 @@ class HistogramDataManager(Manager):
         self.position[:,1] = Y.ravel()
         
         # cluster i and j for each histogram in the view
-        clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j <= i]
+        clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j >= i]
         self.clusters = np.array(clusters, dtype=np.int32)
-        
+        # print clusters
         
         
         color_array_index = np.zeros(self.nhistograms, dtype=np.int32)
@@ -103,36 +109,14 @@ class HistogramDataManager(Manager):
         
         self.color_array_index = color_array_index
         
+        # print identity
+        # print color_array_index
+        
         self.clusters = np.repeat(self.clusters, self.nsamples, axis=0)
         self.color_array_index = np.repeat(self.color_array_index, self.nsamples, axis=0)
         
         
 class HistogramVisual(PlotVisual):
-    
-    # @staticmethod
-    # def get_clusters(nclusters):
-        # clusters = [(i,j) for i in xrange(nclusters) for j in xrange(nclusters) if j <= i]
-        # clusters = np.array(clusters, dtype=np.int32)
-        # return clusters
-    
-    # @staticmethod
-    # def get_colors(nclusters, nhistograms, cluster_colors):
-        # color_array_index = np.zeros(nhistograms, dtype=np.int32)
-        
-
-        # # indices of histograms on the diagonal
-        # if nclusters:
-            # identity = clusters[:,0] == clusters[:,1]
-        # else:
-            # identity = []
-        
-        # color_array_index[identity] = cluster_colors + 1
-        
-        # color_array_size = nclusters + 1
-        # colormap = np.vstack((COLORMAP, np.ones((1, 3))))
-        
-        # return colormap, color_array_index
-    
     def initialize(self, nclusters=None, nhistograms=None, #nsamples=None,
         position=None, color=None, color_array_index=None, clusters=None):
         

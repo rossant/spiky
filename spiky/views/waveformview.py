@@ -278,7 +278,7 @@ class WaveformPositionManager(Manager):
         # self.diffxc, self.diffyc = [np.sqrt(float(self.nchannels))] * 2
         
         linear_positions = np.zeros((self.nchannels, 2), dtype=np.float32)
-        linear_positions[:,1] = np.linspace(1., -1., self.nchannels)
+        linear_positions[:,1] = np.linspace(-1., 1., self.nchannels)
         
         # default geometrical position
         if geometrical_positions is None:
@@ -486,6 +486,7 @@ class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
+                 clusters_unique=None,
                  masks=None, geometrical_positions=None, spike_ids=None,
                  spatial_arrangement=None, superposition=None,
                  box_size=None, probe_scale=None):
@@ -500,6 +501,10 @@ class WaveformDataManager(Manager):
         spike_ids is a Nspikes array, it contains the absolute indices of spikes
         """
         
+        # print waveforms.shape
+        # print cluster_colors
+        
+        
         self.nspikes, self.nsamples, self.nchannels = waveforms.shape
         self.npoints = waveforms.size
         self.geometrical_positions = geometrical_positions
@@ -510,6 +515,7 @@ class WaveformDataManager(Manager):
         self.data_organizer = SpikeDataOrganizer(waveforms,
                                                 clusters=clusters,
                                                 cluster_colors=cluster_colors,
+                                                clusters_unique=clusters_unique,
                                                 masks=masks,
                                                 nchannels=self.nchannels,
                                                 spike_ids=spike_ids)
@@ -549,7 +555,8 @@ class WaveformDataManager(Manager):
         
         # update the highlight manager
         self.highlight_manager.initialize()
-        
+    
+    
     # Internal methods
     # ----------------
     def prepare_waveform_data(self):
@@ -686,9 +693,7 @@ class WaveformPaintManager(PaintManager):
     def auto_update_uniforms(self, *names):
         dic = dict([(name, self.get_uniform_value(name)) for name in names])
         self.set_data(visual='waveforms', **dic)
-    
-    
-    
+        
     def initialize(self):
         self.add_visual(WaveformVisual, name='waveforms',
             npoints=self.data_manager.npoints,
@@ -851,18 +856,18 @@ class WaveformBindings(SpikyDefaultBindingSet):
                  key=QtCore.Qt.Key_G)
 
     def set_box_scaling(self):
-        # change probe scale: CTRL + right mouse
+        # change box scale: CTRL + right mouse
         self.set(UserActions.RightButtonMouseMoveAction,
                  WaveformEventEnum.ChangeBoxScaleEvent,
-                 key_modifier=QtCore.Qt.Key_Shift,
-                 param_getter=lambda p: (p["mouse_position_diff"][0]*.1,
+                 # key_modifier=QtCore.Qt.Key_Shift,
+                 param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
                                          p["mouse_position_diff"][1]*.5))
 
     def set_probe_scaling(self):
-        # change probe scale: CTRL + right mouse
-        self.set(UserActions.RightButtonMouseMoveAction,
+        # change probe scale: Shift + left mouse
+        self.set(UserActions.LeftButtonMouseMoveAction,
                  WaveformEventEnum.ChangeProbeScaleEvent,
-                 key_modifier=QtCore.Qt.Key_Control,
+                 key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
                                          p["mouse_position_diff"][1] * .5))
 
@@ -888,9 +893,9 @@ class WaveformBindings(SpikyDefaultBindingSet):
         self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelEvent,
                  key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (0, p["mouse_position"][0], p["mouse_position"][1]))
-        # SHIFT + left click for selecting a channel for coordinate Y in feature view
-        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelEvent,
-                 key_modifier=QtCore.Qt.Key_Shift,
+        # CTRL + right click for selecting a channel for coordinate Y in feature view
+        self.set(UserActions.RightButtonClickAction, WaveformEventEnum.SelectChannelEvent,
+                 key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
     def extend(self):

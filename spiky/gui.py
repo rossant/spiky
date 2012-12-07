@@ -81,17 +81,18 @@ class SpikyMainWindow(QtGui.QMainWindow):
             QtGui.QTabWidget.North)
         self.setDockNestingEnabled(True)
         self.setWindowTitle(self.window_title)
+        
+        # initialize the data holder and select holder
+        self.initialize_data()
         # initialize actions
         self.initialize_actions()
+        # make the UI initialization
+        self.initialize()
         # initialize menu
         self.initialize_menu()
         # initialize all signals/slots connections between widgets
         self.initialize_connections()
         
-        self.initialize_data()
-        
-        # make the UI initialization
-        self.initialize()
         # set stylesheet
         self.setStyleSheet(STYLESHEET)
         # set empty status bar
@@ -105,7 +106,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def add_dock(self, widget_class, position, name=None, minsize=None):
         """Add a dockable widget"""
         if name is None:
-            name = widget_class.__name__
+            name = widget_class.__name__.replace("Widget", "View")
         widget = widget_class(self, self.sdh)#, getfocus=False)
         if minsize is not None:
             widget.setMinimumSize(*minsize)
@@ -119,7 +120,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.addDockWidget(position, dockwidget)
         # if isinstance(widget, VisualizationWidget):
         self.allwidgets.append(widget)
-        return widget
+        return widget, dockwidget
         
     def add_central(self, widget_class, name=None, minsize=None):
         """Add a central widget in the main window."""
@@ -143,6 +144,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = provider.load(nspikes=10000, nclusters=20)
         self.sdh = SelectDataHolder(self.dh)
         
+        
     def initialize(self):
         """Make the UI initialization."""
         
@@ -151,13 +153,19 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.du = DataUpdater(self.sdh)
         
         # central window, the dockable widgets are arranged around it
-        self.cluster_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+        self.cluster_widget, self.cluster_dock_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
 
         self.feature_widget = self.add_central(FeatureWidget)
-        self.waveform_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        self.correlograms_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        self.waveform_widget, self.waveform_dock_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        self.correlograms_widget, self.correlograms_dock_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
         
         # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        
+        # widget actions
+        self.cluster_action = self.cluster_dock_widget.toggleViewAction()
+        self.waveform_action = self.waveform_dock_widget.toggleViewAction()
+        self.correlograms_action = self.correlograms_dock_widget.toggleViewAction()
+        
         
     def initialize_actions(self):
         """Initialize all global actions."""
@@ -174,6 +182,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action.setShortcut("CTRL+Q")
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
+        
+        
+        
     def initialize_menu(self):
         """Initialize the menu."""
         # File menu
@@ -182,6 +193,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # Quit
         file_menu.addAction(self.quit_action)
+        
+        # Views menu
+        # ----------
+        views_menu = self.menuBar().addMenu("&Views")
+        
+        views_menu.addAction(self.cluster_action)
+        views_menu.addAction(self.waveform_action)
+        views_menu.addAction(self.correlograms_action)
+        
         
         
     # Event methods
