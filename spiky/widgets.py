@@ -393,11 +393,13 @@ class CorrelogramsWidget(VisualizationWidget):
         self.dh = dh
         view = CorrelogramsView()
         view.set_data(histograms=dh.correlograms,
+                      baselines=dh.baselines,
                       cluster_colors=dh.cluster_colors)
         return view
         
     def update_view(self):
         self.view.set_data(histograms=self.dh.correlograms,
+                      baselines=self.dh.baselines,
                       cluster_colors=self.dh.cluster_colors)
 
     def initialize_connections(self):
@@ -415,7 +417,6 @@ class CorrelationMatrixWidget(VisualizationWidget):
 
 
 class ClusterWidget(QtGui.QWidget):
-    
     def __init__(self, main_window, dh, getfocus=True):
         super(ClusterWidget, self).__init__()
         

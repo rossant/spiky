@@ -107,9 +107,9 @@ def brian(T1, T2, width=.02, bin=.001, T=None):
     return H / W
 
 
-def get_correlogram(x, y, width=.021, bin=.001):
+def get_correlogram(x, y, width=.021, bin=.001, duration=None):
     # TODO: this is highly unoptimized, optimize that
-    corr = brian(x, y, width=width, bin=bin)
+    corr = brian(x, y, width=width, bin=bin, T=duration)
     # print corr
     if corr is None:
         return None
@@ -132,33 +132,47 @@ class CorrelogramManager(object):
         self.histlen = 2 * int(np.ceil(width / bin))
         # cache correlograms
         self.correlograms = {}
+        self.spikecounts = {}
         
     def reset(self):
         self.correlograms.clear()
+        self.spikecounts.clear()
     
     def invalidate(self, clusters):
         """Remove from the cache all correlograms related to the given
         clusters."""
         correlograms_new = {}
+        spikecounts_new = {}
         # copy in the new dictionary all correlograms which do not refer
         # to clusters in the given list of invalidated clusters
         for (i, j), corr in self.correlograms.iteritems():
             if i not in clusters and j not in clusters:
+                # update correlograms
                 correlograms_new[(i, j)] = self.correlograms[(i, j)]
+                # update spike counts too
+                spikecounts_new[i] = self.spikecounts[i]
+                spikecounts_new[j] = self.spikecounts[j]
         self.correlograms = correlograms_new
+        self.spikecounts = spikecounts_new
     
     def compute(self, cluster0, cluster1=None):
         if cluster1 is None:
             cluster1 = cluster0
+
         x = self.sdh.get_spiketimes(cluster0)
         y = self.sdh.get_spiketimes(cluster1)
         
-        # convert into floats
+        # convert spike train units from samples counts to seconds
         x = x * 1. / self.dh.freq
         y = y * 1. / self.dh.freq
         
-        corr = get_correlogram(x, y, width=self.width, bin=self.bin)
+        corr = get_correlogram(x, y, width=self.width, bin=self.bin,
+            duration=self.dh.duration)
         self.correlograms[(cluster0, cluster1)] = corr
+
+        self.spikecounts[cluster0] = len(x)
+        self.spikecounts[cluster1] = len(y)
+
         return corr
         
     def get_correlogram(self, cluster0, cluster1=None):
@@ -182,7 +196,10 @@ class CorrelogramManager(object):
         # print len(correlograms)
         # print [len(c) for c in correlograms]
         return np.vstack(correlograms)
-        
+    
+    def get_spikecounts(self, clusters):
+        return np.array([self.spikecounts[i] for i in clusters])
+    
     
 # Data holder
 # -----------
@@ -235,6 +252,9 @@ class SelectDataHolder(object):
     def get_correlograms(self, clusters):
         return self.corr_manager.get_correlograms(clusters)
             
+    def get_spikecounts(self, clusters):
+        return self.corr_manager.get_spikecounts(clusters)
+            
     def _selector_ufunc(self, clusters=None):
         """Create a custom ufunc for cluster selection."""
         if clusters is None or len(clusters) == 0:
@@ -253,6 +273,15 @@ class SelectDataHolder(object):
         self.nspikes = select_mask.sum()
         # TODO: move that outside dataio
         self.correlograms = self.get_correlograms(clusters)
+        
+        counts = self.get_spikecounts(clusters)
+        counts = np.array([counts[i] for i in xrange(len(clusters)) 
+                        for j in xrange(i, len(clusters))])
+        
+        # print counts
+        # print self.correlograms
+        
+        self.baselines = counts / float(self.dataholder.duration)
         self.nclusters = len(clusters)
         self.cluster_colors = self.dataholder.clusters_info.colors[clusters]
         # unique clusters
@@ -333,6 +362,9 @@ class KlustersDataProvider(DataProvider):
         
         # construct spike times from random interspike interval
         self.holder.spiketimes = spiketimes
+        
+        # TODO
+        self.holder.duration = spiketimes[-1] / float(self.holder.freq)
         
         self.holder.waveforms = waveforms
         self.holder.waveforms_info = Info(nsamples=nsamples)
@@ -449,6 +481,8 @@ class MockDataProvider(DataProvider):
         self.holder.nspikes = nspikes
         self.holder.nclusters = nclusters
         self.holder.nchannels = nchannels
+        
+        self.holder.duration = 100.
         
         # construct spike times from random interspike interval
         self.holder.spiketimes = np.cumsum(np.random.randint(size=nspikes,

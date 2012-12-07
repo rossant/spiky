@@ -55,7 +55,7 @@ def get_histogram_points(hist):
 
 
 class CorrelogramsDataManager(Manager):
-    def set_data(self, histograms=None, cluster_colors=None):
+    def set_data(self, histograms=None, cluster_colors=None, baselines=None):
         
         # self.clusters = clusters
         # self.nclusters = nclusters
@@ -84,11 +84,11 @@ class CorrelogramsDataManager(Manager):
         self.position = np.empty((n, 2), dtype=np.float32)
         self.position[:,0] = X.ravel()
         self.position[:,1] = Y.ravel()
+
+        # print baselines
         
-        
-        # TODO
-        self.baselines = np.zeros(self.nhistograms)
-        
+        # baselines of the correlograms
+        self.baselines = baselines
         
         # cluster i and j for each histogram in the view
         clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j >= i]
@@ -102,7 +102,7 @@ class CorrelogramsDataManager(Manager):
         else:
             identity = []
         
-        color_array_index[identity] = cluster_colors + 1
+        color_array_index[identity] = np.array(cluster_colors + 1, dtype=np.int32)
         self.color = np.vstack((np.ones((1, 3)), COLORMAP))
         self.color_array_index = color_array_index
         
@@ -131,6 +131,7 @@ class CorrelogramsVisual(PlotVisual):
         self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
         
         self.add_vertex_main(VERTEX_SHADER)
+
         
 class CorrelogramsBaselineVisual(PlotVisual):
     def initialize(self, nclusters=None, baselines=None, clusters=None):
@@ -175,11 +176,11 @@ class CorrelogramsPaintManager(PaintManager):
             clusters=self.data_manager.clusters,
             name='correlograms')
             
-        self.add_visual(CorrelogramsBaselineVisual,
-            nclusters=self.data_manager.nclusters,
-            clusters=self.data_manager.clusters0,
-            baselines=self.data_manager.baselines,
-            name='correlograms_baseline')
+        # self.add_visual(CorrelogramsBaselineVisual,
+            # nclusters=self.data_manager.nclusters,
+            # clusters=self.data_manager.clusters0,
+            # baselines=self.data_manager.baselines,
+            # name='correlograms_baseline')
         
         
         
@@ -196,12 +197,12 @@ class CorrelogramsPaintManager(PaintManager):
             clusters=self.data_manager.clusters,
             visual='correlograms')
             
-        self.reinitialize_visual(
-            size=2 * len(self.data_manager.clusters0),
-            nclusters=self.data_manager.nclusters,
-            baselines=self.data_manager.baselines,
-            clusters=self.data_manager.clusters0,
-            visual='correlograms_baseline')
+        # self.reinitialize_visual(
+            # size=2 * len(self.data_manager.clusters0),
+            # nclusters=self.data_manager.nclusters,
+            # baselines=self.data_manager.baselines,
+            # clusters=self.data_manager.clusters0,
+            # visual='correlograms_baseline')
             
             
         
@@ -214,7 +215,7 @@ class CorrelogramsBindings(SpikyDefaultBindingSet):
 class CorrelogramsView(GalryWidget):
     def initialize(self):
         self.constrain_ratio = True
-        self.constrain_navigation = True
+        # self.constrain_navigation = True
         self.set_bindings(CorrelogramsBindings)
         self.set_companion_classes(paint_manager=CorrelogramsPaintManager,
             data_manager=CorrelogramsDataManager,)
