@@ -54,22 +54,21 @@ def get_histogram_points(hist):
     return x, y
 
 
-class HistogramDataManager(Manager):
-    def set_data(self, histograms=None, #nclusters=None, 
-        cluster_colors=None):
+class CorrelogramsDataManager(Manager):
+    def set_data(self, histograms=None, cluster_colors=None):
         
         # self.clusters = clusters
         # self.nclusters = nclusters
         self.histograms = histograms
         self.nhistograms, self.nbins = histograms.shape
+        
+        # HACK: if histograms is empty, nhistograms == 1 here!
+        if histograms.size == 0:
+            self.nhistograms = 0
+        
         self.nprimitives = self.nhistograms
         # index 0 = heterogeneous clusters, index>0 ==> cluster index + 1
-        # self.cluster_colors = np.vstack((np.array([1.,1.,1.]), cluster_colors))
         self.cluster_colors = cluster_colors
-        
-        # print histograms
-        # print histograms.shape
-        # print cluster_colors
         
         # one histogram per cluster pair (i,j) 
         # assert self.nhistograms == self.nclusters * (self.nclusters + 1) / 2
@@ -86,11 +85,14 @@ class HistogramDataManager(Manager):
         self.position[:,0] = X.ravel()
         self.position[:,1] = Y.ravel()
         
+        
+        # TODO
+        self.baselines = np.zeros(self.nhistograms)
+        
+        
         # cluster i and j for each histogram in the view
         clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j >= i]
         self.clusters = np.array(clusters, dtype=np.int32)
-        # print clusters
-        
         
         color_array_index = np.zeros(self.nhistograms, dtype=np.int32)
         
@@ -101,28 +103,21 @@ class HistogramDataManager(Manager):
             identity = []
         
         color_array_index[identity] = cluster_colors + 1
-        
-        # color_array_size = nclusters + 1
         self.color = np.vstack((np.ones((1, 3)), COLORMAP))
-        
-        # colormap, color_array_index
-        
         self.color_array_index = color_array_index
         
-        # print identity
-        # print color_array_index
-        
+        self.clusters0 = self.clusters
         self.clusters = np.repeat(self.clusters, self.nsamples, axis=0)
         self.color_array_index = np.repeat(self.color_array_index, self.nsamples, axis=0)
         
         
-class HistogramVisual(PlotVisual):
+class CorrelogramsVisual(PlotVisual):
     def initialize(self, nclusters=None, nhistograms=None, #nsamples=None,
         position=None, color=None, color_array_index=None, clusters=None):
         
         self.position_attribute_name = "transformed_position"
         
-        super(HistogramVisual, self).initialize(
+        super(CorrelogramsVisual, self).initialize(
             position=position,
             nprimitives=nhistograms,
             color=color,
@@ -137,15 +132,40 @@ class HistogramVisual(PlotVisual):
         
         self.add_vertex_main(VERTEX_SHADER)
         
+class CorrelogramsBaselineVisual(PlotVisual):
+    def initialize(self, nclusters=None, baselines=None, clusters=None):
         
-class HistogramPaintManager(PaintManager):
+        self.position_attribute_name = "transformed_position"
+        
+        # texture = np.ones((10, 10, 3))
+        
+        n = len(baselines)
+        position = np.zeros((2 * n, 2))
+        position[:,0] = np.tile(np.array([-1., 1.]), n)
+        position[:,1] = np.repeat(baselines, 2)
+        # position[n:,1] = baselines
+        
+        clusters = np.repeat(clusters, 2, axis=0)
+        
+        self.primitive_type = 'LINES'
+        
+        super(CorrelogramsBaselineVisual, self).initialize(
+            position=position,
+            # texture=texture
+            )
+            
+        self.add_attribute("cluster", vartype="int", ndim=2, data=clusters)
+        self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
+        
+        self.add_vertex_main(VERTEX_SHADER)
+        
+        
+        
+class CorrelogramsPaintManager(PaintManager):
     def initialize(self, **kwargs):
         
-        # nclusters=None, nhistograms=None, nsamples=None,
-        # position=None, color=None, color_array_index=None, clusters=None
-        
         # create dataset
-        self.add_visual(HistogramVisual,
+        self.add_visual(CorrelogramsVisual,
             nclusters=self.data_manager.nclusters,
             # nsamples=self.data_manager.nsamples,
             nhistograms=self.data_manager.nhistograms,
@@ -154,28 +174,17 @@ class HistogramPaintManager(PaintManager):
             color_array_index=self.data_manager.color_array_index,
             clusters=self.data_manager.clusters,
             name='correlograms')
+            
+        self.add_visual(CorrelogramsBaselineVisual,
+            nclusters=self.data_manager.nclusters,
+            clusters=self.data_manager.clusters0,
+            baselines=self.data_manager.baselines,
+            name='correlograms_baseline')
+        
+        
         
         
     def update(self):
-        # color = self.data_manager.color
-        # ncolors = color.shape[0]
-        # ncomponents = color.shape[1]
-        # color = color.reshape((1, ncolors, ncomponents))
-        
-        # size = self.data_manager.position.shape[0]
-        # nsamples = size // self.data_manager.nprimitives
-        # bounds = np.arange(0, size + 1, size // nsamples)
-            
-        # self.set_data(visual='correlograms', 
-            # size=self.data_manager.position.shape[0],
-            # nclusters=self.data_manager.nclusters,
-            # # nsamples=self.data_manager.nsamples,
-            # # nprimitives=self.data_manager.nhistograms,
-            # position=self.data_manager.position,
-            # colormap=color,
-            # index=self.data_manager.color_array_index,
-            # cluster=self.data_manager.clusters,
-            # )
         self.reinitialize_visual(
             size=self.data_manager.position.shape[0],
             nclusters=self.data_manager.nclusters,
@@ -186,9 +195,19 @@ class HistogramPaintManager(PaintManager):
             color_array_index=self.data_manager.color_array_index,
             clusters=self.data_manager.clusters,
             visual='correlograms')
+            
+        self.reinitialize_visual(
+            size=2 * len(self.data_manager.clusters0),
+            nclusters=self.data_manager.nclusters,
+            baselines=self.data_manager.baselines,
+            clusters=self.data_manager.clusters0,
+            visual='correlograms_baseline')
+            
+            
+        
 
 
-class HistogramBindings(SpikyDefaultBindingSet):
+class CorrelogramsBindings(SpikyDefaultBindingSet):
     pass
 
 
@@ -196,9 +215,9 @@ class CorrelogramsView(GalryWidget):
     def initialize(self):
         self.constrain_ratio = True
         self.constrain_navigation = True
-        self.set_bindings(HistogramBindings)
-        self.set_companion_classes(paint_manager=HistogramPaintManager,
-            data_manager=HistogramDataManager,)
+        self.set_bindings(CorrelogramsBindings)
+        self.set_companion_classes(paint_manager=CorrelogramsPaintManager,
+            data_manager=CorrelogramsDataManager,)
     
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
