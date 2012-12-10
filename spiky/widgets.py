@@ -237,7 +237,7 @@ class FeatureWidget(VisualizationWidget):
         self.channel_box[coord].blockSignals(False)
         
         # update the view
-        self.view.process_interaction(FeatureEventEnum.SelectProjectionEvent, 
+        self.view.process_interaction('SelectProjectionEvent', 
                                       (coord, channel, feature))
         
     def set_channel_box(self, coord, channel):

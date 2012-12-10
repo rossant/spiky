@@ -12,7 +12,8 @@ from colors import COLORMAP
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
-           'FeatureSelectionBindings', 'FeatureEventEnum']
+           'FeatureSelectionBindings', # 'FeatureEventEnum'
+           ]
 
 
 VERTEX_SHADER = """
@@ -437,34 +438,34 @@ class FeatureInteractionManager(InteractionManager):
         
     def process_custom_event(self, event, parameter):
         # highlight
-        if event == FeatureEventEnum.HighlightSpikeEvent:
+        if event == 'HighlightSpikeEvent':
             self.highlight_manager.highlight(parameter)
             self.cursor = cursors.CrossCursor
             
         # selection
-        if event == FeatureEventEnum.SelectionPointPendingEvent:
+        if event == 'SelectionPointPendingEvent':
             self.selection_manager.point_pending(parameter)
-        if event == FeatureEventEnum.AddSelectionPointEvent:
+        if event == 'AddSelectionPointEvent':
             self.selection_manager.add_point(parameter)
-        if event == FeatureEventEnum.EndSelectionPointEvent:
+        if event == 'EndSelectionPointEvent':
             self.selection_manager.end_point(parameter)
-        if event == FeatureEventEnum.CancelSelectionPointEvent:
+        if event == 'CancelSelectionPointEvent':
             self.selection_manager.cancel_selection()
           
         # select projection
-        if event == FeatureEventEnum.SelectProjectionEvent:
+        if event == 'SelectProjectionEvent':
             self.select_projection(parameter)
             
         # automatic projection
-        if event == FeatureEventEnum.AutomaticProjectionEvent:
+        if event == 'AutomaticProjectionEvent':
             self.data_manager.automatic_projection()
             
         # toggle mask
-        if event == FeatureEventEnum.ToggleMaskEvent:
+        if event == 'ToggleMaskEvent':
             self.paint_manager.toggle_mask()
             
         # select neighbor channel
-        if event == FeatureEventEnum.SelectNeighborChannelEvent:
+        if event == 'SelectNeighborChannelEvent':
             # print self.data_manager.projection
             coord, channel_dir = parameter
             # current channel and feature in the given coordinate
@@ -479,7 +480,7 @@ class FeatureInteractionManager(InteractionManager):
             emit(self.parent, 'ProjectionToChange', coord, channel, feature)
             
         # select neighbor feature
-        if event == FeatureEventEnum.SelectNeighborFeatureEvent:
+        if event == 'SelectNeighborFeatureEvent':
             # print self.data_manager.projection
             coord, feature_dir = parameter
             # current channel and feature in the given coordinate
@@ -501,22 +502,22 @@ class FeatureInteractionManager(InteractionManager):
         self.paint_manager.updateGL()
 
 
-FeatureEventEnum = enum(
-    "HighlightSpikeEvent",
+# FeatureEventEnum = enum(
+    # "HighlightSpikeEvent",
     
-    "AddSelectionPointEvent",
-    "SelectionPointPendingEvent",
-    "EndSelectionPointEvent",
-    "CancelSelectionPointEvent",
+    # "AddSelectionPointEvent",
+    # "SelectionPointPendingEvent",
+    # "EndSelectionPointEvent",
+    # "CancelSelectionPointEvent",
     
-    "ToggleMaskEvent",
+    # "ToggleMaskEvent",
     
-    "SelectProjectionEvent",
-    "AutomaticProjectionEvent",
+    # "SelectProjectionEvent",
+    # "AutomaticProjectionEvent",
     
-    "SelectNeighborChannelEvent",
-    "SelectNeighborFeatureEvent",
-    )
+    # "SelectNeighborChannelEvent",
+    # "SelectNeighborFeatureEvent",
+    # )
         
         
 # Bindings
@@ -524,15 +525,15 @@ FeatureEventEnum = enum(
 class FeatureBindings(SpikyDefaultBindingSet):
     def set_highlight(self):
         # highlight
-        self.set(UserActions.MiddleButtonMouseMoveAction,
-                 FeatureEventEnum.HighlightSpikeEvent,
+        self.set('MiddleButtonMouseMoveAction',
+                 'HighlightSpikeEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-        self.set(UserActions.LeftButtonMouseMoveAction,
-                 FeatureEventEnum.HighlightSpikeEvent,
+        self.set('LeftButtonMouseMoveAction',
+                 'HighlightSpikeEvent',
                  key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
@@ -540,41 +541,41 @@ class FeatureBindings(SpikyDefaultBindingSet):
                                          p["mouse_position"][1]))
         
     def set_toggle_mask(self):
-        self.set(UserActions.KeyPressAction,
-                 FeatureEventEnum.ToggleMaskEvent,
+        self.set('KeyPressAction',
+                 'ToggleMaskEvent',
                  key=QtCore.Qt.Key_T)
         
     def set_neighbor_channel(self):
         # select previous/next channel for coordinate 0
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
                  key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (0, -1))
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
                  key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next channel for coordinate 1
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
                  key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (1, -1))
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborChannelEvent,
+        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
                  key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (1, 1))
         
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
                  key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (0, -1))
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
                  key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next feature for coordinate 1
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
                  key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (1, -1))
-        self.set(UserActions.KeyPressAction, FeatureEventEnum.SelectNeighborFeatureEvent,
+        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
                  key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (1, 1))
         
@@ -590,20 +591,20 @@ class FeatureNavigationBindings(FeatureBindings):
 class FeatureSelectionBindings(FeatureBindings):
     def set_selection(self):
         # selection
-        self.set(UserActions.MouseMoveAction,
-                 FeatureEventEnum.SelectionPointPendingEvent,
+        self.set('MouseMoveAction',
+                 'SelectionPointPendingEvent',
                  param_getter=lambda p: (p["mouse_position"][0],
                                          p["mouse_position"][1],))
-        self.set(UserActions.LeftButtonClickAction,
-                 FeatureEventEnum.AddSelectionPointEvent,
+        self.set('LeftButtonClickAction',
+                 'AddSelectionPointEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
-        self.set(UserActions.RightButtonClickAction,
-                 FeatureEventEnum.EndSelectionPointEvent,
+        self.set('RightButtonClickAction',
+                 'EndSelectionPointEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
-        self.set(UserActions.DoubleClickAction,
-                 FeatureEventEnum.CancelSelectionPointEvent,
+        self.set('DoubleClickAction',
+                 'CancelSelectionPointEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
     
@@ -629,7 +630,7 @@ class FeatureView(GalryWidget):
         # connect the AutomaticProjection signal to the
         # AutomaticProjectionEvent
         self.connect_events(SIGNALS.AutomaticProjection,
-                            FeatureEventEnum.AutomaticProjectionEvent)
+                            'AutomaticProjectionEvent')
     
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)

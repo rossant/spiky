@@ -56,17 +56,17 @@ FRAGMENT_SHADER = """
 # a lot of spikes
 HIGHLIGHT_CLOSE_BOXES_COUNT = None
 
-WaveformSpatialArrangement = enum("Linear", "Geometrical")
-WaveformSuperposition = enum("Superimposed", "Separated")
-WaveformEventEnum = enum(
-    "ToggleSuperpositionEvent", 
-    "ToggleSpatialArrangementEvent",
-    "ChangeBoxScaleEvent",
-    "ChangeProbeScaleEvent",
-    "HighlightSpikeEvent",
-    "SelectChannelEvent",
-    # "SelectChannelYEvent",
-    )
+# WaveformSpatialArrangement = enum("Linear", "Geometrical")
+# WaveformSuperposition = enum("Superimposed", "Separated")
+# WaveformEventEnum = enum(
+    # "ToggleSuperpositionEvent", 
+    # "ToggleSpatialArrangementEvent",
+    # "ChangeBoxScaleEvent",
+    # "ChangeProbeScaleEvent",
+    # "HighlightSpikeEvent",
+    # "SelectChannelEvent",
+    # # "SelectChannelYEvent",
+    # )
     
 
 class WaveformHighlightManager(HighlightManager):
@@ -212,11 +212,11 @@ class WaveformPositionManager(Manager):
         # for each spatial arrangement, the box sizes automatically computed,
         # or modified by the user
         self.box_sizes = dict()
-        self.box_sizes.__setitem__(WaveformSpatialArrangement.Linear, None)
-        self.box_sizes.__setitem__(WaveformSpatialArrangement.Geometrical, None)
+        self.box_sizes.__setitem__('Linear', None)
+        self.box_sizes.__setitem__('Geometrical', None)
         # self.T = None
-        self.spatial_arrangement = WaveformSpatialArrangement.Linear
-        self.superposition = WaveformSuperposition.Separated
+        self.spatial_arrangement = 'Linear'
+        self.superposition = 'Separated'
         
         # channel positions
         self.channel_positions = {}
@@ -285,10 +285,10 @@ class WaveformPositionManager(Manager):
             geometrical_positions = linear_positions.copy()
                          
         # normalize and save channel position
-        self.channel_positions[WaveformSpatialArrangement.Linear] = \
-            self.normalize_channel_positions(WaveformSpatialArrangement.Linear, linear_positions)
-        self.channel_positions[WaveformSpatialArrangement.Geometrical] = \
-            self.normalize_channel_positions(WaveformSpatialArrangement.Geometrical, geometrical_positions)
+        self.channel_positions['Linear'] = \
+            self.normalize_channel_positions('Linear', linear_positions)
+        self.channel_positions['Geometrical'] = \
+            self.normalize_channel_positions('Geometrical', geometrical_positions)
               
         
         # set waveform positions
@@ -301,8 +301,8 @@ class WaveformPositionManager(Manager):
                                  box_size=None, probe_scale=None):
         """Update the waveform arrangement (self.channel_positions).
         
-          * spatial_arrangement: WaveformSpatialArrangement enum, Linear or Geometrical
-          * superposition: WaveformSuperposition enum, Superimposed or Separated
+          * spatial_arrangement: 'Linear' or 'Geometrical'
+          * superposition: 'Superimposed' or 'Separated'
           
         """
         # save spatial arrangement
@@ -341,7 +341,7 @@ class WaveformPositionManager(Manager):
         Ty *= psy
         
         # shift in the separated case
-        if self.superposition == WaveformSuperposition.Separated:
+        if self.superposition == 'Separated':
             clusters = np.tile(np.arange(self.nclusters), (self.nchannels, 1))
             Tx += w * (1 + 2 * self.alpha) * \
                                     (.5 + clusters - self.nclusters / 2.)
@@ -381,18 +381,18 @@ class WaveformPositionManager(Manager):
         # if superposition is None:
             # superposition = self.superposition
             
-        # if spatial_arrangement == WaveformSpatialArrangement.Linear:
-            # if superposition == WaveformSuperposition.Superimposed:
+        # if spatial_arrangement == 'Linear':
+            # if superposition == 'Superimposed':
                 # w = 2./(1+2*self.alpha)
                 # h = 2./(self.nchannels*(1+self.beta))
-            # elif superposition == WaveformSuperposition.Separated:
+            # elif superposition == 'Separated':
                 # w = 2./(self.nclusters*(1+2*self.alpha))
                 # h = 2./(self.nchannels*(1+2*self.beta))
-        # elif spatial_arrangement == WaveformSpatialArrangement.Geometrical:
-            # if superposition == WaveformSuperposition.Superimposed:
+        # elif spatial_arrangement == 'Geometrical':
+            # if superposition == 'Superimposed':
                 # w = 2./(self.diffxc*(1+2*self.beta))
                 # h = 2./(self.diffyc*(1+2*self.beta))
-            # elif superposition == WaveformSuperposition.Separated:
+            # elif superposition == 'Separated':
                 # w = 2./((1+2*self.alpha)*(1+2*self.beta)*self.nclusters*
                                 # self.diffxc)
                 # h = 2./((1+2*self.beta)*self.diffyc)
@@ -424,10 +424,10 @@ class WaveformPositionManager(Manager):
         
     def toggle_superposition(self):
         # switch superposition
-        if self.superposition == WaveformSuperposition.Separated:
-            self.superposition = WaveformSuperposition.Superimposed
+        if self.superposition == 'Separated':
+            self.superposition = 'Superimposed'
         else:
-            self.superposition = WaveformSuperposition.Separated
+            self.superposition = 'Separated'
         # recompute the waveforms positions
         self.update_arrangement(superposition=self.superposition,
                                 spatial_arrangement=self.spatial_arrangement)
@@ -435,10 +435,10 @@ class WaveformPositionManager(Manager):
 
     def toggle_spatial_arrangement(self):
         # switch spatial arrangement
-        if self.spatial_arrangement == WaveformSpatialArrangement.Linear:
-            self.spatial_arrangement = WaveformSpatialArrangement.Geometrical
+        if self.spatial_arrangement == 'Linear':
+            self.spatial_arrangement = 'Geometrical'
         else:
-            self.spatial_arrangement = WaveformSpatialArrangement.Linear
+            self.spatial_arrangement = 'Linear'
         # recompute the waveforms positions
         self.update_arrangement(superposition=self.superposition,
                                 spatial_arrangement=self.spatial_arrangement)
@@ -682,7 +682,7 @@ class WaveformPaintManager(PaintManager):
         if name == "probe_scale":
             return self.position_manager.probe_scale
         if name == "superimposed":
-            return self.position_manager.superposition == WaveformSuperposition.Superimposed
+            return self.position_manager.superposition == 'Superimposed'
         # if name == "cluster_colors":
             # return self.data_manager.cluster_colors
         if name == "channel_positions":
@@ -762,54 +762,54 @@ class WaveformInteractionManager(InteractionManager):
         
     def process_custom_event(self, event, parameter):
         # toggle arrangements
-        if event == WaveformEventEnum.ToggleSuperpositionEvent:
+        if event == 'ToggleSuperpositionEvent':
             self.position_manager.toggle_superposition()
-        if event == WaveformEventEnum.ToggleSpatialArrangementEvent:
+        if event == 'ToggleSpatialArrangementEvent':
             self.position_manager.toggle_spatial_arrangement()
         # change scale
-        if event == WaveformEventEnum.ChangeBoxScaleEvent:
+        if event == 'ChangeBoxScaleEvent':
             self.position_manager.change_box_scale(*parameter)
-        if event == WaveformEventEnum.ChangeProbeScaleEvent:
+        if event == 'ChangeProbeScaleEvent':
             self.position_manager.change_probe_scale(*parameter)
         # transient selection
-        if event == WaveformEventEnum.HighlightSpikeEvent:
+        if event == 'HighlightSpikeEvent':
             self.highlight_manager.highlight(parameter)
             self.cursor = cursors.CrossCursor
         # channel selection
-        if event == WaveformEventEnum.SelectChannelEvent:
+        if event == 'SelectChannelEvent':
             self.select_channel(*parameter)
   
   
 class WaveformBindings(SpikyDefaultBindingSet):
     def set_panning(self):
         # Panning: left button mouse, wheel
-        self.set(UserActions.LeftButtonMouseMoveAction, InteractionEvents.PanEvent,
+        self.set('LeftButtonMouseMoveAction', 'PanEvent',
                     param_getter=lambda p: (p["mouse_position_diff"][0],
                                             p["mouse_position_diff"][1]))
                     
         # Panning: keyboard arrows
-        self.set(UserActions.KeyPressAction, InteractionEvents.PanEvent,
+        self.set('KeyPressAction', 'PanEvent',
                     key=QtCore.Qt.Key_Left,
                     param_getter=lambda p: (.24, 0))
-        self.set(UserActions.KeyPressAction, InteractionEvents.PanEvent,
+        self.set('KeyPressAction', 'PanEvent',
                     key=QtCore.Qt.Key_Right,
                     param_getter=lambda p: (-.24, 0))
-        self.set(UserActions.KeyPressAction, InteractionEvents.PanEvent,
+        self.set('KeyPressAction', 'PanEvent',
                     key=QtCore.Qt.Key_Up,
                     param_getter=lambda p: (0, -.24))
-        self.set(UserActions.KeyPressAction, InteractionEvents.PanEvent,
+        self.set('KeyPressAction', 'PanEvent',
                     key=QtCore.Qt.Key_Down,
                     param_getter=lambda p: (0, .24))
                 
     def set_zooming(self):
         # Zooming: right button mouse
-        self.set(UserActions.RightButtonMouseMoveAction, InteractionEvents.ZoomEvent,
+        self.set('RightButtonMouseMoveAction', 'ZoomEvent',
                     param_getter=lambda p: (p["mouse_position_diff"][0]*2.5,
                                             p["mouse_press_position"][0],
                                             p["mouse_position_diff"][1]*2.5,
                                             p["mouse_press_position"][1]))
         # Zooming: zoombox (drag and drop)
-        self.set(UserActions.MiddleButtonMouseMoveAction, InteractionEvents.ZoomBoxEvent,
+        self.set('MiddleButtonMouseMoveAction', 'ZoomBoxEvent',
                 key_modifier=Qt.Key_Control,
                 param_getter=lambda p: (p["mouse_press_position"][0],
                                         p["mouse_press_position"][1],
@@ -817,21 +817,21 @@ class WaveformBindings(SpikyDefaultBindingSet):
                                         p["mouse_position"][1]))
                      
         # Zooming: ALT + key arrows
-        self.set(UserActions.KeyPressAction, InteractionEvents.ZoomEvent,
+        self.set('KeyPressAction', 'ZoomEvent',
                     key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Shift, 
                     param_getter=lambda p: (-.25, 0, 0, 0))
-        self.set(UserActions.KeyPressAction, InteractionEvents.ZoomEvent,
+        self.set('KeyPressAction', 'ZoomEvent',
                     key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Shift, 
                     param_getter=lambda p: (.25, 0, 0, 0))
-        self.set(UserActions.KeyPressAction, InteractionEvents.ZoomEvent,
+        self.set('KeyPressAction', 'ZoomEvent',
                     key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Shift, 
                     param_getter=lambda p: (0, 0, .25, 0))
-        self.set(UserActions.KeyPressAction, InteractionEvents.ZoomEvent,
+        self.set('KeyPressAction', 'ZoomEvent',
                     key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Shift, 
                     param_getter=lambda p: (0, 0, -.25, 0))
         
         # Zooming: wheel
-        self.set(UserActions.WheelAction, InteractionEvents.ZoomEvent,
+        self.set('WheelAction', 'ZoomEvent',
                     param_getter=lambda p: (
                                     p["wheel"]*.002, 
                                     p["mouse_position"][0],
@@ -840,48 +840,48 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_reset(self):
         # Reset view
-        self.set(UserActions.KeyPressAction, InteractionEvents.ResetEvent, key=QtCore.Qt.Key_R)
+        self.set('KeyPressAction', 'ResetEvent', key=QtCore.Qt.Key_R)
         # Reset zoom
-        self.set(UserActions.DoubleClickAction, InteractionEvents.ResetEvent)
+        self.set('DoubleClickAction', 'ResetEvent')
         
     def set_arrangement_toggling(self):
         # toggle superposition
-        self.set(UserActions.KeyPressAction,
-                 WaveformEventEnum.ToggleSuperpositionEvent,
+        self.set('KeyPressAction',
+                 'ToggleSuperpositionEvent',
                  key=QtCore.Qt.Key_O)
                  
         # toggle spatial arrangement
-        self.set(UserActions.KeyPressAction,
-                 WaveformEventEnum.ToggleSpatialArrangementEvent,
+        self.set('KeyPressAction',
+                 'ToggleSpatialArrangementEvent',
                  key=QtCore.Qt.Key_G)
 
     def set_box_scaling(self):
         # change box scale: CTRL + right mouse
-        self.set(UserActions.RightButtonMouseMoveAction,
-                 WaveformEventEnum.ChangeBoxScaleEvent,
+        self.set('RightButtonMouseMoveAction',
+                 'ChangeBoxScaleEvent',
                  # key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
                                          p["mouse_position_diff"][1]*.5))
 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
-        self.set(UserActions.LeftButtonMouseMoveAction,
-                 WaveformEventEnum.ChangeProbeScaleEvent,
+        self.set('LeftButtonMouseMoveAction',
+                 'ChangeProbeScaleEvent',
                  key_modifier=QtCore.Qt.Key_Shift,
                  param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
                                          p["mouse_position_diff"][1] * .5))
 
     def set_highlight(self):
         # highlight
-        self.set(UserActions.MiddleButtonMouseMoveAction,
-                 WaveformEventEnum.HighlightSpikeEvent,
+        self.set('MiddleButtonMouseMoveAction',
+                 'HighlightSpikeEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-        self.set(UserActions.LeftButtonMouseMoveAction,
-                 WaveformEventEnum.HighlightSpikeEvent,
+        self.set('LeftButtonMouseMoveAction',
+                 'HighlightSpikeEvent',
                  key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
@@ -890,11 +890,11 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_channel_selection(self):
         # CTRL + left click for selecting a channel for coordinate X in feature view
-        self.set(UserActions.LeftButtonClickAction, WaveformEventEnum.SelectChannelEvent,
+        self.set('LeftButtonClickAction', 'SelectChannelEvent',
                  key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (0, p["mouse_position"][0], p["mouse_position"][1]))
         # CTRL + right click for selecting a channel for coordinate Y in feature view
-        self.set(UserActions.RightButtonClickAction, WaveformEventEnum.SelectChannelEvent,
+        self.set('RightButtonClickAction', 'SelectChannelEvent',
                  key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
