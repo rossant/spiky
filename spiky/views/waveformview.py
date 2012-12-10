@@ -789,16 +789,16 @@ class WaveformBindings(SpikyDefaultBindingSet):
                     
         # Panning: keyboard arrows
         self.set('KeyPressAction', 'PanEvent',
-                    key=QtCore.Qt.Key_Left,
+                    key='Left',
                     param_getter=lambda p: (.24, 0))
         self.set('KeyPressAction', 'PanEvent',
-                    key=QtCore.Qt.Key_Right,
+                    key='Right',
                     param_getter=lambda p: (-.24, 0))
         self.set('KeyPressAction', 'PanEvent',
-                    key=QtCore.Qt.Key_Up,
+                    key='Up',
                     param_getter=lambda p: (0, -.24))
         self.set('KeyPressAction', 'PanEvent',
-                    key=QtCore.Qt.Key_Down,
+                    key='Down',
                     param_getter=lambda p: (0, .24))
                 
     def set_zooming(self):
@@ -810,7 +810,7 @@ class WaveformBindings(SpikyDefaultBindingSet):
                                             p["mouse_press_position"][1]))
         # Zooming: zoombox (drag and drop)
         self.set('MiddleButtonMouseMoveAction', 'ZoomBoxEvent',
-                key_modifier=Qt.Key_Control,
+                key_modifier='Control',
                 param_getter=lambda p: (p["mouse_press_position"][0],
                                         p["mouse_press_position"][1],
                                         p["mouse_position"][0],
@@ -818,16 +818,16 @@ class WaveformBindings(SpikyDefaultBindingSet):
                      
         # Zooming: ALT + key arrows
         self.set('KeyPressAction', 'ZoomEvent',
-                    key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Shift, 
+                    key='Left', key_modifier='Shift', 
                     param_getter=lambda p: (-.25, 0, 0, 0))
         self.set('KeyPressAction', 'ZoomEvent',
-                    key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Shift, 
+                    key='Right', key_modifier='Shift', 
                     param_getter=lambda p: (.25, 0, 0, 0))
         self.set('KeyPressAction', 'ZoomEvent',
-                    key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Shift, 
+                    key='Up', key_modifier='Shift', 
                     param_getter=lambda p: (0, 0, .25, 0))
         self.set('KeyPressAction', 'ZoomEvent',
-                    key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Shift, 
+                    key='Down', key_modifier='Shift', 
                     param_getter=lambda p: (0, 0, -.25, 0))
         
         # Zooming: wheel
@@ -840,7 +840,7 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_reset(self):
         # Reset view
-        self.set('KeyPressAction', 'ResetEvent', key=QtCore.Qt.Key_R)
+        self.set('KeyPressAction', 'ResetEvent', key='R')
         # Reset zoom
         self.set('DoubleClickAction', 'ResetEvent')
         
@@ -848,18 +848,18 @@ class WaveformBindings(SpikyDefaultBindingSet):
         # toggle superposition
         self.set('KeyPressAction',
                  'ToggleSuperpositionEvent',
-                 key=QtCore.Qt.Key_O)
+                 key='O')
                  
         # toggle spatial arrangement
         self.set('KeyPressAction',
                  'ToggleSpatialArrangementEvent',
-                 key=QtCore.Qt.Key_G)
+                 key='G')
 
     def set_box_scaling(self):
         # change box scale: CTRL + right mouse
         self.set('RightButtonMouseMoveAction',
                  'ChangeBoxScaleEvent',
-                 # key_modifier=QtCore.Qt.Key_Shift,
+                 # key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
                                          p["mouse_position_diff"][1]*.5))
 
@@ -867,7 +867,7 @@ class WaveformBindings(SpikyDefaultBindingSet):
         # change probe scale: Shift + left mouse
         self.set('LeftButtonMouseMoveAction',
                  'ChangeProbeScaleEvent',
-                 key_modifier=QtCore.Qt.Key_Shift,
+                 key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
                                          p["mouse_position_diff"][1] * .5))
 
@@ -882,7 +882,7 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
         self.set('LeftButtonMouseMoveAction',
                  'HighlightSpikeEvent',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
@@ -891,11 +891,11 @@ class WaveformBindings(SpikyDefaultBindingSet):
     def set_channel_selection(self):
         # CTRL + left click for selecting a channel for coordinate X in feature view
         self.set('LeftButtonClickAction', 'SelectChannelEvent',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 key_modifier='Control',
                  param_getter=lambda p: (0, p["mouse_position"][0], p["mouse_position"][1]))
         # CTRL + right click for selecting a channel for coordinate Y in feature view
         self.set('RightButtonClickAction', 'SelectChannelEvent',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 key_modifier='Control',
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
     def extend(self):

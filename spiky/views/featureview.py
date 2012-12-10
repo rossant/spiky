@@ -437,6 +437,7 @@ class FeatureInteractionManager(InteractionManager):
         self.highlight_manager.cancel_highlight()
         
     def process_custom_event(self, event, parameter):
+        
         # highlight
         if event == 'HighlightSpikeEvent':
             self.highlight_manager.highlight(parameter)
@@ -534,7 +535,7 @@ class FeatureBindings(SpikyDefaultBindingSet):
         
         self.set('LeftButtonMouseMoveAction',
                  'HighlightSpikeEvent',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
@@ -543,40 +544,40 @@ class FeatureBindings(SpikyDefaultBindingSet):
     def set_toggle_mask(self):
         self.set('KeyPressAction',
                  'ToggleMaskEvent',
-                 key=QtCore.Qt.Key_T)
+                 key='T')
         
     def set_neighbor_channel(self):
         # select previous/next channel for coordinate 0
         self.set('KeyPressAction', 'SelectNeighborChannelEvent',
-                 key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Control,
+                 key='Up', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
         self.set('KeyPressAction', 'SelectNeighborChannelEvent',
-                 key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Control,
+                 key='Down', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next channel for coordinate 1
         self.set('KeyPressAction', 'SelectNeighborChannelEvent',
-                 key=QtCore.Qt.Key_Up, key_modifier=QtCore.Qt.Key_Shift,
+                 key='Up', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
         self.set('KeyPressAction', 'SelectNeighborChannelEvent',
-                 key=QtCore.Qt.Key_Down, key_modifier=QtCore.Qt.Key_Shift,
+                 key='Down', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
         self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
-                 key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Control,
+                 key='Left', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
         self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
-                 key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Control,
+                 key='Right', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next feature for coordinate 1
         self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
-                 key=QtCore.Qt.Key_Left, key_modifier=QtCore.Qt.Key_Shift,
+                 key='Left', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
         self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
-                 key=QtCore.Qt.Key_Right, key_modifier=QtCore.Qt.Key_Shift,
+                 key='Right', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
         

@@ -539,13 +539,11 @@ class ClusterTreeView(QtGui.QTreeView):
         key = e.key()
         if key in self.modifiers:
             self.modifier = False
-        # print "release", self.modifier
             
     def keyPressEvent(self, e):
         key = e.key()
         if key in self.modifiers:
             self.modifier = True
-        # print "press", self.modifier
         if self.modifier:
             return
         
