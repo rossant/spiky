@@ -6,6 +6,7 @@ import numpy as np
 class TestSpiky(SpikyMainWindow):
     def initialize_data(self):
         filename = "data/test"
+        # filename = "data/subset41test"
         
         provider = KlustersDataProvider()
         self.dh = provider.load(filename)

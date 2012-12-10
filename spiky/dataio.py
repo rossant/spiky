@@ -321,11 +321,12 @@ class KlustersDataProvider(DataProvider):
     def load(self, filename):
         # klusters tests
         nchannels = 32
-        nspikes = 10000
+        # nspikes = 10000
         nsamples = 20
         
         try:
             clusters = load_text(filename + ".clu.1", np.int32)
+            nspikes = len(clusters) - 1
         except Exception as e:
             log_warn("CLU file '%s' not found" % filename)
             clusters = np.zeros(nspikes + 1, dtype=np.int32)
@@ -348,7 +349,7 @@ class KlustersDataProvider(DataProvider):
         try:
             waveforms = load_binary(filename + ".spk.1")
             waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
-        except Exception as e:
+        except IOError as e:
             log_warn("SPK file '%s' not found" % filename)
             waveforms = np.zeros((nspikes, nsamples, nchannels))
         
