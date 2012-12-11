@@ -783,33 +783,33 @@ class WaveformInteractionManager(InteractionManager):
 class WaveformBindings(SpikyDefaultBindingSet):
     def set_panning(self):
         # Panning: left button mouse, wheel
-        self.set('LeftButtonMouseMoveAction', 'PanEvent',
+        self.set('LeftMove', 'PanEvent',
                     param_getter=lambda p: (p["mouse_position_diff"][0],
                                             p["mouse_position_diff"][1]))
                     
         # Panning: keyboard arrows
-        self.set('KeyPressAction', 'PanEvent',
+        self.set('KeyPress', 'PanEvent',
                     key='Left',
                     param_getter=lambda p: (.24, 0))
-        self.set('KeyPressAction', 'PanEvent',
+        self.set('KeyPress', 'PanEvent',
                     key='Right',
                     param_getter=lambda p: (-.24, 0))
-        self.set('KeyPressAction', 'PanEvent',
+        self.set('KeyPress', 'PanEvent',
                     key='Up',
                     param_getter=lambda p: (0, -.24))
-        self.set('KeyPressAction', 'PanEvent',
+        self.set('KeyPress', 'PanEvent',
                     key='Down',
                     param_getter=lambda p: (0, .24))
                 
     def set_zooming(self):
         # Zooming: right button mouse
-        self.set('RightButtonMouseMoveAction', 'ZoomEvent',
+        self.set('RightMove', 'ZoomEvent',
                     param_getter=lambda p: (p["mouse_position_diff"][0]*2.5,
                                             p["mouse_press_position"][0],
                                             p["mouse_position_diff"][1]*2.5,
                                             p["mouse_press_position"][1]))
         # Zooming: zoombox (drag and drop)
-        self.set('MiddleButtonMouseMoveAction', 'ZoomBoxEvent',
+        self.set('MiddleMove', 'ZoomBoxEvent',
                 key_modifier='Control',
                 param_getter=lambda p: (p["mouse_press_position"][0],
                                         p["mouse_press_position"][1],
@@ -817,21 +817,21 @@ class WaveformBindings(SpikyDefaultBindingSet):
                                         p["mouse_position"][1]))
                      
         # Zooming: ALT + key arrows
-        self.set('KeyPressAction', 'ZoomEvent',
+        self.set('KeyPress', 'ZoomEvent',
                     key='Left', key_modifier='Shift', 
                     param_getter=lambda p: (-.25, 0, 0, 0))
-        self.set('KeyPressAction', 'ZoomEvent',
+        self.set('KeyPress', 'ZoomEvent',
                     key='Right', key_modifier='Shift', 
                     param_getter=lambda p: (.25, 0, 0, 0))
-        self.set('KeyPressAction', 'ZoomEvent',
+        self.set('KeyPress', 'ZoomEvent',
                     key='Up', key_modifier='Shift', 
                     param_getter=lambda p: (0, 0, .25, 0))
-        self.set('KeyPressAction', 'ZoomEvent',
+        self.set('KeyPress', 'ZoomEvent',
                     key='Down', key_modifier='Shift', 
                     param_getter=lambda p: (0, 0, -.25, 0))
         
         # Zooming: wheel
-        self.set('WheelAction', 'ZoomEvent',
+        self.set('Wheel', 'ZoomEvent',
                     param_getter=lambda p: (
                                     p["wheel"]*.002, 
                                     p["mouse_position"][0],
@@ -840,24 +840,24 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_reset(self):
         # Reset view
-        self.set('KeyPressAction', 'ResetEvent', key='R')
+        self.set('KeyPress', 'ResetEvent', key='R')
         # Reset zoom
-        self.set('DoubleClickAction', 'ResetEvent')
+        self.set('DoubleClick', 'ResetEvent')
         
     def set_arrangement_toggling(self):
         # toggle superposition
-        self.set('KeyPressAction',
+        self.set('KeyPress',
                  'ToggleSuperpositionEvent',
                  key='O')
                  
         # toggle spatial arrangement
-        self.set('KeyPressAction',
+        self.set('KeyPress',
                  'ToggleSpatialArrangementEvent',
                  key='G')
 
     def set_box_scaling(self):
         # change box scale: CTRL + right mouse
-        self.set('RightButtonMouseMoveAction',
+        self.set('RightMove',
                  'ChangeBoxScaleEvent',
                  # key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
@@ -865,7 +865,7 @@ class WaveformBindings(SpikyDefaultBindingSet):
 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
-        self.set('LeftButtonMouseMoveAction',
+        self.set('LeftMove',
                  'ChangeProbeScaleEvent',
                  key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
@@ -873,14 +873,14 @@ class WaveformBindings(SpikyDefaultBindingSet):
 
     def set_highlight(self):
         # highlight
-        self.set('MiddleButtonMouseMoveAction',
+        self.set('MiddleMove',
                  'HighlightSpikeEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-        self.set('LeftButtonMouseMoveAction',
+        self.set('LeftMove',
                  'HighlightSpikeEvent',
                  key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
@@ -890,11 +890,11 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_channel_selection(self):
         # CTRL + left click for selecting a channel for coordinate X in feature view
-        self.set('LeftButtonClickAction', 'SelectChannelEvent',
+        self.set('LeftClick', 'SelectChannelEvent',
                  key_modifier='Control',
                  param_getter=lambda p: (0, p["mouse_position"][0], p["mouse_position"][1]))
         # CTRL + right click for selecting a channel for coordinate Y in feature view
-        self.set('RightButtonClickAction', 'SelectChannelEvent',
+        self.set('RightClick', 'SelectChannelEvent',
                  key_modifier='Control',
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         

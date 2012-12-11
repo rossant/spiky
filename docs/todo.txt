@@ -19,6 +19,8 @@ TODO
   * display mean waveform (see klusters)
   * option to change width/bin of correlograms
   * normalize correlograms
+  * CTRL + A to select all spikes + button
+  * option to toggle showing masks as gray waveforms in waveform view
 
   
   * function for automatic zoom in waveformview as a function of

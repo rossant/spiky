@@ -526,14 +526,14 @@ class FeatureInteractionManager(InteractionManager):
 class FeatureBindings(SpikyDefaultBindingSet):
     def set_highlight(self):
         # highlight
-        self.set('MiddleButtonMouseMoveAction',
+        self.set('MiddleMove',
                  'HighlightSpikeEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-        self.set('LeftButtonMouseMoveAction',
+        self.set('LeftMove',
                  'HighlightSpikeEvent',
                  key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
@@ -542,41 +542,41 @@ class FeatureBindings(SpikyDefaultBindingSet):
                                          p["mouse_position"][1]))
         
     def set_toggle_mask(self):
-        self.set('KeyPressAction',
+        self.set('KeyPress',
                  'ToggleMaskEvent',
                  key='T')
         
     def set_neighbor_channel(self):
         # select previous/next channel for coordinate 0
-        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannelEvent',
                  key='Up', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
-        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannelEvent',
                  key='Down', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next channel for coordinate 1
-        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannelEvent',
                  key='Up', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
-        self.set('KeyPressAction', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannelEvent',
                  key='Down', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
-        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeatureEvent',
                  key='Left', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
-        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeatureEvent',
                  key='Right', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next feature for coordinate 1
-        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeatureEvent',
                  key='Left', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
-        self.set('KeyPressAction', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeatureEvent',
                  key='Right', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
@@ -592,19 +592,19 @@ class FeatureNavigationBindings(FeatureBindings):
 class FeatureSelectionBindings(FeatureBindings):
     def set_selection(self):
         # selection
-        self.set('MouseMoveAction',
+        self.set('Move',
                  'SelectionPointPendingEvent',
                  param_getter=lambda p: (p["mouse_position"][0],
                                          p["mouse_position"][1],))
-        self.set('LeftButtonClickAction',
+        self.set('LeftClick',
                  'AddSelectionPointEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
-        self.set('RightButtonClickAction',
+        self.set('RightClick',
                  'EndSelectionPointEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
-        self.set('DoubleClickAction',
+        self.set('DoubleClick',
                  'CancelSelectionPointEvent',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
