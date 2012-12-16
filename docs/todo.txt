@@ -1,26 +1,27 @@
 
 TODO
 ----  
+
+  * no reordering but use depth buffer instead
+  * waveform: unmasked at the top  
+  * selection of cluster: not bigger points in feature view, but highlighted
+    and also in waveformview with signals
+  * option to toggle showing masks as gray waveforms in waveform view
   
+  * normalize correlograms
   * (0,0) axes in feature view
-  * split with different clusters: split everything
   * interaction mode buttons: deactivate in gray to highlight the current mode
   * buttons for all commands (reset view for any view)
   * optional color for groups, and option to use that color for all clusters
     in that group on the feature view. ON by default for MUA.
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * possibility to change the color of clusters permanently
-  * cluster view: left arrow for closing the tree view
   * no firing rate but n of spikes in clusterview
   * highlighting: less transient with CTRL + click (click to deactivate)
-  * selection of cluster: not bigger points in feature view, but highlighted
-    and also in waveformview with signals
-  * waveform: unmasked at the top  
+  * CTRL + A to select all spikes + button
+  * cluster view: left arrow for closing the tree view
   * display mean waveform (see klusters)
   * option to change width/bin of correlograms
-  * normalize correlograms
-  * CTRL + A to select all spikes + button
-  * option to toggle showing masks as gray waveforms in waveform view
 
   
   * function for automatic zoom in waveformview as a function of
@@ -32,6 +33,7 @@ TODO
   * correlograms computation
   * cluster merge with button / M press
   * cluster split with button / S press
+  * split with different clusters: split everything
   
   
 File format

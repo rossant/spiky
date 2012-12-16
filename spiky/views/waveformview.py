@@ -683,6 +683,8 @@ class WaveformPaintManager(PlotPaintManager):
         self.set_data(visual='waveforms', **dic)
         
     def initialize(self):
+        # self.set_rendering_options(transparency_blendfunc=('ONE_MINUS_DST_ALPHA', 'ONE'))
+        
         self.add_visual(WaveformVisual, name='waveforms',
             npoints=self.data_manager.npoints,
             nchannels=self.data_manager.nchannels,
