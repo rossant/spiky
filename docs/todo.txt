@@ -63,6 +63,8 @@ Fixes
 Refactoring
 -----------
 
+  * refactor interactions in waveformview/featureview with different
+    processors...
   * refactoring correlograms: put the actual computations outside dataio
   * put COLORMAP in the data holder and remove dependencies 
   * factorize highlight logic in shaders  

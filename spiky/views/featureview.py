@@ -12,7 +12,7 @@ from colors import COLORMAP
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
-           'FeatureSelectionBindings', # 'FeatureEventEnum'
+           'FeatureSelectionBindings', # 'FeatureEnum'
            ]
 
 
@@ -203,7 +203,7 @@ class FeatureVisual(Visual):
         self.add_fragment_main(FRAGMENT_SHADER)
         
         
-class FeaturePaintManager(PaintManager):
+class FeaturePaintManager(PlotPaintManager):
     def update_points(self):
         self.set_data(position0=self.data_manager.normalized_data,
             mask=self.data_manager.full_masks, visual='features')
@@ -374,7 +374,7 @@ class FeatureSelectionManager(Manager):
    
     def add_point(self, point):
         """Add a point in the selection polygon."""
-        point = self.interaction_manager.get_data_coordinates(*point)
+        point = self.interaction_manager.get_processor('navigation').get_data_coordinates(*point)
         if not self.is_selection_pending:
             self.points = np.tile(point, (100, 1))
             self.paint_manager.set_data(
@@ -388,7 +388,7 @@ class FeatureSelectionManager(Manager):
     def point_pending(self, point):
         """A point is currently being positioned by the user. The polygon
         is updated in real time."""
-        point = self.interaction_manager.get_data_coordinates(*point)
+        point = self.interaction_manager.get_processor('navigation').get_data_coordinates(*point)
         if self.is_selection_pending:
             self.points[self.npoints + 1,:] = point
             self.paint_manager.set_data(
@@ -405,7 +405,7 @@ class FeatureSelectionManager(Manager):
         
     def end_point(self, point):
         """Terminate selection polygon."""
-        point = self.interaction_manager.get_data_coordinates(*point)
+        point = self.interaction_manager.get_processor('navigation').get_data_coordinates(*point)
         self.points[self.npoints + 1,:] = self.points[0,:]
         self.paint_manager.set_data(
                 position=self.points,
@@ -425,76 +425,80 @@ class FeatureSelectionManager(Manager):
         self.is_selection_pending = False
 
 
-class FeatureInteractionManager(InteractionManager):
+class FeatureInteractionManager(PlotInteractionManager):
     def initialize(self):
-        # self.channel = 0
-        # self.coordorder = [(0,1),(0,2),(1,2)]
-        # self.icoord = 0
         self.constrain_navigation = False
         
-    def process_none_event(self):
-        super(FeatureInteractionManager, self).process_none_event()
+    def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
         
-    def process_custom_event(self, event, parameter):
+    def highlight_spike(self, parameter):
+        self.highlight_manager.highlight(parameter)
+        self.cursor = 'CrossCursor'
         
-        # highlight
-        if event == 'HighlightSpikeEvent':
-            self.highlight_manager.highlight(parameter)
-            self.cursor = cursors.CrossCursor
-            
-        # selection
-        if event == 'SelectionPointPendingEvent':
-            self.selection_manager.point_pending(parameter)
-        if event == 'AddSelectionPointEvent':
-            self.selection_manager.add_point(parameter)
-        if event == 'EndSelectionPointEvent':
-            self.selection_manager.end_point(parameter)
-        if event == 'CancelSelectionPointEvent':
-            self.selection_manager.cancel_selection()
-          
+    def selection_point_pending(self, parameter):
+        self.selection_manager.point_pending(parameter)
+        
+    def selection_add_point(self, parameter):
+        self.selection_manager.add_point(parameter)
+        
+    def selection_end_point(self, parameter):
+        self.selection_manager.end_point(parameter)
+        
+    def selection_cancel_selection(self, parameter):
+        self.selection_manager.cancel_selection()
+
+    def automatic_projection(self, parameter):
+        self.data_manager.automatic_projection()
+
+    def toggle_mask(self, parameter):
+        self.paint_manager.toggle_mask()
+        
+    def initialize(self):
+    
+        self.register(None, self.cancel_highlight)
+        self.register('HighlightSpike', self.highlight_spike)
+        self.register('SelectionPointPending', self.selection_point_pending)
+        
+        self.register('AddSelectionPoint', self.selection_add_point)
+        self.register('EndSelectionPoint', self.selection_end_point)
+        self.register('CancelSelectionPoint', self.selection_cancel_selection)
+        
+        self.register('SelectProjection', self.select_projection)
+        self.register('AutomaticProjection', self.automatic_projection)
+
+        self.register('ToggleMask', self.toggle_mask)
+
+        self.register('SelectNeighborChannel', self.select_neighbor_channel)
+        self.register('SelectNeighborFeature', self.select_neighbor_feature)
+        
+    def select_neighbor_channel(self, parameter):
+        # print self.data_manager.projection
+        coord, channel_dir = parameter
+        # current channel and feature in the given coordinate
+        proj = self.data_manager.projection[coord]
+        if proj is None:
+            proj = (0, coord)
+        channel, feature = proj
+        # next or previous channel
+        channel = np.mod(channel + channel_dir, self.data_manager.nchannels)
         # select projection
-        if event == 'SelectProjectionEvent':
-            self.select_projection(parameter)
+        # self.select_projection((coord, channel, feature))
+        emit(self.parent, 'ProjectionToChange', coord, channel, feature)
             
-        # automatic projection
-        if event == 'AutomaticProjectionEvent':
-            self.data_manager.automatic_projection()
-            
-        # toggle mask
-        if event == 'ToggleMaskEvent':
-            self.paint_manager.toggle_mask()
-            
-        # select neighbor channel
-        if event == 'SelectNeighborChannelEvent':
-            # print self.data_manager.projection
-            coord, channel_dir = parameter
-            # current channel and feature in the given coordinate
-            proj = self.data_manager.projection[coord]
-            if proj is None:
-                proj = (0, coord)
-            channel, feature = proj
-            # next or previous channel
-            channel = np.mod(channel + channel_dir, self.data_manager.nchannels)
-            # select projection
-            # self.select_projection((coord, channel, feature))
-            emit(self.parent, 'ProjectionToChange', coord, channel, feature)
-            
-        # select neighbor feature
-        if event == 'SelectNeighborFeatureEvent':
-            # print self.data_manager.projection
-            coord, feature_dir = parameter
-            # current channel and feature in the given coordinate
-            proj = self.data_manager.projection[coord]
-            if proj is None:
-                proj = (0, coord)
-            channel, feature = proj
-            # next or previous feature
-            feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
-            # select projection
-            # self.select_projection((coord, channel, feature))
-            emit(self.parent, 'ProjectionToChange', coord, channel, feature)
-            
+    def select_neighbor_feature(self, parameter):
+        # print self.data_manager.projection
+        coord, feature_dir = parameter
+        # current channel and feature in the given coordinate
+        proj = self.data_manager.projection[coord]
+        if proj is None:
+            proj = (0, coord)
+        channel, feature = proj
+        # next or previous feature
+        feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
+        # select projection
+        # self.select_projection((coord, channel, feature))
+        emit(self.parent, 'ProjectionToChange', coord, channel, feature)
             
     def select_projection(self, parameter):
         """Select a projection for the given coordinate."""
@@ -503,38 +507,20 @@ class FeatureInteractionManager(InteractionManager):
         self.paint_manager.updateGL()
 
 
-# FeatureEventEnum = enum(
-    # "HighlightSpikeEvent",
-    
-    # "AddSelectionPointEvent",
-    # "SelectionPointPendingEvent",
-    # "EndSelectionPointEvent",
-    # "CancelSelectionPointEvent",
-    
-    # "ToggleMaskEvent",
-    
-    # "SelectProjectionEvent",
-    # "AutomaticProjectionEvent",
-    
-    # "SelectNeighborChannelEvent",
-    # "SelectNeighborFeatureEvent",
-    # )
-        
-        
 # Bindings
 # --------
-class FeatureBindings(SpikyDefaultBindingSet):
+class FeatureBindings(SpikyBindings):
     def set_highlight(self):
         # highlight
-        self.set('MiddleMove',
-                 'HighlightSpikeEvent',
+        self.set('MiddleClickMove',
+                 'HighlightSpike',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-        self.set('LeftMove',
-                 'HighlightSpikeEvent',
+        self.set('LeftClickMove',
+                 'HighlightSpike',
                  key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
@@ -543,46 +529,46 @@ class FeatureBindings(SpikyDefaultBindingSet):
         
     def set_toggle_mask(self):
         self.set('KeyPress',
-                 'ToggleMaskEvent',
+                 'ToggleMask',
                  key='T')
         
     def set_neighbor_channel(self):
         # select previous/next channel for coordinate 0
-        self.set('KeyPress', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannel',
                  key='Up', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
-        self.set('KeyPress', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannel',
                  key='Down', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next channel for coordinate 1
-        self.set('KeyPress', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannel',
                  key='Up', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
-        self.set('KeyPress', 'SelectNeighborChannelEvent',
+        self.set('KeyPress', 'SelectNeighborChannel',
                  key='Down', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
-        self.set('KeyPress', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeature',
                  key='Left', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
-        self.set('KeyPress', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeature',
                  key='Right', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next feature for coordinate 1
-        self.set('KeyPress', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeature',
                  key='Left', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
-        self.set('KeyPress', 'SelectNeighborFeatureEvent',
+        self.set('KeyPress', 'SelectNeighborFeature',
                  key='Right', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
         
 class FeatureNavigationBindings(FeatureBindings):
-    def extend(self):
+    def initialize(self):
         self.set_highlight()
         self.set_toggle_mask()
         self.set_neighbor_channel()
@@ -593,29 +579,29 @@ class FeatureSelectionBindings(FeatureBindings):
     def set_selection(self):
         # selection
         self.set('Move',
-                 'SelectionPointPendingEvent',
+                 'SelectionPointPending',
                  param_getter=lambda p: (p["mouse_position"][0],
                                          p["mouse_position"][1],))
         self.set('LeftClick',
-                 'AddSelectionPointEvent',
+                 'AddSelectionPoint',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
         self.set('RightClick',
-                 'EndSelectionPointEvent',
+                 'EndSelectionPoint',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
         self.set('DoubleClick',
-                 'CancelSelectionPointEvent',
+                 'CancelSelectionPoint',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
     
-    def extend(self):
+    def initialize(self):
         self.set_highlight()
         self.set_toggle_mask()
         self.set_neighbor_channel()
         self.set_neighbor_feature()
         
-        self.set_base_cursor(cursors.CrossCursor)
+        self.set_base_cursor('CrossCursor')
         self.set_selection()
      
      
@@ -629,9 +615,9 @@ class FeatureView(GalryWidget):
                 selection_manager=FeatureSelectionManager,
                 interaction_manager=FeatureInteractionManager)
         # connect the AutomaticProjection signal to the
-        # AutomaticProjectionEvent
+        # AutomaticProjection
         self.connect_events(SIGNALS.AutomaticProjection,
-                            'AutomaticProjectionEvent')
+                            'AutomaticProjection')
     
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
@@ -641,37 +627,11 @@ class FeatureView(GalryWidget):
             self.updateGL()
         else:
             log_debug("Initializing data for features")
-        
+    
+    
     # Signals-related methods
     # -----------------------
     def highlight_spikes(self, spikes):
         self.highlight_manager.set_highlighted_spikes(spikes, False)
         self.updateGL()
 
-# if __name__ == '__main__':
-
-    # spikes = 1000
-    # nclusters = 5
-    # nfet = 3 * 32 + 1
-    
-    # # features = np.load("data/fet%d.npy" % spikes)
-    # # data = np.load("data/data%d.npz" % spikes)
-    # # clusters = data["clusters"]
-    # # masks = data["masks"]
-    
-    # # # select largest clusters
-    # # c = collections.Counter(clusters)
-    # # best_clusters = np.array(map(operator.itemgetter(0), c.most_common(nclusters)))
-    # # indices = np.zeros(spikes, dtype=bool)
-    # # for i in xrange(nclusters):
-        # # indices = indices | (clusters == best_clusters[-i])
-        
-    # # for testing, we just use the first colors for our clusters
-    # cluster_colors = np.array(colors.generate_colors(nclusters), dtype=np.float32)
-        
-    # # features = features[indices,:]
-    # # clusters = clusters[indices]
-    # # masks = masks[indices,:]
-    
-    
-    

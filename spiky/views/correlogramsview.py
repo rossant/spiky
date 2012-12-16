@@ -161,11 +161,8 @@ class CorrelogramsBaselineVisual(PlotVisual):
         self.add_vertex_main(VERTEX_SHADER)
         
         
-        
-class CorrelogramsPaintManager(PaintManager):
+class CorrelogramsPaintManager(PlotPaintManager):
     def initialize(self, **kwargs):
-        
-        # create dataset
         self.add_visual(CorrelogramsVisual,
             nclusters=self.data_manager.nclusters,
             # nsamples=self.data_manager.nsamples,
@@ -175,15 +172,6 @@ class CorrelogramsPaintManager(PaintManager):
             color_array_index=self.data_manager.color_array_index,
             clusters=self.data_manager.clusters,
             name='correlograms')
-            
-        # self.add_visual(CorrelogramsBaselineVisual,
-            # nclusters=self.data_manager.nclusters,
-            # clusters=self.data_manager.clusters0,
-            # baselines=self.data_manager.baselines,
-            # name='correlograms_baseline')
-        
-        
-        
         
     def update(self):
         self.reinitialize_visual(
@@ -197,18 +185,8 @@ class CorrelogramsPaintManager(PaintManager):
             clusters=self.data_manager.clusters,
             visual='correlograms')
             
-        # self.reinitialize_visual(
-            # size=2 * len(self.data_manager.clusters0),
-            # nclusters=self.data_manager.nclusters,
-            # baselines=self.data_manager.baselines,
-            # clusters=self.data_manager.clusters0,
-            # visual='correlograms_baseline')
-            
-            
-        
 
-
-class CorrelogramsBindings(SpikyDefaultBindingSet):
+class CorrelogramsBindings(SpikyBindings):
     pass
 
 
@@ -218,6 +196,7 @@ class CorrelogramsView(GalryWidget):
         # self.constrain_navigation = True
         self.set_bindings(CorrelogramsBindings)
         self.set_companion_classes(paint_manager=CorrelogramsPaintManager,
+            interaction_manager=PlotInteractionManager,
             data_manager=CorrelogramsDataManager,)
     
     def set_data(self, *args, **kwargs):
