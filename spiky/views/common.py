@@ -4,7 +4,7 @@ import operator
 from galry import *
 
 
-__all__ = ['SpikeDataOrganizer', 'HighlightManager', 'SpikyDefaultBindingSet',
+__all__ = ['SpikeDataOrganizer', 'HighlightManager', 'SpikyBindings',
            ]
 
 
@@ -75,6 +75,9 @@ class SpikeDataOrganizer(object):
         # if self.nclusters == 0:
             # self.permutation = np.array([])
         # else:
+        
+        # masked = self.masks < 1
+        
         counter = 0
         for cluster in self.clusters_unique:
             # spike indices in the current cluster
@@ -91,6 +94,10 @@ class SpikeDataOrganizer(object):
             counter += size
         if self.permutation:
             self.permutation = np.hstack(self.permutation)
+            
+            # TODO: masks spikes first
+            # self.masks
+            
         else:
             self.permutation = np.array([], dtype=np.int32)
         # print self.cluster_sizes_dict
@@ -151,8 +158,8 @@ class HighlightManager(Manager):
             visual='highlight_rectangle')
         
         # convert the box coordinates in the data coordinate system
-        x0, y0 = self.interaction_manager.get_data_coordinates(x0, y0)
-        x1, y1 = self.interaction_manager.get_data_coordinates(x1, y1)
+        x0, y0 = self.interaction_manager.get_processor('navigation').get_data_coordinates(x0, y0)
+        x1, y1 = self.interaction_manager.get_processor('navigation').get_data_coordinates(x1, y1)
         
         self.highlighted((x0, y0, x1, y1))
         
@@ -167,7 +174,7 @@ class HighlightManager(Manager):
             self.highlight_box = None
     
 
-class SpikyDefaultBindingSet(DefaultBindingSet):
+class SpikyBindings(PlotBindings):
     def set_panning_keyboard(self):
         pass
         

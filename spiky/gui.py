@@ -144,7 +144,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = provider.load(nspikes=10000, nclusters=20)
         self.sdh = SelectDataHolder(self.dh)
         
-        
     def initialize(self):
         """Make the UI initialization."""
         
@@ -166,7 +165,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.waveform_action = self.waveform_dock_widget.toggleViewAction()
         self.correlograms_action = self.correlograms_dock_widget.toggleViewAction()
         
-        
     def initialize_actions(self):
         """Initialize all global actions."""
         # automatic projection action
@@ -181,9 +179,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
-        
-        
-        
         
     def initialize_menu(self):
         """Initialize the menu."""
@@ -201,7 +196,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         views_menu.addAction(self.cluster_action)
         views_menu.addAction(self.waveform_action)
         views_menu.addAction(self.correlograms_action)
-        
         
         
     # Event methods

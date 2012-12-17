@@ -45,7 +45,7 @@ class CorrelationMatrixPaintManager(PaintManager):
         self.add_visual(TextureVisual, texture=self.texture, name='correlationmatrix')
 
         
-class CorrelationMatrixBindings(SpikyDefaultBindingSet):
+class CorrelationMatrixBindings(SpikyBindings):
     pass
         
         

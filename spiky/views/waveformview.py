@@ -56,18 +56,6 @@ FRAGMENT_SHADER = """
 # a lot of spikes
 HIGHLIGHT_CLOSE_BOXES_COUNT = None
 
-# WaveformSpatialArrangement = enum("Linear", "Geometrical")
-# WaveformSuperposition = enum("Superimposed", "Separated")
-# WaveformEventEnum = enum(
-    # "ToggleSuperpositionEvent", 
-    # "ToggleSpatialArrangementEvent",
-    # "ChangeBoxScaleEvent",
-    # "ChangeProbeScaleEvent",
-    # "HighlightSpikeEvent",
-    # "SelectChannelEvent",
-    # # "SelectChannelYEvent",
-    # )
-    
 
 class WaveformHighlightManager(HighlightManager):
     def initialize(self):
@@ -104,7 +92,7 @@ class WaveformHighlightManager(HighlightManager):
         a, b = w / 2, h / 2
         
         # find the enclosed channels and clusters
-        sx, sy = self.interaction_manager.sx, self.interaction_manager.sy
+        sx, sy = self.interaction_manager.get_processor('navigation').sx, self.interaction_manager.get_processor('navigation').sy
         dist = (np.abs(Tx - xp) * sx) ** 2 + (np.abs(Ty - yp) * sy) ** 2
         # find the K closest boxes, with K at least HIGHLIGHT_CLOSE_BOXES_COUNT
         # or nclusters (so that all spikes are selected in superimposed mode
@@ -474,7 +462,7 @@ class WaveformPositionManager(Manager):
         a, b = w / 2, h / 2
         
         # find the enclosed channels and clusters
-        sx, sy = self.interaction_manager.sx, self.interaction_manager.sy
+        sx, sy = self.interaction_manager.get_processor('navigation').sx, self.interaction_manager.get_processor('navigation').sy
         dist = (np.abs(Tx - xp) * sx) ** 2 + (np.abs(Ty - yp) * sy) ** 2
         closest = np.argmin(dist.ravel())
         channel, cluster_rel = closest // self.nclusters, np.mod(closest, self.nclusters)
@@ -659,9 +647,9 @@ class WaveformVisual(Visual):
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
-        
+
     
-class WaveformPaintManager(PaintManager):
+class WaveformPaintManager(PlotPaintManager):
     
     def get_uniform_value(self, name):
         if name == "box_size":
@@ -695,6 +683,8 @@ class WaveformPaintManager(PaintManager):
         self.set_data(visual='waveforms', **dic)
         
     def initialize(self):
+        # self.set_rendering_options(transparency_blendfunc=('ONE_MINUS_DST_ALPHA', 'ONE'))
+        
         self.add_visual(WaveformVisual, name='waveforms',
             npoints=self.data_manager.npoints,
             nchannels=self.data_manager.nchannels,
@@ -744,144 +734,98 @@ class WaveformPaintManager(PaintManager):
             # "superimposed",
             "channel_positions"
             )
+                
         
-        
-class WaveformInteractionManager(InteractionManager):
+class WaveformInteractionManager(PlotInteractionManager):
     def select_channel(self, coord, xp, yp):
         # normalized coordinates
-        xp, yp = self.get_data_coordinates(xp, yp)
+        xp, yp = self.get_processor('navigation').get_data_coordinates(xp, yp)
         # find closest channel
         channel, cluster_rel = self.position_manager.find_box(xp, yp)
         # emit the ChannelSelection signal
         emit(self.parent, 'ProjectionToChange', coord, channel, -1)
-                
     
-    def process_none_event(self):
-        super(WaveformInteractionManager, self).process_none_event()
+    def initialize(self):
+        self.register('ToggleSuperposition', self.toggle_superposition)
+        self.register('ToggleSpatialArrangement', self.toggle_spatial_arrangement)
+        self.register('ChangeBoxScale', self.change_box_scale)
+        self.register('ChangeProbeScale', self.change_probe_scale)
+        self.register('HighlightSpike', self.highlight_spikes)
+        self.register('SelectChannel', self.select_channel_callback)
+        self.register(None, self.cancel_highlight)
+  
+    def toggle_superposition(self, parameter):
+        self.position_manager.toggle_superposition()
+        
+    def toggle_spatial_arrangement(self, parameter):
+        self.position_manager.toggle_spatial_arrangement()
+        
+    def change_box_scale(self, parameter):
+        self.position_manager.change_box_scale(*parameter)
+    
+    def change_probe_scale(self, parameter):
+        self.position_manager.change_probe_scale(*parameter)
+        
+    def highlight_spikes(self, parameter):
+        self.highlight_manager.highlight(parameter)
+        self.cursor = 'CrossCursor'
+    
+    def select_channel_callback(self, parameter):
+        self.select_channel(*parameter)
+        
+    def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
         
-    def process_custom_event(self, event, parameter):
-        # toggle arrangements
-        if event == 'ToggleSuperpositionEvent':
-            self.position_manager.toggle_superposition()
-        if event == 'ToggleSpatialArrangementEvent':
-            self.position_manager.toggle_spatial_arrangement()
-        # change scale
-        if event == 'ChangeBoxScaleEvent':
-            self.position_manager.change_box_scale(*parameter)
-        if event == 'ChangeProbeScaleEvent':
-            self.position_manager.change_probe_scale(*parameter)
-        # transient selection
-        if event == 'HighlightSpikeEvent':
-            self.highlight_manager.highlight(parameter)
-            self.cursor = cursors.CrossCursor
-        # channel selection
-        if event == 'SelectChannelEvent':
-            self.select_channel(*parameter)
-  
-  
-class WaveformBindings(SpikyDefaultBindingSet):
-    def set_panning(self):
-        # Panning: left button mouse, wheel
-        self.set('LeftButtonMouseMoveAction', 'PanEvent',
-                    param_getter=lambda p: (p["mouse_position_diff"][0],
-                                            p["mouse_position_diff"][1]))
-                    
-        # Panning: keyboard arrows
-        self.set('KeyPressAction', 'PanEvent',
-                    key='Left',
-                    param_getter=lambda p: (.24, 0))
-        self.set('KeyPressAction', 'PanEvent',
-                    key='Right',
-                    param_getter=lambda p: (-.24, 0))
-        self.set('KeyPressAction', 'PanEvent',
-                    key='Up',
-                    param_getter=lambda p: (0, -.24))
-        self.set('KeyPressAction', 'PanEvent',
-                    key='Down',
-                    param_getter=lambda p: (0, .24))
-                
-    def set_zooming(self):
-        # Zooming: right button mouse
-        self.set('RightButtonMouseMoveAction', 'ZoomEvent',
-                    param_getter=lambda p: (p["mouse_position_diff"][0]*2.5,
-                                            p["mouse_press_position"][0],
-                                            p["mouse_position_diff"][1]*2.5,
-                                            p["mouse_press_position"][1]))
-        # Zooming: zoombox (drag and drop)
-        self.set('MiddleButtonMouseMoveAction', 'ZoomBoxEvent',
-                key_modifier='Control',
-                param_getter=lambda p: (p["mouse_press_position"][0],
-                                        p["mouse_press_position"][1],
-                                        p["mouse_position"][0],
-                                        p["mouse_position"][1]))
-                     
-        # Zooming: ALT + key arrows
-        self.set('KeyPressAction', 'ZoomEvent',
-                    key='Left', key_modifier='Shift', 
-                    param_getter=lambda p: (-.25, 0, 0, 0))
-        self.set('KeyPressAction', 'ZoomEvent',
-                    key='Right', key_modifier='Shift', 
-                    param_getter=lambda p: (.25, 0, 0, 0))
-        self.set('KeyPressAction', 'ZoomEvent',
-                    key='Up', key_modifier='Shift', 
-                    param_getter=lambda p: (0, 0, .25, 0))
-        self.set('KeyPressAction', 'ZoomEvent',
-                    key='Down', key_modifier='Shift', 
-                    param_getter=lambda p: (0, 0, -.25, 0))
-        
-        # Zooming: wheel
-        self.set('WheelAction', 'ZoomEvent',
-                    param_getter=lambda p: (
-                                    p["wheel"]*.002, 
-                                    p["mouse_position"][0],
-                                    p["wheel"]*.002, 
-                                    p["mouse_position"][1]))
-        
-    def set_reset(self):
-        # Reset view
-        self.set('KeyPressAction', 'ResetEvent', key='R')
-        # Reset zoom
-        self.set('DoubleClickAction', 'ResetEvent')
-        
+    
+class WaveformBindings(SpikyBindings):
+    def set_zoombox_keyboard(self):
+        """Set zoombox bindings with the keyboard."""
+        # Idem but with CTRL + left button mouse 
+        self.set('LeftClickMove', 'ZoomBox',
+                    key_modifier='Shift',
+                    param_getter=lambda p: (p["mouse_press_position"][0],
+                                            p["mouse_press_position"][1],
+                                            p["mouse_position"][0],
+                                            p["mouse_position"][1]))
+                                            
     def set_arrangement_toggling(self):
         # toggle superposition
-        self.set('KeyPressAction',
-                 'ToggleSuperpositionEvent',
+        self.set('KeyPress',
+                 'ToggleSuperposition',
                  key='O')
                  
         # toggle spatial arrangement
-        self.set('KeyPressAction',
-                 'ToggleSpatialArrangementEvent',
+        self.set('KeyPress',
+                 'ToggleSpatialArrangement',
                  key='G')
 
     def set_box_scaling(self):
         # change box scale: CTRL + right mouse
-        self.set('RightButtonMouseMoveAction',
-                 'ChangeBoxScaleEvent',
+        self.set('RightClickMove',
+                 'ChangeBoxScale',
                  # key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
                                          p["mouse_position_diff"][1]*.5))
 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
-        self.set('LeftButtonMouseMoveAction',
-                 'ChangeProbeScaleEvent',
-                 key_modifier='Shift',
+        self.set('RightClickMove',
+                 'ChangeProbeScale',
+                 key_modifier='Control',
                  param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
                                          p["mouse_position_diff"][1] * .5))
 
     def set_highlight(self):
         # highlight
-        self.set('MiddleButtonMouseMoveAction',
-                 'HighlightSpikeEvent',
+        self.set('MiddleClickMove',
+                 'HighlightSpike',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
                                          p["mouse_position"][0],
                                          p["mouse_position"][1]))
         
-        self.set('LeftButtonMouseMoveAction',
-                 'HighlightSpikeEvent',
+        self.set('LeftClickMove',
+                 'HighlightSpike',
                  key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],
@@ -890,15 +834,16 @@ class WaveformBindings(SpikyDefaultBindingSet):
         
     def set_channel_selection(self):
         # CTRL + left click for selecting a channel for coordinate X in feature view
-        self.set('LeftButtonClickAction', 'SelectChannelEvent',
+        self.set('LeftClick', 'SelectChannel',
                  key_modifier='Control',
                  param_getter=lambda p: (0, p["mouse_position"][0], p["mouse_position"][1]))
         # CTRL + right click for selecting a channel for coordinate Y in feature view
-        self.set('RightButtonClickAction', 'SelectChannelEvent',
+        self.set('RightClick', 'SelectChannel',
                  key_modifier='Control',
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
-    def extend(self):
+    def initialize(self):
+        # super(WaveformBindings, self).initialize()
         self.set_arrangement_toggling()
         self.set_box_scaling()
         self.set_probe_scaling()
@@ -934,33 +879,4 @@ class WaveformView(GalryWidget):
         self.updateGL()
         
 
-# if __name__ == '__main__':
-    
-    # spikes = 1000
-    # data = np.load("data/data%d.npz" % spikes)
-    # waveforms = data["waveforms"]
-    # clusters = data["clusters"]
-    # geometrical_positions = data["electrode_positions"]
-    # masks = data["masks"]
-    
-    # # select clusters
-    # nclusters = 3
-    
-    # # select largest clusters
-    # c = collections.Counter(clusters)
-    # best_clusters = np.array(map(operator.itemgetter(0), c.most_common(nclusters)))
-    # indices = np.zeros(spikes, dtype=bool)
-    # for i in xrange(nclusters):
-        # indices = indices | (clusters == best_clusters[-i])
         
-    # # for testing, we just use the first colors for our clusters
-    # cluster_colors = np.array(colors.generate_colors(nclusters), dtype=np.float32)
-        
-    # waveforms = waveforms[indices,:,:]
-    # clusters = clusters[indices]
-    # masks = masks[indices,:]
-    
-    # print waveforms.shape, waveforms.size
-    
-    
-    

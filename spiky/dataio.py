@@ -487,7 +487,7 @@ class MockDataProvider(DataProvider):
         
         # construct spike times from random interspike interval
         self.holder.spiketimes = np.cumsum(np.random.randint(size=nspikes,
-            low=int(self.freq*.005), high=int(self.freq*10)))
+            low=int(self.holder.freq*.005), high=int(self.holder.freq*10)))
         
         self.holder.waveforms = rdn.randn(nspikes, nsamples, nchannels)
         self.holder.waveforms_info = Info(nsamples=nsamples)

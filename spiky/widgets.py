@@ -237,7 +237,7 @@ class FeatureWidget(VisualizationWidget):
         self.channel_box[coord].blockSignals(False)
         
         # update the view
-        self.view.process_interaction('SelectProjectionEvent', 
+        self.view.process_interaction('SelectProjection', 
                                       (coord, channel, feature))
         
     def set_channel_box(self, coord, channel):
@@ -254,27 +254,6 @@ class FeatureWidget(VisualizationWidget):
         # selected channel
         emit(self, "ProjectionToChange", coord, self.projection[coord][0], fet)
         
-    # def select_channel_text(self, text, coord=0):
-        # """Detect the selected channel when the text in the combo box changes,
-        # and emit the ProjectionToChange signal if necessary."""
-        # text = text.lower()
-        # channel = None
-        # # select time dimension
-        # if text == "time":
-            # channel = -1
-        # else:
-            # # find if there is a number in the text, if so, it is the channel
-            # # dimension
-            # g = re.match("[^0-9]*([0-9]+)[^0-9]*", text)
-            # if g:
-                # channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
-        # if channel is not None:
-            # # raise the ProjectionToChange signal, and keep the previously
-            # # selected feature
-            # # emit(self, "ProjectionToChange", coord, channel,
-                 # # self.projection[coord][1])
-            # self.set_channel_box(coord, channel)
-        
     def select_channel(self, channel, coord=0):
         """Raise the ProjectionToChange signal when the channel is changed."""
         
@@ -284,10 +263,6 @@ class FeatureWidget(VisualizationWidget):
                      self.projection[coord][1])
         except:
             log_warn("'%s' is not a valid channel." % channel)
-        # g = re.match("([0-9]+)", channel)
-        # if g:
-            # channel = np.clip(int(g.groups()[0]), 0, self.dh.nchannels - 1)
-        
         
     def _select_feature_getter(self, coord, fet):
         """Return the callback function for the feature selection."""
@@ -296,10 +271,6 @@ class FeatureWidget(VisualizationWidget):
     def _select_channel_getter(self, coord):
         """Return the callback function for the channel selection."""
         return lambda channel: self.select_channel(channel, coord)
-        
-    # def _select_channel_text_getter(self, coord):
-        # """Return the callback function for the channel selection."""
-        # return lambda text: self.select_channel_text(text, coord)
         
     def create_feature_widget(self, coord=0):
         # coord => (channel, feature)
@@ -347,7 +318,6 @@ class FeatureWidget(VisualizationWidget):
         self.nspikes_viewer = QtGui.QLabel("", self)
         return self.nspikes_viewer
         
-    # @staticmethod
     def get_nspikes_text(self, nspikes, nspikes_highlighted):
         return "Spikes: %d. Highlighted: %d." % (nspikes, nspikes_highlighted)
         
@@ -391,7 +361,7 @@ class FeatureWidget(VisualizationWidget):
 class CorrelogramsWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
-        view = CorrelogramsView()
+        view = CorrelogramsView(getfocus=False)
         view.set_data(histograms=dh.correlograms,
                       baselines=dh.baselines,
                       cluster_colors=dh.cluster_colors)
