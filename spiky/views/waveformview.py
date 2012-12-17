@@ -27,8 +27,14 @@ VERTEX_SHADER = """
         box_position.x += box_size_margin.x * (0.5 + cluster - 0.5 * nclusters);
     }
     
+    // compute the depth: put masked spikes on the background, unmasked ones
+    // on the foreground on a different layer for each cluster
+    float depth = 0.;
+    if (mask == 1.)
+        depth = - cluster / nclusters;
+    
     // move the vertex to its position0
-    vec2 position = position0 * 0.5 * box_size + box_position;
+    vec3 position = vec3(position0 * 0.5 * box_size + box_position, depth);
     
     vhighlight = highlight;
     cmap_vindex = cmap_index;
@@ -49,6 +55,8 @@ FRAGMENT_SHADER = """
     if (vhighlight > 0)  {
         out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
     }
+    
+    //out_color.w = 1;
 """
 
 # Maximum number of boxes that can be highlighted for performance reasons.
@@ -594,7 +602,12 @@ class WaveformVisual(Visual):
         
         self.primitive_type = 'LINE_STRIP'
         
-        self.add_attribute("position0", vartype="float", ndim=2, data=position0)
+        # NEW: add depth
+        # depth = np.zeros((self.size, 0))
+        # position = np.hstack((position0, depth))
+        position = position0
+        
+        self.add_attribute("position0", vartype="float", ndim=2, data=position)
         
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
         self.add_varying("vmask", vartype="float", ndim=1)
@@ -643,7 +656,8 @@ class WaveformVisual(Visual):
         FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_OFFSET%', "%.5f" % offset)
         FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_STEP%', "%.5f" % dx)
         
-        
+        # necessary so that the navigation shader code is updated
+        self.is_position_3D = True
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
@@ -855,6 +869,7 @@ class WaveformView(GalryWidget):
     def initialize(self):
         self.constrain_navigation = True
         self.constrain_ratio = True
+        self.activate3D = True
         self.set_bindings(WaveformBindings)
         self.set_companion_classes(
                 data_manager=WaveformDataManager,

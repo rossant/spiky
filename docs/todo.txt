@@ -2,8 +2,9 @@
 TODO
 ----  
 
-  * no reordering but use depth buffer instead
-  * waveform: unmasked at the top  
+  * QT INI settings appears to be unstable, segfaults on Linux. TODO: get rid
+    of it and implement something better.
+
   * selection of cluster: not bigger points in feature view, but highlighted
     and also in waveformview with signals
   * option to toggle showing masks as gray waveforms in waveform view

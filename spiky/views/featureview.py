@@ -548,6 +548,23 @@ class FeatureBindings(SpikyBindings):
         self.set('KeyPress', 'SelectNeighborChannel',
                  key='Down', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
+                 
+        # The same, but with the mosue wheel
+        # select previous/next channel for coordinate 0
+        self.set('Wheel', 'SelectNeighborChannel',
+                 key_modifier='Control',
+                 param_getter=lambda p: (0, -int(np.sign(p['wheel']))))
+        # self.set('Wheel', 'SelectNeighborChannel',
+                 # key_modifier='Control',
+                 # param_getter=lambda p: (0, 1))
+                 
+        # select previous/next channel for coordinate 1
+        self.set('Wheel', 'SelectNeighborChannel',
+                 key_modifier='Shift',
+                 param_getter=lambda p: (1, -int(np.sign(p['wheel']))))
+        # self.set('Wheel', 'SelectNeighborChannel',
+                 # key_modifier='Shift',
+                 # param_getter=lambda p: (1, 1))
         
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
