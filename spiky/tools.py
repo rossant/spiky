@@ -2,6 +2,9 @@ from galry import *
 
 __all__ = ['Settings', 'Info']
 
+# HACK: settings cause a segmentation fault on Linux, so before we find
+# a workaround, we temporarily disable them.
+DISABLE_SETTINGS = True
 
 class Info(object):
     def __init__(self, **kwargs):
@@ -19,23 +22,28 @@ class Settings(object):
     
     def configure_settings(self):
         # app = QtCore.QCoreApplication.instance()
-        app, app_created = get_application()
-        if app is not None:
-            app.setOrganizationName(self.organization_name)
-            app.setApplicationName(self.application_name)
-
+        # app, app_created = get_application()
+        # if app is not None:
+            # app.setOrganizationName(self.organization_name)
+            # app.setApplicationName(self.application_name)
+        pass
+            
     def get_settings(self):
-        return QtCore.QSettings(
-            QtCore.QSettings.IniFormat,
-            QtCore.QSettings.UserScope,
-            self.organization_name,
-            self.application_name)
+        # return QtCore.QSettings(
+            # QtCore.QSettings.IniFormat,
+            # QtCore.QSettings.UserScope,
+            # self.organization_name,
+            # self.application_name)
+        return {}
     
     def set(self, key, value):
-        self.settings.setValue(key, value)
+        # self.settings.setValue(key, value)
+        pass
     
     def get(self, key, default=None):
-        return self.settings.value(key, default)
+        # return self.settings.value(key, default)
+        return default
+        
         
 SETTINGS = None
         
