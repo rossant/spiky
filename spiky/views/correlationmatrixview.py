@@ -2,6 +2,7 @@ from galry import *
 from common import *
 import numpy.random as rdn
 from matplotlib.colors import hsv_to_rgb
+from widgets import VisualizationWidget
 
 
 def colormap(x, col0=None, col1=None):
@@ -61,3 +62,12 @@ class CorrelationMatrixView(GalryWidget):
         self.paint_manager.load_data(data)
 
         
+        
+        
+
+class CorrelationMatrixWidget(VisualizationWidget):
+    def create_view(self, dh):
+        view = CorrelationMatrixView()
+        view.set_data(dh.correlationmatrix)
+        return view
+

@@ -5,11 +5,13 @@ import operator
 import time
 
 from galry import *
-from common import *
-from signals import emit
-from colors import COLORMAP
+from common import HighlightManager, SpikyBindings, SpikeDataOrganizer
+from widgets import VisualizationWidget
+import spiky.tools as stools
+import spiky.colors as scolors
+import spiky.signals as ssignals
 
-__all__ = ['WaveformView']
+__all__ = ['WaveformView', 'WaveformWidget']
 
 VERTEX_SHADER = """
     // get channel position
@@ -114,16 +116,25 @@ class WaveformHighlightManager(HighlightManager):
             # find the channel and cluster of this close box
             channel, cluster_rel = index // self.nclusters, np.mod(index, self.nclusters)
             # find the position of the points in the data buffer
+            
+            # NEW: NO REORDERING
             start, end = self.get_data_position(channel, cluster_rel)
             
             # offset
             u = Tx[channel, cluster_rel]
             v = Ty[channel, cluster_rel]
 
+            
+            
             # original data
+            # NEW: NO REORDERING
             waveforms = self.data_manager.normalized_data[start:end,:]
             masks = self.full_masks[start:end]
+            # waveforms = self.data_manager.normalized_data
+            # masks = self.full_masks
 
+            
+            
             # get the waveforms and masks
             # waveforms = positioned_data[start:end,:]
             # find the indices of the points in the enclosed box
@@ -134,10 +145,26 @@ class WaveformHighlightManager(HighlightManager):
                       (waveforms[:,0] >= (xmin-u)/a) & (waveforms[:,0] <= (xmax-u)/a) & \
                       (waveforms[:,1] >= (ymin-v)/b) & (waveforms[:,1] <= (ymax-v)/b))
             # absolute indices in the data
+            
+            
+            # NEW: NO REORDERING
             indices = np.nonzero(indices)[0] + start
+            # indices = np.nonzero(indices)[0]
+            
+            
             # spike indices, independently of the channel
             spkindices.append(np.mod(indices, self.nspikes * self.nsamples) // self.nsamples)        
         spkindices = np.hstack(spkindices)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         spkindices = np.unique(spkindices)
         spkindices.sort()
         return spkindices
@@ -175,7 +202,7 @@ class WaveformHighlightManager(HighlightManager):
             
             # emit the HighlightSpikes signal
             if do_emit:
-                emit(self.parent, 'HighlightSpikes', spikes)
+                ssignals.emit(self.parent, 'HighlightSpikes', spikes)
                 
             self.paint_manager.set_data(
                 highlight=self.highlight_mask,
@@ -500,7 +527,6 @@ class WaveformDataManager(Manager):
         # print waveforms.shape
         # print cluster_colors
         
-        
         self.nspikes, self.nsamples, self.nchannels = waveforms.shape
         self.npoints = waveforms.size
         self.geometrical_positions = geometrical_positions
@@ -634,11 +660,11 @@ class WaveformVisual(Visual):
         # self.add_varying("varying_color", vartype="float", ndim=4)
         
         
-        ncolors = COLORMAP.shape[0]
-        ncomponents = COLORMAP.shape[1]
+        ncolors = scolors.COLORMAP.shape[0]
+        ncomponents = scolors.COLORMAP.shape[1]
         
         
-        colormap = COLORMAP.reshape((1, ncolors, ncomponents))
+        colormap = scolors.COLORMAP.reshape((1, ncolors, ncomponents))
         
         cmap_index = cluster_colors[cluster]
         
@@ -757,7 +783,7 @@ class WaveformInteractionManager(PlotInteractionManager):
         # find closest channel
         channel, cluster_rel = self.position_manager.find_box(xp, yp)
         # emit the ChannelSelection signal
-        emit(self.parent, 'ProjectionToChange', coord, channel, -1)
+        ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, -1)
     
     def initialize(self):
         self.register('ToggleSuperposition', self.toggle_superposition)
@@ -867,7 +893,7 @@ class WaveformBindings(SpikyBindings):
     
 class WaveformView(GalryWidget):
     def initialize(self):
-        self.constrain_navigation = True
+        # self.constrain_navigation = True
         self.constrain_ratio = True
         self.activate3D = True
         self.set_bindings(WaveformBindings)
@@ -894,4 +920,66 @@ class WaveformView(GalryWidget):
         self.updateGL()
         
 
+class WaveformWidget(VisualizationWidget):
+    def create_view(self, dh):
+        self.dh = dh
+        self.view = WaveformView(getfocus=False)
+        
+        # load user preferences
+        geometry_preferences = self.restore_geometry()
+        if geometry_preferences is None:
+            geometry_preferences = {}
+        # print geometry_preferences
+        self.view.set_data(self.dh.waveforms,
+                      clusters=self.dh.clusters,
+                      cluster_colors=self.dh.cluster_colors,
+                      geometrical_positions=self.dh.probe.positions,
+                      masks=self.dh.masks,
+                      **geometry_preferences
+                      # user preferences
+                      # TODO: store this in the data file, or in the user
+                      # preferences
+                      # spatial_arrangement=geometry_preferences.get('spatial_arrangement', None),
+                      # superposition=geometry_preferencesget('superposition', None),
+                      # box_size=geometry_preferencesget('box_size', None),
+                      # probe_scale=geometry_preferencesget('probe_scale', None)
+                      )
+        return self.view
+        
+    def update_view(self):
+        self.view.set_data(self.dh.waveforms,
+                      clusters=self.dh.clusters,
+                      clusters_unique=self.dh.clusters_unique,
+                      cluster_colors=self.dh.cluster_colors,
+                      geometrical_positions=self.dh.probe.positions,
+                      masks=self.dh.masks
+                      )
+    
+    def initialize_connections(self):
+        ssignals.SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+        
+    def slotClusterSelectionChanged(self, sender, clusters):
+        self.update_view()
+        
+    def slotProjectionChanged(self, sender, coord, channel, feature):
+        pass
+        
+        
+    # Save and restore geometry
+    # -------------------------
+    def save_geometry(self):
+        geometry_preferences = {
+            'spatial_arrangement': self.view.position_manager.spatial_arrangement,
+            'superposition': self.view.position_manager.superposition,
+            'box_size': self.view.position_manager.load_box_size(),
+            'probe_scale': self.view.position_manager.probe_scale,
+        }
+        stools.SETTINGS.set("waveformWidget/geometry", geometry_preferences)
+        
+    def restore_geometry(self):
+        """Return a dictionary with the user preferences regarding geometry
+        in the WaveformView."""
+        return stools.SETTINGS.get("waveformWidget/geometry")
+        
         

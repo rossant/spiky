@@ -1,7 +1,12 @@
-from galry import *
-from common import *
-from colors import COLORMAP
 import numpy.random as rdn
+from galry import *
+# from common import *
+# from colors import COLORMAP
+from common import HighlightManager, SpikyBindings
+from widgets import VisualizationWidget
+import spiky.colors as scolors
+import spiky.tools as stools
+import spiky.signals as ssignals
 
 VERTEX_SHADER = """
     //vec3 color = vec3(1, 1, 1);
@@ -103,7 +108,7 @@ class CorrelogramsDataManager(Manager):
             identity = []
         
         color_array_index[identity] = np.array(cluster_colors + 1, dtype=np.int32)
-        self.color = np.vstack((np.ones((1, 3)), COLORMAP))
+        self.color = np.vstack((np.ones((1, 3)), scolors.COLORMAP))
         self.color_array_index = color_array_index
         
         self.clusters0 = self.clusters
@@ -210,3 +215,25 @@ class CorrelogramsView(GalryWidget):
             log_debug("Initializing data for correlograms")
     
     
+
+class CorrelogramsWidget(VisualizationWidget):
+    def create_view(self, dh):
+        self.dh = dh
+        view = CorrelogramsView(getfocus=False)
+        view.set_data(histograms=dh.correlograms,
+                      baselines=dh.baselines,
+                      cluster_colors=dh.cluster_colors)
+        return view
+        
+    def update_view(self):
+        self.view.set_data(histograms=self.dh.correlograms,
+                      baselines=self.dh.baselines,
+                      cluster_colors=self.dh.cluster_colors)
+
+    def initialize_connections(self):
+        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+    
+    def slotClusterSelectionChanged(self, sender, clusters):
+        self.update_view()
+        
+        

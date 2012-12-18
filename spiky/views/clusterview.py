@@ -2,11 +2,17 @@ import numpy as np
 import numpy.random as rnd
 from galry import *
 from collections import OrderedDict
-from signals import *
-from colors import COLORMAP
+# from signals import *
+# from colors import COLORMAP
+import spiky.tools as tools
+import spiky.signals as ssignals
+import spiky.colors as colors
+
+SETTINGS = tools.get_settings()
+
 
 __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
-           'ClusterTreeView']
+           'ClusterTreeView', 'ClusterWidget']
 
 
 class TreeItem(object):
@@ -343,7 +349,7 @@ class ClusterGroupManager(TreeModel):
             # color
             elif col == self.columnCount() - 1:
                 if role == QtCore.Qt.BackgroundRole:
-                    color = np.array(COLORMAP[item.color()]) * 255
+                    color = np.array(colors.COLORMAP[item.color()]) * 255
                     return QtGui.QColor(*color)
                     
         # default
@@ -458,7 +464,7 @@ class ClusterTreeView(QtGui.QTreeView):
     def selectionChanged(self, selected, deselected):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
         # emit the ClusterSelectionToChange signal
-        emit(self, "ClusterSelectionToChange",
+        ssignals.emit(self, "ClusterSelectionToChange",
             np.sort(np.array(self.selected_clusters(), dtype=np.int32)))
         
     def select(self, cluster):
@@ -559,4 +565,90 @@ class ClusterTreeView(QtGui.QTreeView):
         if key == QtCore.Qt.Key_End:
             self.select_cluster('bottom')
             
+    
+    
+    
+class ClusterWidget(QtGui.QWidget):
+    def __init__(self, main_window, dh, getfocus=True):
+        super(ClusterWidget, self).__init__()
+        
+        # Capture keyboard events.
+        if getfocus:
+            self.setFocusPolicy(QtCore.Qt.WheelFocus)
+        
+        self.main_window = main_window
+        # put the controller and the view vertically
+        vbox = QtGui.QVBoxLayout()
+        
+        # add context menu
+        self.add_menu()
+        
+        # add controller
+        # self.controller = QtGui.QPushButton()
+        # vbox.addWidget(self.controller, stretch=1)
+        
+        # add the tree view
+        self.view = self.create_tree_view(dh)
+        vbox.addWidget(self.view, stretch=100)
+        
+        # self.restore_geometry()
+        
+        # set the VBox as layout of the widget
+        self.setLayout(vbox)
+        
+    def add_menu(self):
+        self.context_menu = QtGui.QMenu(self)
+        self.context_menu.addAction("Add group", self.add_group_action)
+        self.context_menu.addAction("Remove group", self.remove_group_action)
+        
+    def create_tree_view(self, dh):
+        """Create the Tree View widget, and populates it using the data 
+        handler `dh`."""
+        # pass the cluster data to the ClusterView
+        self.model = ClusterGroupManager(clusters_info=dh.clusters_info)
+        
+        # set the QTreeView options
+        view = ClusterTreeView()
+        view.set_model(self.model)
+        return view
+
+    def contextMenuEvent(self, event):
+        action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
+            
+    def add_group_action(self):
+        groupindices = [g.groupidx() for g in self.model.get_groups()]
+        groupidx = max(groupindices) + 1
+        self.model.add_group(groupidx, "Group %d" % groupidx)
+        self.view.expandAll()
+    
+    def remove_group_action(self):
+        errors = []
+        for groupidx in self.view.selected_groups():
+            try:
+                self.model.remove_group(groupidx)
+            except:
+                errors.append(groupidx)
+        if errors:
+            msg = "Non-empty groups were not deleted."
+            self.main_window.statusBar().showMessage(msg, 5000)
+    
+    
+    # Save and restore geometry
+    # -------------------------
+    def save_geometry(self):
+        SETTINGS.set("clusterWidget/geometry", self.view.saveGeometry())
+        SETTINGS.set("clusterWidget/headerState", self.view.header().saveState())
+        
+    def restore_geometry(self):
+        g = SETTINGS.get("clusterWidget/geometry")
+        h = SETTINGS.get("clusterWidget/headerState")
+        if g:
+            self.view.restoreGeometry(g)
+        if h:
+            self.view.header().restoreState(h)
+    
+    
+    # def focusOutEvent(self, e):
+        # self.view.focusOutEvent(e)
+    
     

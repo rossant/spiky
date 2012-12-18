@@ -1,14 +1,18 @@
 from galry import *
-from views import *
-from views.signals import SIGNALS
+# from views import *
+# from views.signals import SIGNALS
 import tools
-import numpy as np
-from dataio import *
-from tools import Info
 from collections import OrderedDict
-from widgets import *
-from icons import get_icon
+import numpy as np
+# from dataio import *
+# from tools import Info
+# from spiky import get_icon, SIGNALS, Info
+# from icons import get_icon
 import inspect
+import spiky.signals as ssignals
+import spiky
+import spiky.views as sviews
+import spiky.dataio as sdataio
 
 
 SETTINGS = tools.get_settings()
@@ -48,15 +52,15 @@ class DataUpdater(QtGui.QWidget):
         self.initialize_connections()
         
     def initialize_connections(self):
-        SIGNALS.ProjectionToChange.connect(self.slotProjectionToChange, QtCore.Qt.UniqueConnection)
-        SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.ProjectionToChange.connect(self.slotProjectionToChange, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionToChange(self, sender, clusters):
         self.dh.select_clusters(clusters)
-        emit(sender, 'ClusterSelectionChanged', clusters)
+        ssignals.emit(sender, 'ClusterSelectionChanged', clusters)
         
     def slotProjectionToChange(self, sender, coord, channel, feature):
-        emit(sender, 'ProjectionChanged', coord, channel, feature)
+        ssignals.emit(sender, 'ProjectionChanged', coord, channel, feature)
         
 
 class SpikyMainWindow(QtGui.QMainWindow):
@@ -140,9 +144,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # --------------
     def initialize_data(self):
         # load mock data
-        provider = MockDataProvider()
+        provider = sdataio.MockDataProvider()
         self.dh = provider.load(nspikes=10000, nclusters=20)
-        self.sdh = SelectDataHolder(self.dh)
+        self.sdh = sdataio.SelectDataHolder(self.dh)
         
     def initialize(self):
         """Make the UI initialization."""
@@ -152,11 +156,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.du = DataUpdater(self.sdh)
         
         # central window, the dockable widgets are arranged around it
-        self.cluster_widget, self.cluster_dock_widget = self.add_dock(ClusterWidget, QtCore.Qt.RightDockWidgetArea)
+        self.cluster_widget, self.cluster_dock_widget = self.add_dock(sviews.ClusterWidget, QtCore.Qt.RightDockWidgetArea)
 
-        self.feature_widget = self.add_central(FeatureWidget)
-        self.waveform_widget, self.waveform_dock_widget = self.add_dock(WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
-        self.correlograms_widget, self.correlograms_dock_widget = self.add_dock(CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
+        self.feature_widget = self.add_central(sviews.FeatureWidget)
+        self.waveform_widget, self.waveform_dock_widget = self.add_dock(sviews.WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
+        self.correlograms_widget, self.correlograms_dock_widget = self.add_dock(sviews.CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
         
         # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         
@@ -173,7 +177,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.autoproj_action.setShortcut("P")
         self.autoproj_action.setStatusTip("Automatically choose the best " +
             "projection in the FeatureView.")
-        self.autoproj_action.triggered.connect(lambda e: emit(self, "AutomaticProjection"), QtCore.Qt.UniqueConnection)
+        self.autoproj_action.triggered.connect(lambda e: ssignals.emit(self, "AutomaticProjection"), QtCore.Qt.UniqueConnection)
         
         # exit action
         self.quit_action = QtGui.QAction("E&xit", self)
@@ -224,7 +228,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # -------
     def initialize_connections(self):
         """Initialize the signals/slots connections between widgets."""
-        SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
 
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
@@ -295,7 +299,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         the window."""
         # reset all signals so that they are not bound several times to 
         # the same slots in an interactive session
-        SIGNALS.reset()
+        ssignals.SIGNALS.reset()
         self.save_geometry()
         # save the settings
         SETTINGS.save()

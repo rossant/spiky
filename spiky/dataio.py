@@ -2,9 +2,8 @@ import numpy as np
 import numpy.random as rdn
 import h5py
 from galry import *
-from views.colors import COLORMAP
+from colors import COLORMAP
 from tools import Info
-
 
 __all__ = [
     'DataHolder',

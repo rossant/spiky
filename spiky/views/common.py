@@ -98,7 +98,7 @@ class SpikeDataOrganizer(object):
             # TODO: masks spikes first
             # self.masks
             # HACK: disable permutation and see what happens...
-            self.permutation = np.arange(len(self.permutation))
+            # self.permutation = np.arange(len(self.permutation))
             
         else:
             self.permutation = np.array([], dtype=np.int32)

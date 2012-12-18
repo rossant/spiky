@@ -6,13 +6,19 @@ import time
 from matplotlib.path import Path
 
 from galry import *
-from common import *
-from signals import *
-from colors import COLORMAP
+from common import HighlightManager, SpikyBindings, SpikeDataOrganizer
+from widgets import VisualizationWidget
+import spiky.colors as scolors
+import spiky.tools as stools
+import spiky.signals as ssignals
+# from signals import *
+# from colors import COLORMAP
+# import spiky.views.common as scommon
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
            'FeatureSelectionBindings', # 'FeatureEnum'
+           'FeatureWidget',
            ]
 
 
@@ -23,12 +29,16 @@ VERTEX_SHADER = """
     vhighlight = highlight;
     cmap_vindex = cmap_index;
     vmask = mask;
+    vselection = selection;
     
     // selection
-    if (selection > 0)
+    /*if (selection > 0)
         gl_PointSize = 6.;
     else
-        gl_PointSize = 3.;
+        gl_PointSize = 3.;*/
+        
+    gl_PointSize = 3.;
+    
 """
      
      
@@ -47,7 +57,7 @@ FRAGMENT_SHADER = """
     }
     
     // highlight
-    if (vhighlight > 0) {
+    if ((vhighlight > 0) || (vselection > 0)) {
         out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
     }
 """
@@ -136,7 +146,7 @@ class FeatureDataManager(Manager):
         
         if do_update:
             self.data_normalizer = DataNormalizer(self.data)
-            self.normalized_data = self.data_normalizer.normalize()
+            self.normalized_data = self.data_normalizer.normalize(symmetric=True)
             self.projection[coord] = (channel, feature)
             # show the selection polygon only if the projection axes correspond
             self.selection_manager.set_selection_polygon_visibility(
@@ -177,14 +187,16 @@ class FeatureVisual(Visual):
         self.add_uniform("toggle_mask", vartype="int", ndim=1, data=0)
         
         self.add_attribute("selection", vartype="int", ndim=1, data=selection)
+        self.add_varying("vselection", vartype="int", ndim=1)
+        
         # color map for cluster colors, each spike has an index of the color
         # in the color map
-        ncolors = COLORMAP.shape[0]
-        ncomponents = COLORMAP.shape[1]
+        ncolors = scolors.COLORMAP.shape[0]
+        ncomponents = scolors.COLORMAP.shape[1]
         
         # associate the cluster color to each spike
         # give the correct shape to cmap
-        colormap = COLORMAP.reshape((1, ncolors, ncomponents))
+        colormap = scolors.COLORMAP.reshape((1, ncolors, ncomponents))
         
         cmap_index = cluster_colors[cluster]
         
@@ -221,6 +233,8 @@ class FeaturePaintManager(PlotPaintManager):
             cluster_colors=self.data_manager.cluster_colors,
             # colormap=self.data_manager.colormap,
             )
+        
+        self.add_visual(AxesVisual, name='grid')
         
     def update(self):
 
@@ -287,7 +301,7 @@ class FeatureHighlightManager(HighlightManager):
             
             # emit the HighlightSpikes signal
             if do_emit:
-                emit(self.parent, 'HighlightSpikes', spikes)
+                ssignals.emit(self.parent, 'HighlightSpikes', spikes)
             
             self.paint_manager.set_data(
                 highlight=self.highlight_mask, visual='features')
@@ -484,7 +498,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         channel = np.mod(channel + channel_dir, self.data_manager.nchannels)
         # select projection
         # self.select_projection((coord, channel, feature))
-        emit(self.parent, 'ProjectionToChange', coord, channel, feature)
+        ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, feature)
             
     def select_neighbor_feature(self, parameter):
         # print self.data_manager.projection
@@ -498,7 +512,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
         # select projection
         # self.select_projection((coord, channel, feature))
-        emit(self.parent, 'ProjectionToChange', coord, channel, feature)
+        ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, feature)
             
     def select_projection(self, parameter):
         """Select a projection for the given coordinate."""
@@ -633,7 +647,7 @@ class FeatureView(GalryWidget):
                 interaction_manager=FeatureInteractionManager)
         # connect the AutomaticProjection signal to the
         # AutomaticProjection
-        self.connect_events(SIGNALS.AutomaticProjection,
+        self.connect_events(ssignals.SIGNALS.AutomaticProjection,
                             'AutomaticProjection')
     
     def set_data(self, *args, **kwargs):
@@ -652,3 +666,219 @@ class FeatureView(GalryWidget):
         self.highlight_manager.set_highlighted_spikes(spikes, False)
         self.updateGL()
 
+
+        
+        
+class FeatureWidget(VisualizationWidget):
+    def create_view(self, dh):
+        self.dh = dh
+        self.view = FeatureView(getfocus=False)
+        self.view.set_data(fetdim=self.dh.fetdim,
+                      features=self.dh.features,
+                      clusters=self.dh.clusters,
+                      # colormap=self.dh.colormap,
+                      cluster_colors=self.dh.cluster_colors,
+                      masks=self.dh.masks)
+        return self.view
+        
+    def update_view(self):
+        self.view.set_data(fetdim=self.dh.fetdim,
+                      features=self.dh.features,
+                      clusters=self.dh.clusters,
+                      cluster_colors=self.dh.cluster_colors,
+                      clusters_unique=self.dh.clusters_unique,
+                      masks=self.dh.masks)
+        self.update_nspikes_viewer(self.dh.nspikes, 0)
+
+    def create_toolbar(self):
+        toolbar = QtGui.QToolBar(self)
+        toolbar.setObjectName("toolbar")
+        toolbar.setIconSize(QtCore.QSize(32, 32))
+        
+        # navigation toolbar
+        toolbar.addAction(get_icon('hand'), "Move (press I to switch)",
+            self.set_navigation)
+        toolbar.addAction(get_icon('selection'), "Selection (press I to switch)",
+            self.set_selection)
+            
+        toolbar.addSeparator()
+            
+        # autoprojection
+        toolbar.addAction(self.main_window.autoproj_action)
+        
+        toolbar.addSeparator()
+        
+        return toolbar
+        
+    def initialize_connections(self):
+        ssignals.SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        
+    def slotHighlightSpikes(self, parent, highlighted):
+        self.update_nspikes_viewer(self.dh.nspikes, len(highlighted))
+        
+    def slotClusterSelectionChanged(self, sender, clusters):
+        self.update_view()
+        
+    def slotProjectionChanged(self, sender, coord, channel, feature):
+        """Process the ProjectionChanged signal."""
+        
+        # feature == -1 means that it should be automatically selected as
+        # a function of the current projection
+        if feature < 0:
+            # current channel and feature in the other coordinate
+            other_channel, other_feature = self.view.data_manager.projection[1 - coord]
+            fetdim = self.dh.fetdim
+            # first dimension: we force to 0
+            if coord == 0:
+                feature = 0
+            # other dimension: 0 if different channel, or next feature if the same
+            # channel
+            else:
+                # same channel case
+                if channel == other_channel:
+                    feature = np.mod(other_feature + 1, fetdim)
+                # different channel case
+                else:
+                    feature = 0
+        
+        # print sender
+        log_info("Projection changed in coord %s, channel=%d, feature=%s" \
+            % (('X', 'Y')[coord], channel, ('A', 'B', 'C')[feature]))
+        # record the new projection
+        self.projection[coord] = (channel, feature)
+        
+        # prevent the channelbox to raise signals when we change its state
+        # programmatically
+        self.channel_box[coord].blockSignals(True)
+        # update the channel box
+        self.set_channel_box(coord, channel)
+        # update the feature button
+        self.set_feature_button(coord, feature)
+        # reactive signals for the channel box
+        self.channel_box[coord].blockSignals(False)
+        
+        # update the view
+        self.view.process_interaction('SelectProjection', 
+                                      (coord, channel, feature))
+        
+    def set_channel_box(self, coord, channel):
+        """Select the adequate line in the channel selection combo box."""
+        self.channel_box[coord].setCurrentIndex(channel)
+        
+    def set_feature_button(self, coord, feature):
+        """Push the corresponding button."""
+        self.feature_buttons[coord][feature].setChecked(True)
+        
+    def select_feature(self, coord, fet=0):
+        """Select channel coord, feature fet."""
+        # raise the ProjectionToChange signal, and keep the previously
+        # selected channel
+        ssignals.emit(self, "ProjectionToChange", coord, self.projection[coord][0], fet)
+        
+    def select_channel(self, channel, coord=0):
+        """Raise the ProjectionToChange signal when the channel is changed."""
+        
+        try:
+            channel = int(channel)
+            ssignals.emit(self, "ProjectionToChange", coord, channel,
+                     self.projection[coord][1])
+        except:
+            log_warn("'%s' is not a valid channel." % channel)
+        
+    def _select_feature_getter(self, coord, fet):
+        """Return the callback function for the feature selection."""
+        return lambda *args: self.select_feature(coord, fet)
+        
+    def _select_channel_getter(self, coord):
+        """Return the callback function for the channel selection."""
+        return lambda channel: self.select_channel(channel, coord)
+        
+    def create_feature_widget(self, coord=0):
+        # coord => (channel, feature)
+        self.projection = [(0, 0), (0, 1)]
+        
+        gridLayout = QtGui.QGridLayout()
+        gridLayout.setSpacing(0)
+        # HACK: pyside does not have this function
+        if hasattr(gridLayout, 'setMargin'):
+            gridLayout.setMargin(0)
+        
+        # channel selection
+        comboBox = QtGui.QComboBox(self)
+        comboBox.setEditable(True)
+        comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
+        comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
+        comboBox.editTextChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
+        comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
+        comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.channel_box[coord] = comboBox
+        gridLayout.addWidget(comboBox, 0, 0, 1, 3)
+        
+        # TODO: use dh.fetdim instead of hard coded "3 features"
+        # create 3 buttons for selecting the feature
+        widths = [30] * self.dh.fetdim
+        labels = ['PC%d' % i for i in xrange(1, self.dh.fetdim + 1)]
+        
+        # ensure exclusivity of the group of buttons
+        pushButtonGroup = QtGui.QButtonGroup(self)
+        for i in xrange(len(labels)):
+            # selecting feature i
+            pushButton = QtGui.QPushButton(labels[i], self)
+            pushButton.setCheckable(True)
+            if coord == i:
+                pushButton.setChecked(True)
+            pushButton.setMaximumSize(QtCore.QSize(widths[i], 20))
+            pushButton.clicked.connect(self._select_feature_getter(coord, i), QtCore.Qt.UniqueConnection)
+            pushButtonGroup.addButton(pushButton, i)
+            self.feature_buttons[coord][i] = pushButton
+            gridLayout.addWidget(pushButton, 1, i)
+        
+        return gridLayout
+        
+    def create_nspikes_viewer(self):
+        self.nspikes_viewer = QtGui.QLabel("", self)
+        return self.nspikes_viewer
+        
+    def get_nspikes_text(self, nspikes, nspikes_highlighted):
+        return "Spikes: %d. Highlighted: %d." % (nspikes, nspikes_highlighted)
+        
+    def update_nspikes_viewer(self, nspikes, nspikes_highlighted):
+        text = self.get_nspikes_text(nspikes, nspikes_highlighted)
+        self.nspikes_viewer.setText(text)
+        
+    def create_controller(self):
+        box = super(FeatureWidget, self).create_controller()
+        
+        # coord => channel combo box
+        self.channel_box = [None, None]
+        # coord => (butA, butB, butC)
+        self.feature_buttons = [[None] * 3, [None] * 3]
+        
+        # add navigation toolbar
+        self.toolbar = self.create_toolbar()
+        box.addWidget(self.toolbar)
+
+        # add number of spikes
+        self.nspikes_viewer = self.create_nspikes_viewer()
+        box.addWidget(self.nspikes_viewer)
+        
+        # add feature widget
+        self.feature_widget1 = self.create_feature_widget(0)
+        box.addLayout(self.feature_widget1)
+        
+        # add feature widget
+        self.feature_widget2 = self.create_feature_widget(1)
+        box.addLayout(self.feature_widget2)
+        
+        return box
+    
+    def set_navigation(self):
+        self.view.set_interaction_mode(FeatureNavigationBindings)
+    
+    def set_selection(self):
+        self.view.set_interaction_mode(FeatureSelectionBindings)
+    
+    
+        

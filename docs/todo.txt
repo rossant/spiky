@@ -5,15 +5,11 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
-  * QT INI settings appears to be unstable, segfaults on Linux. TODO: get rid
-    of it and implement something better.
-
   * selection of cluster: not bigger points in feature view, but highlighted
     and also in waveformview with signals
   * option to toggle showing masks as gray waveforms in waveform view
   
   * normalize correlograms
-  * (0,0) axes in feature view
   * interaction mode buttons: deactivate in gray to highlight the current mode
   * buttons for all commands (reset view for any view)
   * optional color for groups, and option to use that color for all clusters
