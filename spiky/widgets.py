@@ -9,7 +9,7 @@ from collections import OrderedDict
 import re
 
 
-SETTINGS = tools.init_settings()
+SETTINGS = tools.get_settings()
 
 
 __all__ = ['VisualizationWidget',

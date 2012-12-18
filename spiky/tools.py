@@ -1,54 +1,60 @@
+import cPickle
+import os
 from galry import *
+
 
 __all__ = ['Settings', 'Info']
 
-# HACK: settings cause a segmentation fault on Linux, so before we find
-# a workaround, we temporarily disable them.
-DISABLE_SETTINGS = True
 
 class Info(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
+        
 class Settings(object):
-    organization_name = "SpikeSorters"
-    application_name = "Spiky"
+    appname = "spiky"
     
     def __init__(self):
         """Configure the settings at initialization. A QT Application should
         already have been created here."""
+        # create the settings file if it does not exist, or load it
+        self.settings = {}
         self.configure_settings()
-        self.settings = self.get_settings()
     
     def configure_settings(self):
-        # app = QtCore.QCoreApplication.instance()
-        # app, app_created = get_application()
-        # if app is not None:
-            # app.setOrganizationName(self.organization_name)
-            # app.setApplicationName(self.application_name)
-        pass
-            
-    def get_settings(self):
-        # return QtCore.QSettings(
-            # QtCore.QSettings.IniFormat,
-            # QtCore.QSettings.UserScope,
-            # self.organization_name,
-            # self.application_name)
-        return {}
+        """Configure the file path and creates it if necessary."""
+        self.appdata = os.path.expanduser(os.path.join("~", "." + self.appname))
+        self.filename = os.path.join(self.appdata, 'settings.dat')
+        if not os.path.exists(self.appdata):
+            os.mkdir(self.appdata)
+        if not os.path.exists(self.filename):
+            self.save()
+        else:
+            self.load()
+        
+    def load(self):
+        f = open(self.filename, 'rb')
+        self.settings = cPickle.load(f)
+        f.close()
+        
+    def save(self):
+        f = open(self.filename, 'wb')
+        cPickle.dump(self.settings, f)
+        f.close()
     
     def set(self, key, value):
-        # self.settings.setValue(key, value)
-        pass
+        self.settings[key] = value
     
     def get(self, key, default=None):
-        # return self.settings.value(key, default)
-        return default
+        return self.settings.get(key, default)
         
         
 SETTINGS = None
-        
-def init_settings():
+
+
+def get_settings():
     global SETTINGS
-    SETTINGS = Settings()
+    if not SETTINGS:
+        SETTINGS = Settings()
     return SETTINGS
 

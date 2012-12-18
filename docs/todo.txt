@@ -1,3 +1,6 @@
+Spiky: graphical interface for semi-automatic spike sorting
+===========================================================
+
 
 TODO
 ----  

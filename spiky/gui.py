@@ -11,7 +11,7 @@ from icons import get_icon
 import inspect
 
 
-SETTINGS = tools.init_settings()
+SETTINGS = tools.get_settings()
 
 STYLESHEET = """
 QStatusBar::item
@@ -297,6 +297,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # the same slots in an interactive session
         SIGNALS.reset()
         self.save_geometry()
+        # save the settings
+        SETTINGS.save()
         # TODO: clean up all widgets
         super(SpikyMainWindow, self).closeEvent(e)
 

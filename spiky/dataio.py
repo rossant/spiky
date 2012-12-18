@@ -381,7 +381,7 @@ class KlustersDataProvider(DataProvider):
         self.holder.clusters = clusters
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            names=['cluster%d' % i for i in xrange(nclusters)],
+            names=['%d' % i for i in xrange(nclusters)],
             rates=np.zeros(nclusters),
             groups_info=groups_info,
             groups=np.zeros(nclusters),
@@ -436,7 +436,7 @@ class SpikeDetektH5DataProvider(DataProvider):
         # self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         # self.holder.clusters_info = Info(
             # colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            # names=['cluster%d' % i for i in xrange(nclusters)],
+            # names=['%d' % i for i in xrange(nclusters)],
             # rates=rdn.rand(nclusters) * 20,
             # groups_info=groups_info,
             # groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))
@@ -507,7 +507,7 @@ class MockDataProvider(DataProvider):
         self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            names=['cluster%d' % i for i in xrange(nclusters)],
+            names=['%d' % i for i in xrange(nclusters)],
             rates=rdn.rand(nclusters) * 20,
             groups_info=groups_info,
             groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))

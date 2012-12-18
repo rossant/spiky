@@ -559,8 +559,4 @@ class ClusterTreeView(QtGui.QTreeView):
         if key == QtCore.Qt.Key_End:
             self.select_cluster('bottom')
             
-    # def focusOutEvent(self, e):
-        # self.modifier = False
-        # print "out", self.modifier
-    
     
