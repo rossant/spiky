@@ -1,7 +1,6 @@
 Spiky: graphical interface for semi-automatic spike sorting
 ===========================================================
 
-
 TODO
 ----  
 
@@ -9,21 +8,22 @@ TODO
     and also in waveformview with signals
   * option to toggle showing masks as gray waveforms in waveform view
   
-  * normalize correlograms
-  * interaction mode buttons: deactivate in gray to highlight the current mode
-  * buttons for all commands (reset view for any view)
   * optional color for groups, and option to use that color for all clusters
     in that group on the feature view. ON by default for MUA.
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * possibility to change the color of clusters permanently
-  * no firing rate but n of spikes in clusterview
+  
+  * interaction mode buttons: deactivate in gray to highlight the current mode
+  * buttons for all commands (reset view for any view)
   * highlighting: less transient with CTRL + click (click to deactivate)
   * CTRL + A to select all spikes + button
   * cluster view: left arrow for closing the tree view
-  * display mean waveform (see klusters)
-  * option to change width/bin of correlograms
-
   
+  * display mean waveform (see klusters)
+  * no firing rate but n of spikes in clusterview
+  * option to change width/bin of correlograms
+  * normalize correlograms
+
   * function for automatic zoom in waveformview as a function of
     channels and clusters
   * cluster group renaming

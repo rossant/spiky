@@ -508,6 +508,7 @@ class WaveformPositionManager(Manager):
 class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
+    # @profile
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
                  clusters_unique=None,
                  masks=None, geometrical_positions=None, spike_ids=None,
@@ -581,6 +582,7 @@ class WaveformDataManager(Manager):
     
     # Internal methods
     # ----------------
+    # @profile
     def prepare_waveform_data(self):
         """Define waveform data."""
         # prepare data for GPU transfer
@@ -741,6 +743,7 @@ class WaveformPaintManager(PlotPaintManager):
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
             "superimposed", "channel_positions",)
         
+    # @profile
     def update(self):
         
         # self.position_manager.update_arrangement()
