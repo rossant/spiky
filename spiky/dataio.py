@@ -409,7 +409,15 @@ class KlustersDataProvider(DataProvider):
         
         # TODO
         self.holder.duration = spiketimes[-1] / float(self.holder.freq)
+    
+
+        # NEW: normalize waveforms at once
+        # waveforms = 2 * waveforms / np.abs(waveforms).max() - .5
+        waveforms = (waveforms - waveforms.mean())
+        waveforms = waveforms / np.abs(waveforms).max()
         
+        
+    
         self.holder.waveforms = waveforms
         self.holder.waveforms_info = Info(nsamples=nsamples)
         
@@ -532,8 +540,17 @@ class MockDataProvider(DataProvider):
         self.holder.spiketimes = np.cumsum(np.random.randint(size=nspikes,
             low=int(self.holder.freq*.005), high=int(self.holder.freq*10)))
         
-        self.holder.waveforms = rdn.randn(nspikes, nsamples, nchannels)
+        
+        waveforms = rdn.randn(nspikes, nsamples, nchannels)
+        waveforms = (waveforms - waveforms.mean())
+        waveforms = waveforms / np.abs(waveforms).max()
+        
+        # print waveforms.min(), waveforms.max()
+        
+        self.holder.waveforms = waveforms
         self.holder.waveforms_info = Info(nsamples=nsamples)
+        
+        
         
         fetdim = 3
         # TODO
@@ -541,8 +558,9 @@ class MockDataProvider(DataProvider):
         self.holder.fetdim = fetdim
         self.holder.features = rdn.randn(nspikes, nchannels * fetdim + 1)
         
-        self.holder.masks = rdn.rand(nspikes, nchannels)
-        self.holder.masks[self.holder.masks < .25] = 0
+        masksind = rdn.randint(size=(nspikes, nchannels), low=0, high=3)
+        self.holder.masks = np.array([0., .5, 1.])[masksind]
+        # self.holder.masks[self.holder.masks < .25] = 0
         
         # a list of dict with the info about each group
         groups_info = [dict(name='Interneurons'),

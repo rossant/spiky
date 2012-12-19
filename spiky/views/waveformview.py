@@ -72,7 +72,7 @@ class WaveformHighlightManager(HighlightManager):
         """Set info from the data manager."""
         super(WaveformHighlightManager, self).initialize()
         data_manager = self.data_manager
-        self.get_data_position = self.data_manager.get_data_position
+        # self.get_data_position = self.data_manager.get_data_position
         self.full_masks = self.data_manager.full_masks
         self.clusters_rel = self.data_manager.clusters_rel
         self.cluster_colors = self.data_manager.cluster_colors
@@ -81,11 +81,41 @@ class WaveformHighlightManager(HighlightManager):
         self.nsamples = data_manager.nsamples
         self.nspikes = data_manager.nspikes
         self.npoints = data_manager.npoints
-        self.get_data_position = data_manager.get_data_position
+        # self.get_data_position = data_manager.get_data_position
         self.highlighted_spikes = []
         self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
-
+        self.highlighting = False
+        
+    # def reorder_waveforms(self):
+        # perm = self.data_manager.data_organizer.get_reordering()
+        # if self.nspikes > 0:
+            # self.waveforms_reordered = self.data_manager.waveforms[perm,...]
+            # self.cluster_sizes_cum = np.cumsum(self.data_manager.cluster_sizes)
+        
+        
+    # @profile
     def find_enclosed_spikes(self, enclosing_box):
+        
+        if self.nspikes == 0:
+            return np.array([])
+        
+        # first call
+        if not self.highlighting:
+            # create
+            box_positions, box_size = self.position_manager.get_transformation()
+            # Tx, Ty: Nchannels x Nclusters
+            Tx, Ty = box_positions
+            # to: Nspikes x Nsamples x Nchannels
+            Px = np.tile(Tx[:,self.clusters_rel].reshape((self.nchannels, self.nspikes, 1)), (1, 1, self.nsamples))
+            self.Px = Px.transpose([1, 2, 0])
+            Py = np.tile(Ty[:,self.clusters_rel].reshape((self.nchannels, self.nspikes, 1)), (1, 1, self.nsamples))
+            self.Py = Py.transpose([1, 2, 0])
+            
+            self.Wx = np.tile(np.linspace(-1., 1., self.nsamples).reshape((1, -1, 1)), (self.nspikes, 1, self.nchannels))
+            self.Wy = self.data_manager.waveforms_reordered
+            
+            self.highlighting = True
+        
         x0, y0, x1, y1 = enclosing_box
         
         # press_position
@@ -102,71 +132,23 @@ class WaveformHighlightManager(HighlightManager):
         a, b = w / 2, h / 2
         
         # find the enclosed channels and clusters
-        sx, sy = self.interaction_manager.get_processor('navigation').sx, self.interaction_manager.get_processor('navigation').sy
-        dist = (np.abs(Tx - xp) * sx) ** 2 + (np.abs(Ty - yp) * sy) ** 2
-        # find the K closest boxes, with K at least HIGHLIGHT_CLOSE_BOXES_COUNT
-        # or nclusters (so that all spikes are selected in superimposed mode
-        if HIGHLIGHT_CLOSE_BOXES_COUNT is None:
-            closest = np.argsort(dist.ravel())
-        else:
-            closest = np.argsort(dist.ravel())[:HIGHLIGHT_CLOSE_BOXES_COUNT]
+        channels, clusters = self.position_manager.get_enclosed_channels((x0, y0, x1, y1))
+        channels = np.unique(channels)
+        clusters = np.unique(clusters)
         
-        spkindices = []
-        for index in closest:
-            # find the channel and cluster of this close box
-            channel, cluster_rel = index // self.nclusters, np.mod(index, self.nclusters)
-            # find the position of the points in the data buffer
-            
-            # NEW: NO REORDERING
-            start, end = self.get_data_position(channel, cluster_rel)
-            
-            # offset
-            u = Tx[channel, cluster_rel]
-            v = Ty[channel, cluster_rel]
+        # print channels
+        
+        if channels.size == 0:
+            return np.array([])
+        
+        u, v = self.Px[:,:,channels], self.Py[:,:,channels]
+        Wx, Wy = self.Wx[:,:,channels], self.Wy[:,:,channels]
+        
+        ind =  ((Wx >= (xmin-u)/a) & (Wx <= (xmax-u)/a) & \
+                (Wy >= (ymin-v)/b) & (Wy <= (ymax-v)/b))
+        
+        spkindices = np.nonzero(ind.max(axis=1).max(axis=1))[0]
 
-            
-            
-            # original data
-            # NEW: NO REORDERING
-            waveforms = self.data_manager.normalized_data[start:end,:]
-            masks = self.full_masks[start:end]
-            # waveforms = self.data_manager.normalized_data
-            # masks = self.full_masks
-
-            
-            
-            # get the waveforms and masks
-            # waveforms = positioned_data[start:end,:]
-            # find the indices of the points in the enclosed box
-            # inverse transformation of x => ax+u, y => by+v
-            indices = (
-                      # TODO
-                      # (masks > 0) & \
-                      (waveforms[:,0] >= (xmin-u)/a) & (waveforms[:,0] <= (xmax-u)/a) & \
-                      (waveforms[:,1] >= (ymin-v)/b) & (waveforms[:,1] <= (ymax-v)/b))
-            # absolute indices in the data
-            
-            
-            # NEW: NO REORDERING
-            indices = np.nonzero(indices)[0] + start
-            # indices = np.nonzero(indices)[0]
-            
-            
-            # spike indices, independently of the channel
-            spkindices.append(np.mod(indices, self.nspikes * self.nsamples) // self.nsamples)        
-        spkindices = np.hstack(spkindices)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        spkindices = np.unique(spkindices)
-        spkindices.sort()
         return spkindices
 
     def find_indices_from_spikes(self, spikes):
@@ -216,10 +198,11 @@ class WaveformHighlightManager(HighlightManager):
         
         # update the data buffer
         self.set_highlighted_spikes(spikes)
-                      
+    
     def cancel_highlight(self):
         super(WaveformHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
+        self.highlighting = False
     
     
 class WaveformPositionManager(Manager):
@@ -350,7 +333,6 @@ class WaveformPositionManager(Manager):
             w = h = 0.
         else:
             w, h = size
-        # w, h = self.load_box_size()
         
         # update translation vector
         # order: cluster, channel
@@ -369,18 +351,14 @@ class WaveformPositionManager(Manager):
             Tx += w * (1 + 2 * self.alpha) * \
                                     (.5 + clusters - self.nclusters / 2.)
 
-        # print Tx
-        # print self.nclusters
-        # print self.probe_scale
-                             
         # record box positions and size
         self.box_positions = Tx, Ty
         self.box_size = (w, h)
                       
     def get_transformation(self):
         return self.box_positions, self.box_size
-                 
-                 
+
+
     # Internal methods
     # ----------------
     def save_box_size(self, w, h, arrangement=None):
@@ -399,26 +377,6 @@ class WaveformPositionManager(Manager):
         if self.nclusters == 0:
             return 0., 0.
         do_save = (spatial_arrangement is None) and (superposition is None)
-        # if spatial_arrangement is None:
-            # spatial_arrangement = self.spatial_arrangement
-        # if superposition is None:
-            # superposition = self.superposition
-            
-        # if spatial_arrangement == 'Linear':
-            # if superposition == 'Superimposed':
-                # w = 2./(1+2*self.alpha)
-                # h = 2./(self.nchannels*(1+self.beta))
-            # elif superposition == 'Separated':
-                # w = 2./(self.nclusters*(1+2*self.alpha))
-                # h = 2./(self.nchannels*(1+2*self.beta))
-        # elif spatial_arrangement == 'Geometrical':
-            # if superposition == 'Superimposed':
-                # w = 2./(self.diffxc*(1+2*self.beta))
-                # h = 2./(self.diffyc*(1+2*self.beta))
-            # elif superposition == 'Separated':
-                # w = 2./((1+2*self.alpha)*(1+2*self.beta)*self.nclusters*
-                                # self.diffxc)
-                # h = 2./((1+2*self.beta)*self.diffyc)
         
         w = .5
         h = .1
@@ -504,6 +462,23 @@ class WaveformPositionManager(Manager):
         
         return channel, cluster_rel
         
+    def get_enclosed_channels(self, box):
+        # channel positions: Nchannels x Nclusters
+        Tx, Ty = self.box_positions
+        
+        
+        
+        w, h = self.box_size
+        # print w, h
+        # enclosed box
+        x0, y0, x1, y1 = box
+        x0, x1 = min(x0, x1), max(x0, x1)
+        y0, y1 = min(y0, y1), max(y0, y1)
+        ind = ((x0 <= Tx + w/2) & (x1 >= Tx - w/2) &
+               (y0 <= Ty + h/2) & (y1 >= Ty - h/2))
+        return np.nonzero(ind)
+        
+        
 
 class WaveformDataManager(Manager):
     # Initialization methods
@@ -544,7 +519,7 @@ class WaveformDataManager(Manager):
                                                 spike_ids=spike_ids)
         
         # get reordered data
-        self.permutation = self.data_organizer.permutation
+        # self.permutation = self.data_organizer.permutation
         self.waveforms_reordered = self.data_organizer.data_reordered
         self.nclusters = self.data_organizer.nclusters
         self.clusters = self.data_organizer.clusters
@@ -553,7 +528,7 @@ class WaveformDataManager(Manager):
         self.clusters_unique = self.data_organizer.clusters_unique
         self.clusters_rel = self.data_organizer.clusters_rel
         self.cluster_sizes = self.data_organizer.cluster_sizes
-        self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
+        # self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
         self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
         
         # prepare GPU data: waveform initial positions and colors
@@ -565,8 +540,10 @@ class WaveformDataManager(Manager):
         self.full_channels = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
         
         # normalize the initial waveforms
-        self.data_normalizer = DataNormalizer(data)
-        self.normalized_data = self.data_normalizer.normalize()
+        # self.data_normalizer = DataNormalizer(data)
+        # self.normalized_data = self.data_normalizer.normalize()
+        # NEW: normalization in dataio instead
+        self.normalized_data = data
         
         # position waveforms
         self.position_manager.set_info(self.nchannels, self.nclusters, 
@@ -590,7 +567,8 @@ class WaveformDataManager(Manager):
         X = np.tile(np.linspace(-1., 1., self.nsamples),
                                 (self.nchannels * self.nspikes, 1))
         
-        # a (Nsamples x Nspikes) x Nchannels array
+        # waveforms_reordered: Nspikes x Nsamples x Nchannels
+        # Y: (Nsamples x Nspikes) x Nchannels array
         if self.nspikes == 0:
             Y = np.array([], dtype=np.float32)
         else:
@@ -601,17 +579,6 @@ class WaveformDataManager(Manager):
         data[:,0] = X.ravel()
         data[:,1] = Y.T.ravel()
         return data
-    
-    def get_data_position(self, channel, cluster_rel):
-        """Return the position in the normalized data of the waveforms of the 
-        given cluster (relative index) and channel.
-        
-        """
-        # get absolute cluster index
-        cluster = self.clusters_unique[cluster_rel]
-        i0 = self.nsamples * (channel * self.nspikes + self.cluster_sizes_cum[cluster])
-        i1 = i0 + self.nsamples * self.cluster_sizes_dict[cluster]
-        return i0, i1
     
     
 class WaveformVisual(Visual):
@@ -848,7 +815,7 @@ class WaveformBindings(SpikyBindings):
                  'ChangeBoxScale',
                  # key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
-                                         p["mouse_position_diff"][1]*.5))
+                                         p["mouse_position_diff"][1]*.2))
 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
@@ -907,7 +874,8 @@ class WaveformView(GalryWidget):
                 paint_manager=WaveformPaintManager,
                 highlight_manager=WaveformHighlightManager,
                 )
-        
+
+    # @profile
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
         # update?

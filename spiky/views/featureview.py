@@ -110,7 +110,7 @@ class FeatureDataManager(Manager):
                                                 spike_ids=spike_ids)
         
         # get reordered data
-        self.permutation = self.data_organizer.permutation
+        # self.permutation = self.data_organizer.permutation
         self.features_reordered = self.data_organizer.data_reordered
         self.nclusters = self.data_organizer.nclusters
         self.clusters = self.data_organizer.clusters
@@ -119,7 +119,7 @@ class FeatureDataManager(Manager):
         self.clusters_unique = self.data_organizer.clusters_unique
         self.clusters_rel = self.data_organizer.clusters_rel
         self.cluster_sizes = self.data_organizer.cluster_sizes
-        self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
+        # self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
         self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
         
         # self.full_clusters = self.clusters

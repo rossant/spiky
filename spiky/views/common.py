@@ -1,5 +1,6 @@
 import numpy as np
 import operator
+import collections
 
 from galry import *
 
@@ -13,7 +14,7 @@ class SpikeDataOrganizer(object):
         # set data
         self.set_data(*args, **kwargs)
         # reorder data
-        self.reorder()
+        # self.reorder()
         
     def set_data(self, data, clusters=None, cluster_colors=None, masks=None,
                              nchannels=None, spike_ids=None,
@@ -64,71 +65,55 @@ class SpikeDataOrganizer(object):
             self.clusters_rel = clusters_rel[self.clusters]
         else:
             self.clusters_rel = self.clusters
+
+        # NEW: no more reordering
+        self.data_reordered = self.data
+        
+        counter = collections.Counter(clusters)
+        self.cluster_sizes_dict = counter
+        self.cluster_sizes = np.array(map(operator.itemgetter(1),
+                                    sorted(self.cluster_sizes_dict.iteritems(),
+                                            key=operator.itemgetter(0))))
     
     def get_reordering(self):
         # regroup spikes from the same clusters, so that all data from
         # one cluster are contiguous in memory (better for OpenGL rendering)
         # permutation contains the spike indices in successive clusters
-        self.permutation = []
-        self.cluster_sizes_dict = {}
-        self.cluster_sizes_cum = {}
-        # if self.nclusters == 0:
-            # self.permutation = np.array([])
-        # else:
-        
-        # masked = self.masks < 1
-        
-        counter = 0
+        permutation = []
         for cluster in self.clusters_unique:
-            # spike indices in the current cluster
             ids = np.nonzero(self.clusters == cluster)[0]
-            # size of the current cluster
             size = len(ids)
-            # record the size
-            self.cluster_sizes_dict[cluster] = size
-            # record the total number of spikes before the first spike in the
-            # current cluster
-            self.cluster_sizes_cum[cluster] = counter
-            # create the spike permutation to regroup those in the same clusters
-            self.permutation.append(ids)
-            counter += size
-        if self.permutation:
-            self.permutation = np.hstack(self.permutation)
-            
-            # TODO: masks spikes first
-            # self.masks
-            # HACK: disable permutation and see what happens...
-            # self.permutation = np.arange(len(self.permutation))
-            
+            permutation.append(ids)
+        if permutation:
+            permutation = np.hstack(permutation)
         else:
-            self.permutation = np.array([], dtype=np.int32)
-        # print self.cluster_sizes_dict
-        return self.permutation
+            permutation = np.array([], dtype=np.int32)
+        return permutation
         
-    def reorder(self, permutation=None):
-        if self.nclusters == 0 or self.nspikes == 0:
-            self.data_reordered = self.data
-            self.cluster_sizes = np.array([], dtype=np.int32)
-            permutation = self.get_reordering()
-            return self.data
+    # def reorder(self, permutation=None):
+        # if self.nclusters == 0 or self.nspikes == 0:
+            # self.data_reordered = self.data
+            # self.cluster_sizes = np.array([], dtype=np.int32)
+            # permutation = self.get_reordering()
+            # return self.data
             
-        if permutation is None:
-            permutation = self.get_reordering()
+        # if permutation is None:
+            # permutation = self.get_reordering()
             
-        # reorder data
-        self.data_reordered = self.data[permutation,...]
+        # # reorder data
+        # self.data_reordered = self.data[permutation,...]
             
-        # reorder masks
-        self.masks = self.masks[permutation,:]
-        self.clusters = self.clusters[permutation,:]
-        self.clusters_rel = self.clusters_rel[permutation,:]
+        # # reorder masks
+        # self.masks = self.masks[permutation,:]
+        # self.clusters = self.clusters[permutation,:]
+        # self.clusters_rel = self.clusters_rel[permutation,:]
         
-        # array of cluster sizes as a function of the relative index
-        self.cluster_sizes = np.array(map(operator.itemgetter(1),
-                                    sorted(self.cluster_sizes_dict.iteritems(),
-                                            key=operator.itemgetter(0))))
+        # # array of cluster sizes as a function of the relative index
+        # self.cluster_sizes = np.array(map(operator.itemgetter(1),
+                                    # sorted(self.cluster_sizes_dict.iteritems(),
+                                            # key=operator.itemgetter(0))))
         
-        return self.data_reordered
+        # return self.data_reordered
 
 
 class HighlightManager(Manager):

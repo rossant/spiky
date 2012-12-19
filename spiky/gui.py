@@ -145,7 +145,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def initialize_data(self):
         # load mock data
         provider = sdataio.MockDataProvider()
-        self.dh = provider.load(nspikes=50000, nclusters=100)
+        self.dh = provider.load(nspikes=10000, nclusters=20)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         
     def initialize(self):
