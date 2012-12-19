@@ -33,7 +33,7 @@ VERTEX_SHADER = """
     // on the foreground on a different layer for each cluster
     float depth = 0.;
     if (mask == 1.)
-        depth = - cluster / nclusters;
+        depth = -(cluster + 1) / nclusters;
     
     // move the vertex to its position0
     vec3 position = vec3(position0 * 0.5 * box_size + box_position, depth);
@@ -61,11 +61,6 @@ FRAGMENT_SHADER = """
     //out_color.w = 1;
 """
 
-# Maximum number of boxes that can be highlighted for performance reasons.
-# None = no limit, it can become slow when selecting all channels with 
-# a lot of spikes
-HIGHLIGHT_CLOSE_BOXES_COUNT = None
-
 
 class WaveformHighlightManager(HighlightManager):
     def initialize(self):
@@ -86,14 +81,6 @@ class WaveformHighlightManager(HighlightManager):
         self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
         self.highlighting = False
         
-    # def reorder_waveforms(self):
-        # perm = self.data_manager.data_organizer.get_reordering()
-        # if self.nspikes > 0:
-            # self.waveforms_reordered = self.data_manager.waveforms[perm,...]
-            # self.cluster_sizes_cum = np.cumsum(self.data_manager.cluster_sizes)
-        
-        
-    # @profile
     def find_enclosed_spikes(self, enclosing_box):
         
         if self.nspikes == 0:
