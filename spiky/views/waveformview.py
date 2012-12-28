@@ -778,8 +778,8 @@ class WaveformBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
         # Idem but with CTRL + left button mouse 
-        self.set('LeftClickMove', 'ZoomBox',
-                    key_modifier='Shift',
+        self.set('RightClickMove', 'ZoomBox',
+                    key_modifier='Alt',
                     param_getter=lambda p: (p["mouse_press_position"][0],
                                             p["mouse_press_position"][1],
                                             p["mouse_position"][0],
@@ -800,7 +800,7 @@ class WaveformBindings(SpikyBindings):
         # change box scale: CTRL + right mouse
         self.set('RightClickMove',
                  'ChangeBoxScale',
-                 # key_modifier='Shift',
+                 key_modifier='Control',
                  param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
                                          p["mouse_position_diff"][1]*.2))
 
@@ -808,7 +808,7 @@ class WaveformBindings(SpikyBindings):
         # change probe scale: Shift + left mouse
         self.set('RightClickMove',
                  'ChangeProbeScale',
-                 key_modifier='Control',
+                 key_modifier='Shift',
                  param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
                                          p["mouse_position_diff"][1] * .5))
 
