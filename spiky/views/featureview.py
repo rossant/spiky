@@ -9,6 +9,7 @@ from galry import *
 from common import HighlightManager, SpikyBindings, SpikeDataOrganizer
 from widgets import VisualizationWidget
 import spiky.colors as scolors
+import spiky
 import spiky.tools as stools
 import spiky.signals as ssignals
 # from signals import *
@@ -696,15 +697,16 @@ class FeatureWidget(VisualizationWidget):
         toolbar.setIconSize(QtCore.QSize(32, 32))
         
         # navigation toolbar
-        toolbar.addAction(get_icon('hand'), "Move (press I to switch)",
+        toolbar.addAction(spiky.get_icon('hand'), "Move (press I to switch)",
             self.set_navigation)
-        toolbar.addAction(get_icon('selection'), "Selection (press I to switch)",
+        toolbar.addAction(spiky.get_icon('selection'), "Selection (press I to switch)",
             self.set_selection)
             
-        toolbar.addSeparator()
+        # toolbar.addSeparator()
             
         # autoprojection
-        toolbar.addAction(self.main_window.autoproj_action)
+        # toolbar.addAction(spiky.get_icon('hand'), "Move (press I to switch)",
+            # self.main_window.autoproj_action)
         
         toolbar.addSeparator()
         
