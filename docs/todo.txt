@@ -4,8 +4,7 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
-  * selection of cluster: not bigger points in feature view, but highlighted
-    and also in waveformview with signals
+  * selection of cluster: highlight also in waveformview
   * option to toggle showing masks as gray waveforms in waveform view
   
   * optional color for groups, and option to use that color for all clusters
@@ -19,7 +18,7 @@ TODO
   * CTRL + A to select all spikes + button
   * cluster view: left arrow for closing the tree view
   
-  * display mean waveform (see klusters)
+  * display mean/std waveform (see klusters)
   * no firing rate but n of spikes in clusterview
   * option to change width/bin of correlograms
   * normalize correlograms
@@ -29,8 +28,6 @@ TODO
   * cluster group renaming
   * featureview controller: buttons for channel up/down
   * small widget with text information (number of spikes, highlighted spikes...)
-  * lightweight hdf5 text viewer
-  * correlograms computation
   * cluster merge with button / M press
   * cluster split with button / S press
   * split with different clusters: split everything
