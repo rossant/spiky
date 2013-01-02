@@ -39,6 +39,7 @@ File format
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)
   * keep the old clu file and create a new one
+  * 
   
   
 Ideas

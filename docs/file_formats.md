@@ -68,11 +68,21 @@ Current file formats
 
 DAT file
 --------
-Binary file, 16 bits integers.
+Binary file, 16 bits integers (20 kHz).
 
 Contains the raw trace.
 
 Array format: cluster/sample
+
+
+FIL file
+--------
+Like DAT but HP filtered (20 kHz).
+
+
+EEG file
+--------
+Like DAT but LP filtered (1.25 kHz)
 
 
 CLU file
@@ -108,7 +118,7 @@ SPK file
 --------
 Binary file, 16 bits integers.
 
-Contains the waveforms, for each spike.
+Contains the filtered waveforms, for each spike.
 
 Array format: electrode/sample/spike
 
