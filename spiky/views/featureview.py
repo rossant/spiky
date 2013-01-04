@@ -48,14 +48,15 @@ FRAGMENT_SHADER = """
     out_color = texture1D(cmap, index);
         
     // toggle mask and masked points
-    if ((vmask < 1) && (toggle_mask > 0)) {
-        out_color.xyz = vec3(.5, .5, .5);
+    if ((vmask == 0) && (toggle_mask > 0)) {
+        out_color.xyz = vec3(.75, .75, .75);
         // mask only for masked points in mask activated mode
         out_color.w = .5 + .5 * vmask;
     }
-    else {
+    /*else {
         
-    }
+    }*/
+    
     
     // highlight
     if ((vhighlight > 0) || (vselection > 0)) {
@@ -667,8 +668,6 @@ class FeatureView(GalryWidget):
         self.highlight_manager.set_highlighted_spikes(spikes, False)
         self.updateGL()
 
-
-        
         
 class FeatureWidget(VisualizationWidget):
     def create_view(self, dh):

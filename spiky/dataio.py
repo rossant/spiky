@@ -315,6 +315,8 @@ class SelectDataHolder(object):
         """Provides the data related to the specified clusters."""
         uf = self._selector_ufunc(clusters)
         select_mask = np.array(uf(self.dataholder.clusters), dtype=np.bool)
+        # relative cluster indices
+        clusters_rel = [self.dataholder.clusters_info.cluster_indices[cl] for cl in clusters]
         
         # nspikes is the number of True elements in select_mask
         self.nspikes = select_mask.sum()
@@ -330,7 +332,7 @@ class SelectDataHolder(object):
         
         self.baselines = counts / float(self.dataholder.duration)
         self.nclusters = len(clusters)
-        self.cluster_colors = self.dataholder.clusters_info.colors[clusters]
+        self.cluster_colors = self.dataholder.clusters_info.colors[clusters_rel]
         # unique clusters
         self.clusters_unique = clusters
         
@@ -401,6 +403,20 @@ class KlustersDataProvider(DataProvider):
         
         self.holder.freq = 20000.
         
+        
+        
+        # find the number of spikes in each cluster
+        # WARNING: the nclusters value in the .clu file may not correspond
+        # to the number of different clusters, so we just get rid of it
+        spkcounts = collections.Counter(clusters)
+        cluster_keys = sorted(spkcounts.keys())
+        spkcounts = np.array([spkcounts[key] for key in cluster_keys])
+        cluster_names = map(str, cluster_keys)
+        nclusters = len(cluster_names)
+        # for each cluster absolute index, its relative index
+        cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
+        
+        
         self.holder.nspikes = nspikes
         self.holder.nclusters = nclusters
         self.holder.nchannels = nchannels
@@ -426,20 +442,15 @@ class KlustersDataProvider(DataProvider):
         
         self.holder.masks = masks
         
-        # find the number of spikes in each cluster
-        cnt = collections.Counter(clusters)
-        # keys = sorted(cnt.keys())
-        # spkcounts = np.array([cnt[key] for key in keys])
-        spkcounts = cnt
-        
         # a list of dict with the info about each group
         groups_info = [dict(name='Group')]
         self.holder.clusters = clusters
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            names=['%d' % i for i in xrange(nclusters)],
+            names=cluster_names,
             spkcounts=spkcounts,
             groups_info=groups_info,
+            cluster_indices=cluster_indices,
             groups=np.zeros(nclusters),
             )
 

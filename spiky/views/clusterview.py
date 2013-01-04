@@ -268,7 +268,7 @@ class ClusterGroupManager(TreeModel):
             clusterindices = sorted(np.nonzero(clusters_info.groups == idx)[0])
             for clusteridx in clusterindices:
                 clusteritem = self.add_cluster(
-                    clusteridx,
+                    int(clusters_info.names[clusteridx]),
                     name=clusters_info.names[clusteridx],
                     color=clusters_info.colors[clusteridx],
                     spkcount=clusters_info.spkcounts[clusteridx],

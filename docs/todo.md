@@ -9,7 +9,10 @@ TODO
   * CTRL + A to select all spikes + button
   * feature view: normalize everything once at initialization time
   * normalize correlograms
+  * feature projection box: TAB goes from X to Y channel selection
+  * open klusters file
 
+  * fix focus issue with floating docks
   
   * option to toggle showing masks as gray waveforms in waveform view
   * option to select the max number of waveforms to display (selected at

@@ -167,5 +167,11 @@ class SpikyBindings(PlotBindings):
         
     def set_zooming_keyboard(self):
         pass
+        
+    def set_grid(self):
+        pass
+        
+    def set_fullscreen(self):
+        pass
     
     
