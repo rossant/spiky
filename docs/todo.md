@@ -4,13 +4,12 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
-
-  * no firing rate but n of spikes in clusterview
   * CTRL + A to select all spikes + button
   * feature view: normalize everything once at initialization time
-  * normalize correlograms
   * feature projection box: TAB goes from X to Y channel selection
+
   * open klusters file
+  * normalize correlograms
 
   * fix focus issue with floating docks
   
