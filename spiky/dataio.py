@@ -1,3 +1,4 @@
+import collections
 import numpy as np
 import numpy.random as rdn
 import h5py
@@ -416,8 +417,6 @@ class KlustersDataProvider(DataProvider):
         waveforms = (waveforms - waveforms.mean())
         waveforms = waveforms / np.abs(waveforms).max()
         
-        
-    
         self.holder.waveforms = waveforms
         self.holder.waveforms_info = Info(nsamples=nsamples)
         
@@ -427,13 +426,19 @@ class KlustersDataProvider(DataProvider):
         
         self.holder.masks = masks
         
+        # find the number of spikes in each cluster
+        cnt = collections.Counter(clusters)
+        # keys = sorted(cnt.keys())
+        # spkcounts = np.array([cnt[key] for key in keys])
+        spkcounts = cnt
+        
         # a list of dict with the info about each group
         groups_info = [dict(name='Group')]
         self.holder.clusters = clusters
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
             names=['%d' % i for i in xrange(nclusters)],
-            rates=np.zeros(nclusters),
+            spkcounts=spkcounts,
             groups_info=groups_info,
             groups=np.zeros(nclusters),
             )
@@ -569,7 +574,7 @@ class MockDataProvider(DataProvider):
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
             names=['%d' % i for i in xrange(nclusters)],
-            rates=rdn.rand(nclusters) * 20,
+            spkcounts=rdn.rand(nclusters) * 20,
             groups_info=groups_info,
             groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))
 

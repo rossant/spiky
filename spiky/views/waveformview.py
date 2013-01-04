@@ -464,8 +464,7 @@ class WaveformPositionManager(Manager):
         ind = ((x0 <= Tx + w/2) & (x1 >= Tx - w/2) &
                (y0 <= Ty + h/2) & (y1 >= Ty - h/2))
         return np.nonzero(ind)
-        
-        
+
 
 class WaveformDataManager(Manager):
     # Initialization methods
@@ -851,7 +850,7 @@ class WaveformBindings(SpikyBindings):
 class WaveformView(GalryWidget):
     def initialize(self):
         # self.constrain_navigation = True
-        self.constrain_ratio = True
+        self.constrain_ratio = False
         self.activate3D = True
         self.set_bindings(WaveformBindings)
         self.set_companion_classes(

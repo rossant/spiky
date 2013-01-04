@@ -4,24 +4,31 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
-  * selection of cluster: highlight also in waveformview
-  * option to toggle showing masks as gray waveforms in waveform view
+
+  * no firing rate but n of spikes in clusterview
+  * CTRL + A to select all spikes + button
+  * feature view: normalize everything once at initialization time
+  * normalize correlograms
+
   
+  * option to toggle showing masks as gray waveforms in waveform view
+  * option to select the max number of waveforms to display (selected at
+    random)
+  
+  * selection of cluster: highlight also in waveformview
   * optional color for groups, and option to use that color for all clusters
     in that group on the feature view. ON by default for MUA.
+  
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * possibility to change the color of clusters permanently
   
   * interaction mode buttons: deactivate in gray to highlight the current mode
   * buttons for all commands (reset view for any view)
   * highlighting: less transient with CTRL + click (click to deactivate)
-  * CTRL + A to select all spikes + button
   * cluster view: left arrow for closing the tree view
   
   * display mean/std waveform (see klusters)
-  * no firing rate but n of spikes in clusterview
   * option to change width/bin of correlograms
-  * normalize correlograms
 
   * function for automatic zoom in waveformview as a function of
     channels and clusters
@@ -39,7 +46,6 @@ File format
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)
   * keep the old clu file and create a new one
-  * 
   
   
 Ideas
@@ -49,7 +55,7 @@ Ideas
   * correlation matrix: later (lower priority)
   * feature view: when masks toggled (features gray) not possible to select
     them. when no masks, everything can be selected.
-  * trace view
+  * trace view (neuroscope)
   * fetdim variable in controller widget (1 to ?)
 
 

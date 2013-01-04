@@ -203,13 +203,13 @@ when reimplementing the setData() and setHeaderData() functions, respectively.
 
 class ClusterItem(TreeItem):
     def __init__(self, parent=None, name=None, clusteridx=None, color=None,
-            rate=None):
+            spkcount=None):
         if color is None:
             color = 0#(1., 1., 1.)
         data = OrderedDict()
         # different columns fields
         data['name'] = name
-        data['rate'] = rate
+        data['spkcount'] = spkcount
         data['color'] = color
         # the index is the last column
         data['clusteridx'] = clusteridx
@@ -218,8 +218,8 @@ class ClusterItem(TreeItem):
     def name(self):
         return self.item_data['name']
 
-    def rate(self):
-        return self.item_data['rate']
+    def spkcount(self):
+        return self.item_data['spkcount']
 
     def color(self):
         return self.item_data['color']
@@ -233,7 +233,7 @@ class GroupItem(TreeItem):
         data = OrderedDict()
         # different columns fields
         data['name'] = name
-        data['rate'] = None
+        data['spkcount'] = None
         data['color'] = None
         # the index is the last column
         data['groupidx'] = groupidx
@@ -247,7 +247,7 @@ class GroupItem(TreeItem):
         
 
 class ClusterGroupManager(TreeModel):
-    headers = ['name', 'rate', 'color']
+    headers = ['name', 'nspikes', 'color']
     
     def __init__(self, clusters_info=None):
         """Initialize the tree model.
@@ -255,7 +255,7 @@ class ClusterGroupManager(TreeModel):
         Arguments:
           * clusters: a Nspikes long array with the cluster index for each
             spike.
-          * clusters_info: an Info object with fields names, colors, rates,
+          * clusters_info: an Info object with fields names, colors, spkcounts,
             groups_info.
         
         """
@@ -271,7 +271,7 @@ class ClusterGroupManager(TreeModel):
                     clusteridx,
                     name=clusters_info.names[clusteridx],
                     color=clusters_info.colors[clusteridx],
-                    rate=clusters_info.rates[clusteridx],
+                    spkcount=clusters_info.spkcounts[clusteridx],
                     parent=groupitem)
     
     def headerData(self, section, orientation, role):
@@ -297,12 +297,12 @@ class ClusterGroupManager(TreeModel):
         else:
             log_warn("group %d does not exist" % groupidx)
         
-    def add_cluster(self, clusteridx, name, color=None, rate=None,
+    def add_cluster(self, clusteridx, name, color=None, spkcount=None,
                     parent=None):
         # if parent is None:
             # parent = self.item_root
         cluster = self.add_node(item_class=ClusterItem, parent=parent, 
-                            name=name, color=color, rate=rate,
+                            name=name, color=color, spkcount=spkcount,
                             clusteridx=clusteridx)
         return cluster
         
@@ -340,12 +340,12 @@ class ClusterGroupManager(TreeModel):
                 return item.data(col)
         # cluster item
         if type(item) == ClusterItem:
-            # rate
+            # spkcount
             if col == 1:
                 if role == QtCore.Qt.TextAlignmentRole:
                     return QtCore.Qt.AlignRight
                 if role == QtCore.Qt.DisplayRole:
-                    return "%.1f Hz" % item.rate()
+                    return "%d" % item.spkcount()
             # color
             elif col == self.columnCount() - 1:
                 if role == QtCore.Qt.BackgroundRole:
@@ -401,7 +401,7 @@ class ClusterGroupManager(TreeModel):
         cluster = self.get_cluster(clusteridx)
         # add cluster in the new group
         self.add_cluster(clusteridx, name=cluster.name(), parent=newgroup,
-            rate=cluster.rate(), color=cluster.color())
+            spkcount=cluster.spkcount(), color=cluster.color())
         # remove it from the old group
         self.remove_node(cluster, oldgroup)
 
@@ -440,7 +440,7 @@ class ClusterTreeView(QtGui.QTreeView):
         # select full rows
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
-        # # set rate column size
+        # # set spkcount column size
         # self.header().resizeSection(1, 80)
         # # set color column size
         self.header().resizeSection(2, 40)
@@ -565,8 +565,6 @@ class ClusterTreeView(QtGui.QTreeView):
         if key == QtCore.Qt.Key_End:
             self.select_cluster('bottom')
             
-    
-    
     
 class ClusterWidget(QtGui.QWidget):
     def __init__(self, main_window, dh, getfocus=True):
