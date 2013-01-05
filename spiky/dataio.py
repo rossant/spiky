@@ -443,7 +443,7 @@ class KlustersDataProvider(DataProvider):
         self.holder.masks = masks
         
         # a list of dict with the info about each group
-        groups_info = [dict(name='Group')]
+        groups_info = [dict(name='Group 0')]
         self.holder.clusters = clusters
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
@@ -577,17 +577,33 @@ class MockDataProvider(DataProvider):
         masksind = rdn.randint(size=(nspikes, nchannels), low=0, high=3)
         self.holder.masks = np.array([0., .5, 1.])[masksind]
         # self.holder.masks[self.holder.masks < .25] = 0
+
+
         
         # a list of dict with the info about each group
         groups_info = [dict(name='Interneurons'),
                        dict(name='MUA')]
         self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
+        
+        
+        spkcounts = collections.Counter(self.holder.clusters)
+        cluster_keys = sorted(spkcounts.keys())
+        spkcounts = np.array([spkcounts[key] for key in cluster_keys])
+        cluster_names = map(str, cluster_keys)
+        nclusters = len(cluster_names)
+        # for each cluster absolute index, its relative index
+        cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
+
+        
+        
+        
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
             names=['%d' % i for i in xrange(nclusters)],
             spkcounts=rdn.rand(nclusters) * 20,
             groups_info=groups_info,
-            groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))
+            groups=rdn.randint(low=0, high=len(groups_info), size=nclusters),
+            cluster_indices=cluster_indices,)
 
         self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
         

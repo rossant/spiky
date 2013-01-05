@@ -464,8 +464,12 @@ class ClusterTreeView(QtGui.QTreeView):
     def selectionChanged(self, selected, deselected):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
         # emit the ClusterSelectionToChange signal
+        clusters = self.selected_clusters()
+        groups = self.selected_groups()
+        for group in groups:
+            clusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
         ssignals.emit(self, "ClusterSelectionToChange",
-            np.sort(np.array(self.selected_clusters(), dtype=np.int32)))
+            np.sort(np.unique(np.array(clusters, dtype=np.int32))))
         
     def select(self, cluster):
         """Select a cluster.
@@ -488,6 +492,15 @@ class ClusterTreeView(QtGui.QTreeView):
         # sel_model.setCurrentIndex(cluster, sel_model.Current)
         sel_model.select(cluster, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
         self.scrollTo(cluster, QtGui.QAbstractItemView.EnsureVisible)
+        
+    def select_all(self):
+        groups = self.model().get_groups()
+        gr0 = groups[0].index
+        gr1 = groups[-1].index
+        sel = QtGui.QItemSelection(gr0, gr1)
+        sel_model = self.selectionModel()
+        sel_model.select(sel, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
+        
         
     def select_cluster(self, direction):
         # list of all cluster indices
@@ -539,31 +552,59 @@ class ClusterTreeView(QtGui.QTreeView):
 
     # Event methods
     # -------------
-    modifiers = [QtCore.Qt.Key_Control, QtCore.Qt.Key_Shift, QtCore.Qt.Key_Alt]
-    modifier = False
-    def keyReleaseEvent(self, e):
-        key = e.key()
-        if key in self.modifiers:
-            self.modifier = False
+    # modifiers = [QtCore.Qt.Key_Control, QtCore.Qt.Key_Shift, QtCore.Qt.Key_Alt]
+    # modifier = False
+    # def keyReleaseEvent(self, e):
+        # key = e.key()
+        # if key in self.modifiers:
+            # self.modifier = False
             
     def keyPressEvent(self, e):
+        # Disable all keyboard actions with modifiers, to avoid conflicts with
+        # CTRL+arrows in FeatureView
         key = e.key()
-        if key in self.modifiers:
-            self.modifier = True
-        if self.modifier:
+        # print key, self.modifiers
+        # if key in self.modifiers:
+            # self.modifier = key
+            # # return
+        # if self.modifier:
+            # return
+        modif = e.modifiers()
+        ctrl = modif & QtCore.Qt.ControlModifier
+        shift = modif & QtCore.Qt.ShiftModifier
+        alt = modif & QtCore.Qt.AltModifier
+        if ctrl and (key == QtCore.Qt.Key_A):
+            # select all
+            self.select_all()
             return
+        elif ctrl or shift or alt:
+            return
+        return super(ClusterTreeView, self).keyPressEvent(e)
         
-        # previous and next cluster
-        if key == QtCore.Qt.Key_Up:
-            self.select_cluster('previous')
-        if key == QtCore.Qt.Key_Down:
-            self.select_cluster('next')
+        # key = e.key()
+        # # print key, self.modifiers
+        # if key in self.modifiers:
+            # self.modifier = key
+            # return
+        # # if self.modifier:
+            # # return
         
-        # first and last cluster
-        if key == QtCore.Qt.Key_Home:
-            self.select_cluster('top')
-        if key == QtCore.Qt.Key_End:
-            self.select_cluster('bottom')
+        # # previous and next cluster
+        # if key == QtCore.Qt.Key_Up:
+            # self.select_cluster('previous')
+        # if key == QtCore.Qt.Key_Down:
+            # self.select_cluster('next')
+        
+        # # first and last cluster
+        # if key == QtCore.Qt.Key_Home:
+            # self.select_cluster('top')
+        # if key == QtCore.Qt.Key_End:
+            # self.select_cluster('bottom')
+            
+        # # print key, QtCore.Qt.Key_A, self.modifier, QtCore.Qt.Key_Control
+        # if key == QtCore.Qt.Key_A and self.modifier == QtCore.Qt.Key_Control:
+            # # self.selectAll()
+            # self.select_all()
             
     
 class ClusterWidget(QtGui.QWidget):
