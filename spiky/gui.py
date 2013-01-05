@@ -1,3 +1,4 @@
+import os
 from galry import *
 # from views import *
 # from views.signals import SIGNALS
@@ -68,11 +69,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
     
     def __init__(self):
         super(SpikyMainWindow, self).__init__()
-        # list all dock and central widgets
-        
-        
-        self.allwidgets = []
-        
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
         
         # parameters related to docking
@@ -88,14 +84,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # initialize the data holder and select holder
         self.initialize_data()
-        # initialize actions
-        self.initialize_actions()
-        # make the UI initialization
-        self.initialize()
-        # initialize menu
-        self.initialize_menu()
-        # initialize all signals/slots connections between widgets
-        self.initialize_connections()
+        self.initall()
         
         # set stylesheet
         self.setStyleSheet(STYLESHEET)
@@ -104,6 +93,19 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.restore_geometry()
         # show the window
         self.show()
+        
+    def initall(self):
+        # list all dock and central widgets
+        self.allwidgets = []
+        # initialize actions
+        self.initialize_actions()
+        # make the UI initialization
+        self.initialize()
+        # initialize menu
+        self.initialize_menu()
+        # initialize all signals/slots connections between widgets
+        self.initialize_connections()
+
         
     # Widget creation methods
     # -----------------------
@@ -145,7 +147,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def initialize_data(self):
         # load mock data
         provider = sdataio.MockDataProvider()
-        self.dh = provider.load(nspikes=10000, nclusters=20)
+        self.dh = provider.load(nspikes=0, nclusters=0)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         
     def initialize(self):
@@ -179,6 +181,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
             "projection in the FeatureView.")
         self.autoproj_action.triggered.connect(lambda e: ssignals.emit(self, "AutomaticProjection"), QtCore.Qt.UniqueConnection)
         
+        # open action
+        self.open_action = QtGui.QAction("&Open", self)
+        self.open_action.setShortcut("CTRL+O")
+        self.open_action.triggered.connect(self.open_file, QtCore.Qt.UniqueConnection)
+        
         # exit action
         self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
@@ -191,6 +198,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         file_menu = self.menuBar().addMenu("&File")
         
         # Quit
+        file_menu.addAction(self.open_action)
         file_menu.addAction(self.quit_action)
         
         # Views menu
@@ -200,6 +208,28 @@ class SpikyMainWindow(QtGui.QMainWindow):
         views_menu.addAction(self.cluster_action)
         views_menu.addAction(self.waveform_action)
         views_menu.addAction(self.correlograms_action)
+        
+        
+    # Action methods
+    # --------------
+    def open_file(self, *args):
+        filename = QtGui.QFileDialog.getOpenFileName(self, "Open a file (anyone)")[0]
+        # print filename
+        # HACK: works temporarily only
+        if filename.endswith('.1'):
+            filename = filename[:-2]
+        filename = os.path.splitext(filename)[0]
+        print("********** Open action not implemented yet!")
+        # # print filename
+        # provider = sdataio.KlustersDataProvider()
+        # self.dh = provider.load(filename)
+        # self.sdh = sdataio.SelectDataHolder(self.dh)
+        # # TODO: change this and have the widgets update themselves with 
+        # # new data
+        # self.removeDockWidget(self.cluster_dock_widget)
+        # self.removeDockWidget(self.waveform_dock_widget)
+        # self.removeDockWidget(self.correlograms_dock_widget)
+        # self.initall()
         
         
     # Event methods

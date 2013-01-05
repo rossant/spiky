@@ -338,9 +338,10 @@ class SelectDataHolder(object):
         
         # override all spike dependent variables, where the first axis
         # is the spike index
-        for varname in self.spike_dependent_variables:
-            if hasattr(self.dataholder, varname):
-                setattr(self, varname, getattr(self.dataholder, varname)[select_mask,...])
+        if select_mask.size > 0:
+            for varname in self.spike_dependent_variables:
+                if hasattr(self.dataholder, varname):
+                    setattr(self, varname, getattr(self.dataholder, varname)[select_mask,...])
         
     def __getattr__(self, name):
         """Fallback mechanism for selecting variables in data holder and that
@@ -397,12 +398,19 @@ class KlustersDataProvider(DataProvider):
         m, M = -vx, vx
         features = -1+2*(features-m)/(M-m)
         
+        # first: try fmask
         try:
-            masks = load_text(filename + ".mask.1", np.float32, skiprows=1)
+            masks = load_text(filename + ".fmask.1", np.float32, skiprows=1)
             masks = masks[:,:-1:3]
         except Exception as e:
-            log_warn("MASK file '%s' not found" % filename)
-            masks = np.ones((nspikes, nchannels))
+            try:
+                # otherwise, try mask
+                masks = load_text(filename + ".mask.1", np.float32, skiprows=1)
+                masks = masks[:,:-1:3]
+            except:
+                # finally, warning and default masks (everything to 1)
+                log_warn("MASK file '%s' not found" % filename)
+                masks = np.ones((nspikes, nchannels))
         
         try:
             waveforms = load_binary(filename + ".spk.1")
@@ -570,8 +578,9 @@ class MockDataProvider(DataProvider):
         
         
         waveforms = rdn.randn(nspikes, nsamples, nchannels)
-        waveforms = (waveforms - waveforms.mean())
-        waveforms = waveforms / np.abs(waveforms).max()
+        if nspikes>0:
+            waveforms = (waveforms - waveforms.mean())
+            waveforms = waveforms / np.abs(waveforms).max()
         
         # print waveforms.min(), waveforms.max()
         
@@ -593,9 +602,13 @@ class MockDataProvider(DataProvider):
 
         
         # a list of dict with the info about each group
-        groups_info = [dict(name='Interneurons'),
-                       dict(name='MUA')]
-        self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
+        # groups_info = [dict(name='Interneurons'),
+                       # dict(name='MUA')]
+        groups_info = [dict(name='Group 0'),]
+        if nspikes > 0:
+            self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
+        else:
+            self.holder.clusters = np.zeros(0)
         
         
         spkcounts = collections.Counter(self.holder.clusters)
