@@ -28,9 +28,47 @@ def generate_colors(n=None):
     else:
         return [COLORS[i % COLORS_COUNT] for i in xrange(n)]
 
+        
+    
+def hue(H):
+    H = H.reshape((-1, 1))
+    R = np.abs(H * 6 - 3) - 1;
+    G = 2 - np.abs(H * 6 - 2);
+    B = 2 - np.abs(H * 6 - 4);
+    return np.clip(np.hstack((R,G,B)), 0, 1)
+    
+def hsv_to_rgb(HSV):
+    a = HSV[:,1].reshape((-1, 1))
+    b = HSV[:,2].reshape((-1, 1))
+    a = np.tile(a, (1, 3))
+    b = np.tile(b, (1, 3))
+    return ((hue(HSV[:,0]) - 1) * a + 1) * b
+        
+        
+def hsv_rect(hsv, coords):
+    # col = hsv_to_rgb(hsv.reshape((1, -1, 3)))[0,:,:]
+    col = hsv_to_rgb(hsv)
+    # print col
+    col = np.clip(col, 0, 1)
+    # print hsv
+    # print col
+    x0, y0, x1, y1 = coords
+    # print x0,y0
+    a = 2./len(col)
+    c = np.zeros((len(col), 4))
+    c[:,0] = np.linspace(x0, x1-a, len(col))
+    c[:,1] = y0
+    c[:,2] = np.linspace(x0+a, x1, len(col))
+    c[:,3] = y1
+    rectangles(coordinates=c, color=col)
+ 
+        
 if __name__ == "__main__":
     """Show all colors
     """
+    
+    # from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
+    
     def test_colors():
         import matplotlib as mpl
         import pylab as plt
@@ -53,4 +91,83 @@ if __name__ == "__main__":
         plt.xlim(-1,n)
         plt.show()
     
-    test_colors()
+    # test_colors()
+    
+    from galry import *
+    
+    # a = .06
+    # x = [0,.2,.4,.5,.6,.8,1.]
+    # y = [0,.2-a,.4+a,.5,.6-a,.8+a,1]
+    
+    # A = 3.
+    # B = 1.5
+    
+    H = np.linspace(0., 1., 20)#[0., .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.]
+    # S = [1.]*len(H)#[.8, .8, .8, .8, .8, .8, .8, .8, .8, .8, .8]
+    # V = [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
+    i = np.arange(len(H))
+    H=H[~((i==5) | (i==10) | (i==12) | (i==19))]
+    # H=H[i!=6]
+    # H=H[~(i==12)]
+    # H=H[i!=13]
+    # H=H[i!=18]
+    # H=H[~i==19]
+    # print len(H)
+    H = np.repeat(H, 2)
+    n = len(H)
+    S = 1*np.ones(n)
+    V = 1*np.ones(n)
+    V[1::2] = .75
+    
+    # n = 20
+    # t = np.linspace(0., 1., n)
+    hsv = np.zeros((n, 3))
+    # hsv[:,0] = t#np.interp(t, x, y)
+    # hsv[:,0] = B/(1+np.exp(-A*(t-.5)))
+    hsv[:,0] = H
+    hsv[:,1] = S
+    hsv[:,2] = V
+    
+    figure(constrain_navigation=False)
+    
+    hsv_rect(hsv, (-1,0,1,1))
+    
+    hsv[:,1] = 0.5 # white -> color
+    # hsv[:,2] = .5 # black -> white
+    hsv_rect(hsv, (-1,-1,1,0))
+    
+    ylim(-1,1)
+    
+    # col = hsv_to_rgb(hsv.reshape((1, -1, 3)))[0,:,:]
+    
+    # figure()
+    # show()
+    
+    # col = np.array(COLORS)
+    
+    # a = 2./len(col)
+    # c = np.zeros((len(col), 4))
+    # c[:,0] = np.linspace(-1, 1.-a, len(col))
+    # c[:,1] = -1
+    # c[:,2] = np.linspace(-1+a, 1., len(col))
+    # c[:,3] = 1
+    
+    # hsv = rgb_to_hsv(col.reshape((-1,1,3)))
+    # hsv[:,0,-1] = .75
+    
+    # hues = hsv[:,0,0]
+    # asort = hues.argsort()
+    # hsv[:,0,0] = hues[asort]
+    # hsv[:,0,1] = hsv[asort,0,1]
+    
+    # rgb = hsv_to_rgb(hsv)[:,0,:]
+    
+    # figure()
+    # rectangles(coordinates=c, color=col)
+    
+    
+    # plot(2*t-1,2*hsv[:,0]-1)
+    
+    show()
+    
+    
