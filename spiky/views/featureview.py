@@ -189,8 +189,9 @@ class FeatureDataManager(Manager):
         self.data[:, coord] = self.features_reordered[:, i].ravel()
         
         if do_update:
-            self.data_normalizer = DataNormalizer(self.data)
-            self.normalized_data = self.data_normalizer.normalize(symmetric=True)
+            # self.data_normalizer = DataNormalizer(self.data)
+            # self.normalized_data = self.data_normalizer.normalize(symmetric=True)
+            self.normalized_data = self.data
             self.projection[coord] = (channel, feature)
             # show the selection polygon only if the projection axes correspond
             self.selection_manager.set_selection_polygon_visibility(
@@ -857,7 +858,7 @@ class FeatureWidget(VisualizationWidget):
         comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
         comboBox.editTextChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
         comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
-        comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
+        # comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.channel_box[coord] = comboBox
         gridLayout.addWidget(comboBox, 0, 0, 1, 3)
         
@@ -916,6 +917,8 @@ class FeatureWidget(VisualizationWidget):
         # add feature widget
         self.feature_widget2 = self.create_feature_widget(1)
         box.addLayout(self.feature_widget2)
+        
+        self.setTabOrder(self.channel_box[0], self.channel_box[1])
         
         return box
     

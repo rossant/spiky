@@ -23,7 +23,8 @@ def hsv_to_rgb(HSV):
 def generate_hsv(n0=20):
     H = np.linspace(0., 1., n0)
     i = np.arange(n0)
-    H = H[~((i==5) | (i==7) | (i==10) | (i==12) | (i==19))]
+    H = H[~((i==5) | (i==7) | (i==10) | (i==12) | (i==15) |(i==17) | (i==18) | (i==19))]
+    # H = H[((i==15) |(i==17) | (i==18) | (i==19))]
 
     H = np.repeat(H, 2)
     
@@ -46,7 +47,7 @@ def generate_hsv(n0=20):
 COLORS = hsv_to_rgb(generate_hsv())
 COLORS = np.clip(COLORS, 0, 1)
 COLORS_COUNT = len(COLORS)
-step = 11
+step = 17  # needs to be prime with COLORS_COUNT
 perm = np.mod(np.arange(0, step * COLORS_COUNT, step), COLORS_COUNT)
 COLORS = COLORS[perm,...]
 COLORMAP = np.array(COLORS)
@@ -75,26 +76,14 @@ if __name__ == "__main__":
     
     from galry import *
     
-    # H = np.linspace(0., 1., 20)
-    # H = np.repeat(H, 2)
-    # n = len(H)
-    # S = np.ones(n)
-    # V = np.ones(n)
-    # V[1::2] = .75
-    
-    # hsv = np.zeros((n, 3))
-    # hsv[:,0] = H
-    # hsv[:,1] = S
-    # hsv[:,2] = V
-    
     hsv = generate_hsv()
     
     figure(constrain_navigation=False)
     
     hsv_rect(hsv, (-1,0,1,1))
     
-    hsv[:,1] = 0.5 # white -> color
-    # hsv[:,2] = .5 # black -> white
+    hsv[:,1] -= 0.5 # white -> color
+    hsv[:,2] += 0.5 # black -> white
     hsv_rect(hsv, (-1,-1,1,0))
     
     ylim(-1,1)

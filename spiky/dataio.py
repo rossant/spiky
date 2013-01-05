@@ -381,9 +381,21 @@ class KlustersDataProvider(DataProvider):
         clusters = clusters[1:]
         
         features = load_text(filename + ".fet.1", np.int32, skiprows=1)
+        features = np.array(features, dtype=np.float32)
         features = features.reshape((-1, 97))
-        spiketimes = features[:,-1]
-        # features = features[:,:-1]
+        # get the spiketimes
+        spiketimes = features[:,-1].copy()
+        # remove the last column in features, containing the spiketimes
+        features = features[:,:-1]
+        # normalize the data here
+        # dn = DataNormalizer(np.array(features, dtype=np.float32))
+        # features = dn.normalize(symmetric=True)
+        m = features.min()
+        M = features.max()
+        # force symmetry
+        vx = max(np.abs(m), np.abs(M))
+        m, M = -vx, vx
+        features = -1+2*(features-m)/(M-m)
         
         try:
             masks = load_text(filename + ".mask.1", np.float32, skiprows=1)

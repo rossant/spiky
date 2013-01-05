@@ -4,10 +4,9 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
-  * feature view: normalize everything once at initialization time
-  * feature projection box: TAB goes from X to Y channel selection
-  
   * open klusters file
+  
+  
   * normalize correlograms
 
   * fix focus issue with floating docks
