@@ -120,6 +120,13 @@ Refactoring
   * move data manager into templates, so that templates contain everything
 
 
+Optimizations
+-------------
+
+  * pre-compute the highlighted colors instead of computing the HSV-RGB double
+    conversion for every pixel!
+  
+  
 Multiplatform notes
 -------------------
 
