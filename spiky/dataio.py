@@ -474,7 +474,12 @@ class KlustersDataProvider(DataProvider):
             groups=np.zeros(nclusters),
             )
 
-        self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
+        try:
+            probe = np.loadtxt("data/buzsaki32.txt")
+        except Exception as e:
+            print(str(e))
+            probe = None
+        self.holder.probe = Info(positions=probe)
         
         # cross correlograms
         nsamples_correlograms = 20
@@ -630,7 +635,12 @@ class MockDataProvider(DataProvider):
             groups=rdn.randint(low=0, high=len(groups_info), size=nclusters),
             cluster_indices=cluster_indices,)
 
-        self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
+        try:
+            probe = np.loadtxt("data/buzsaki32.txt")
+        except Exception as e:
+            print(str(e))
+            probe = None
+        self.holder.probe = Info(positions=probe)
         
         # cross correlograms
         nsamples_correlograms = 20

@@ -222,14 +222,20 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # Action methods
     # --------------
     def open_file(self, *args):
-        filename = QtGui.QFileDialog.getOpenFileName(self, "Open a file (anyone)")[0]
-        self.load_file(filename)
+        folder = SETTINGS.get('mainWindow/last_data_dir')
+        filename = QtGui.QFileDialog.getOpenFileName(self, "Open a file (.clu or other)", folder)[0]
+        if filename:
+            self.load_file(filename)
         
     def load_file(self, filename):
         r = re.search(r"([^\n]+)\.[^\.]+\.[0-9]+$", filename)
         if r:
             filename = r.group(1)
             
+        # save folder
+        folder = os.path.dirname(filename)
+        SETTINGS.set('mainWindow/last_data_dir', folder)
+        
         provider = sdataio.KlustersDataProvider()
         self.dh = provider.load(filename)
         self.sdh = sdataio.SelectDataHolder(self.dh)
