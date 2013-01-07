@@ -1,4 +1,5 @@
 import os
+import re
 from galry import *
 # from views import *
 # from views.signals import SIGNALS
@@ -128,6 +129,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.allwidgets.append(widget)
         return widget, dockwidget
         
+    # def update_dock(self, dock, widget_class):
+        # widget = widget_class(self, self.sdh)
+        # dock.setWidget(widget)
+        
     def add_central(self, widget_class, name=None, minsize=None):
         """Add a central widget in the main window."""
         if name is None:
@@ -140,6 +145,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # if isinstance(widget, VisualizationWidget):
         self.allwidgets.append(widget)
         return widget
+        
+    # def update_central(self, widget_class):
+        # widget = widget_class(self, self.sdh)
+        # self.setCentralWidget(widget)
     
     
     # Initialization
@@ -159,7 +168,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # central window, the dockable widgets are arranged around it
         self.cluster_widget, self.cluster_dock_widget = self.add_dock(sviews.ClusterWidget, QtCore.Qt.RightDockWidgetArea)
-
+        # dock widgets
         self.feature_widget = self.add_central(sviews.FeatureWidget)
         self.waveform_widget, self.waveform_dock_widget = self.add_dock(sviews.WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
         self.correlograms_widget, self.correlograms_dock_widget = self.add_dock(sviews.CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
@@ -214,22 +223,22 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # --------------
     def open_file(self, *args):
         filename = QtGui.QFileDialog.getOpenFileName(self, "Open a file (anyone)")[0]
-        # print filename
-        # HACK: works temporarily only
-        if filename.endswith('.1'):
-            filename = filename[:-2]
-        filename = os.path.splitext(filename)[0]
-        print("********** Open action not implemented yet!")
-        # # print filename
-        # provider = sdataio.KlustersDataProvider()
-        # self.dh = provider.load(filename)
-        # self.sdh = sdataio.SelectDataHolder(self.dh)
-        # # TODO: change this and have the widgets update themselves with 
-        # # new data
-        # self.removeDockWidget(self.cluster_dock_widget)
-        # self.removeDockWidget(self.waveform_dock_widget)
-        # self.removeDockWidget(self.correlograms_dock_widget)
-        # self.initall()
+        self.load_file(filename)
+        
+    def load_file(self, filename):
+        r = re.search(r"([^\n]+)\.[^\.]+\.[0-9]+$", filename)
+        if r:
+            filename = r.group(1)
+            
+        provider = sdataio.KlustersDataProvider()
+        self.dh = provider.load(filename)
+        self.sdh = sdataio.SelectDataHolder(self.dh)
+        self.du = DataUpdater(self.sdh)
+        
+        self.cluster_widget.update_view(self.sdh)
+        self.feature_widget.update_view(self.sdh)
+        self.waveform_widget.update_view(self.sdh)
+        self.correlograms_widget.update_view(self.sdh)
         
         
     # Event methods

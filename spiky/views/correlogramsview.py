@@ -225,7 +225,9 @@ class CorrelogramsWidget(VisualizationWidget):
                       cluster_colors=dh.cluster_colors)
         return view
         
-    def update_view(self):
+    def update_view(self, dh=None):
+        if dh is not None:
+            self.dh = dh
         self.view.set_data(histograms=self.dh.correlograms,
                       baselines=self.dh.baselines,
                       cluster_colors=self.dh.cluster_colors)

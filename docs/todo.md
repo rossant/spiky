@@ -4,9 +4,6 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
-  * open klusters file
-  
-  
   * normalize correlograms
 
   * fix focus issue with floating docks
@@ -115,7 +112,6 @@ Refactoring
     processors...
   * refactoring correlograms: put the actual computations outside dataio
   * put COLORMAP in the data holder and remove dependencies 
-  * factorize highlight logic in shaders  
   * move data manager into templates, so that templates contain everything
 
 
@@ -124,6 +120,7 @@ Optimizations
 
   * pre-compute the highlighted colors instead of computing the HSV-RGB double
     conversion for every pixel!
+  * improve the computation of cross-correlograms
   
   
 Multiplatform notes

@@ -610,6 +610,7 @@ class ClusterTreeView(QtGui.QTreeView):
 class ClusterWidget(QtGui.QWidget):
     def __init__(self, main_window, dh, getfocus=True):
         super(ClusterWidget, self).__init__()
+        self.dh = dh
         
         # Capture keyboard events.
         if getfocus:
@@ -651,6 +652,12 @@ class ClusterWidget(QtGui.QWidget):
         view.set_model(self.model)
         return view
 
+    def update_view(self, dh=None):
+        if dh is not None:
+            self.dh = dh
+        self.model = ClusterGroupManager(clusters_info=self.dh.clusters_info)
+        self.view.set_model(self.model)
+        
     def contextMenuEvent(self, event):
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
             

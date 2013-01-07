@@ -949,7 +949,9 @@ class WaveformWidget(VisualizationWidget):
                       )
         return self.view
         
-    def update_view(self):
+    def update_view(self, dh=None):
+        if dh is not None:
+            self.dh = dh
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
                       clusters_unique=self.dh.clusters_unique,
