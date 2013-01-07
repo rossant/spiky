@@ -4,6 +4,8 @@ Spiky: graphical interface for semi-automatic spike sorting
 TODO
 ----  
 
+  * feature view gray points transparency depth
+
   * normalize correlograms
 
   * fix focus issue with floating docks
