@@ -222,6 +222,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # Action methods
     # --------------
     def open_file(self, *args):
+        self.reset_action_generator()
         folder = SETTINGS.get('mainWindow/last_data_dir')
         filename = QtGui.QFileDialog.getOpenFileName(self, "Open a file (.clu or other)", folder)[0]
         if filename:
@@ -254,6 +255,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
             getattr(widget.view, event_name)(e)
         
     def keyPressEvent(self, e):
+        # self.last_key_press_event = e
         self.redirect_event('keyPressEvent', e)
 
     def keyReleaseEvent(self, e):
@@ -267,6 +269,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
 
     def contextMenuEvent(self, e):
         return
+           
+    def reset_action_generator(self):
+        for widget in self.allwidgets:
+            if hasattr(widget.view, 'reset_action_generator'):
+                widget.view.reset_action_generator()
+           
+    def focusOutEvent(self, e):
+        self.reset_action_generator()
             
             
     # Signals

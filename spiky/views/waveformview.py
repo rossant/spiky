@@ -29,7 +29,7 @@ vec3 HSVtoRGB(vec3 HSV)
 
 vec3 RGBtoHSV(vec3 RGB)
 {
-    vec3 HSV = 0;
+    vec3 HSV = vec3(0, 0, 0);
     HSV.z = max(RGB.r, max(RGB.g, RGB.b));
     float M = min(RGB.r, min(RGB.g, RGB.b));
     float C = HSV.z - M;
@@ -477,6 +477,8 @@ class WaveformPositionManager(Manager):
         return xmin, ymin, xmax, ymax
         
     def find_box(self, xp, yp):
+        if self.nclusters == 0:
+            return 0, 0
         
         # transformation
         box_positions, box_size = self.get_transformation()
