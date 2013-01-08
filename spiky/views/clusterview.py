@@ -208,7 +208,7 @@ class ClusterItem(TreeItem):
             color = 0#(1., 1., 1.)
         data = OrderedDict()
         # different columns fields
-        data['name'] = name
+        data['name'] = str(name)
         data['spkcount'] = spkcount
         data['color'] = color
         # the index is the last column
@@ -552,13 +552,6 @@ class ClusterTreeView(QtGui.QTreeView):
 
     # Event methods
     # -------------
-    # modifiers = [QtCore.Qt.Key_Control, QtCore.Qt.Key_Shift, QtCore.Qt.Key_Alt]
-    # modifier = False
-    # def keyReleaseEvent(self, e):
-        # key = e.key()
-        # if key in self.modifiers:
-            # self.modifier = False
-            
     def keyPressEvent(self, e):
         # Disable all keyboard actions with modifiers, to avoid conflicts with
         # CTRL+arrows in FeatureView
@@ -581,32 +574,7 @@ class ClusterTreeView(QtGui.QTreeView):
             return
         return super(ClusterTreeView, self).keyPressEvent(e)
         
-        # key = e.key()
-        # # print key, self.modifiers
-        # if key in self.modifiers:
-            # self.modifier = key
-            # return
-        # # if self.modifier:
-            # # return
-        
-        # # previous and next cluster
-        # if key == QtCore.Qt.Key_Up:
-            # self.select_cluster('previous')
-        # if key == QtCore.Qt.Key_Down:
-            # self.select_cluster('next')
-        
-        # # first and last cluster
-        # if key == QtCore.Qt.Key_Home:
-            # self.select_cluster('top')
-        # if key == QtCore.Qt.Key_End:
-            # self.select_cluster('bottom')
-            
-        # # print key, QtCore.Qt.Key_A, self.modifier, QtCore.Qt.Key_Control
-        # if key == QtCore.Qt.Key_A and self.modifier == QtCore.Qt.Key_Control:
-            # # self.selectAll()
-            # self.select_all()
-            
-    
+
 class ClusterWidget(QtGui.QWidget):
     def __init__(self, main_window, dh, getfocus=True):
         super(ClusterWidget, self).__init__()
@@ -692,9 +660,5 @@ class ClusterWidget(QtGui.QWidget):
             self.view.restoreGeometry(g)
         if h:
             self.view.header().restoreState(h)
-    
-    
-    # def focusOutEvent(self, e):
-        # self.view.focusOutEvent(e)
     
     

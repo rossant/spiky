@@ -165,6 +165,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # create the DataUpdater, which handles the ToChange signals and
         # change data in the DataHolder.
         self.du = DataUpdater(self.sdh)
+        self.am = spiky.ActionManager(self.dh)
         
         # central window, the dockable widgets are arranged around it
         self.cluster_widget, self.cluster_dock_widget = self.add_dock(sviews.ClusterWidget, QtCore.Qt.RightDockWidgetArea)
@@ -200,6 +201,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action.setShortcut("CTRL+Q")
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
+        self.merge_action = QtGui.QAction("&Merge", self)
+        self.merge_action.setShortcut("M")
+        self.merge_action.triggered.connect(self.merge, QtCore.Qt.UniqueConnection)
+        
     def initialize_menu(self):
         """Initialize the menu."""
         # File menu
@@ -210,6 +215,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.quit_action)
         
+        
         # Views menu
         # ----------
         views_menu = self.menuBar().addMenu("&Views")
@@ -217,6 +223,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
         views_menu.addAction(self.cluster_action)
         views_menu.addAction(self.waveform_action)
         views_menu.addAction(self.correlograms_action)
+        
+        
+        # Actions menu
+        # ------------
+        actions_menu = self.menuBar().addMenu("&Actions")
+        
+        actions_menu.addAction(self.merge_action)
         
         
     # Action methods
@@ -241,11 +254,20 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = provider.load(filename)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         self.du = DataUpdater(self.sdh)
+        self.am = spiky.ActionManager(self.dh)
         
         self.cluster_widget.update_view(self.sdh)
         self.feature_widget.update_view(self.sdh)
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
+        
+        
+    def merge(self):
+        """Merge selected clusters."""
+        newcluster = self.dh.new_cluster()
+        self.am.do(spiky.MergeAction, self.sdh.get_clusters(), newcluster)
+        self.cluster_widget.update_view(self.sdh)
+        self.cluster_widget.view.select(newcluster)
         
         
     # Event methods

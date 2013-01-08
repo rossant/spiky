@@ -274,6 +274,9 @@ class DataHolder(object):
         filtered_trace: like raw trace, but with the filtered trace
         filter_info: a FilterInfo dic
     """
+    def new_cluster(self):
+        ids = self.clusters_info.names
+        return ids.max() + 1
 
 class SelectDataHolder(object):
     """Provides access to the data related to selected clusters."""
@@ -342,6 +345,9 @@ class SelectDataHolder(object):
             for varname in self.spike_dependent_variables:
                 if hasattr(self.dataholder, varname):
                     setattr(self, varname, getattr(self.dataholder, varname)[select_mask,...])
+        
+    def get_clusters(self):
+        return self.clusters_unique
         
     def __getattr__(self, name):
         """Fallback mechanism for selecting variables in data holder and that
@@ -431,7 +437,7 @@ class KlustersDataProvider(DataProvider):
         spkcounts = collections.Counter(clusters)
         cluster_keys = sorted(spkcounts.keys())
         spkcounts = np.array([spkcounts[key] for key in cluster_keys])
-        cluster_names = map(str, cluster_keys)
+        cluster_names = np.array(cluster_keys)#map(str, cluster_keys)
         nclusters = len(cluster_names)
         # for each cluster absolute index, its relative index
         cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
