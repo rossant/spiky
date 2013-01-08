@@ -155,8 +155,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
     # --------------
     def initialize_data(self):
         # load mock data
-        provider = sdataio.MockDataProvider()
-        self.dh = provider.load(nspikes=0, nclusters=0)
+        self.provider = sdataio.MockDataProvider()
+        self.dh = self.provider.load(nspikes=0, nclusters=0)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         
     def initialize(self):
@@ -196,6 +196,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.open_action.setShortcut("CTRL+O")
         self.open_action.triggered.connect(self.open_file, QtCore.Qt.UniqueConnection)
         
+        # save action
+        self.save_action = QtGui.QAction("&Save", self)
+        self.save_action.setShortcut("CTRL+S")
+        self.save_action.triggered.connect(self.save_file, QtCore.Qt.UniqueConnection)
+        
         # exit action
         self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
@@ -229,6 +234,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # Quit
         file_menu.addAction(self.open_action)
+        file_menu.addAction(self.save_action)
+        file_menu.addSeparator()
         file_menu.addAction(self.quit_action)
         
         
@@ -262,17 +269,25 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if filename:
             self.load_file(filename)
         
+    def save_file(self, *args):
+        self.provider.save()
+        
     def load_file(self, filename):
-        r = re.search(r"([^\n]+)\.[^\.]+\.[0-9]+$", filename)
+        r = re.search(r"([^\n]+)\.[^\.]+\.([0-9]+)$", filename)
         if r:
             filename = r.group(1)
-            
+            fileindex = int(r.group(2))
+        else:
+            log_warn(("The file could not be loaded because it is not like",
+                " *.i.*"))
+            return
+        
         # save folder
         folder = os.path.dirname(filename)
         SETTINGS.set('mainWindow/last_data_dir', folder)
         
-        provider = sdataio.KlustersDataProvider()
-        self.dh = provider.load(filename)
+        self.provider = sdataio.KlustersDataProvider()
+        self.dh = self.provider.load(filename, fileindex)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         self.du = DataUpdater(self.sdh)
         self.am = spiky.ActionManager(self.dh)

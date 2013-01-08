@@ -21,6 +21,9 @@ __all__ = [
 
 def load_text(file, dtype, skiprows=0):
     return np.loadtxt(file, dtype=dtype, skiprows=skiprows)
+ 
+def save_text(file, data):
+    return np.savetxt(file, data, fmt='%d')
         
 def load_binary(file, dtype=None, count=None):
     if dtype is None:
@@ -371,14 +374,30 @@ class DataProvider(object):
 
 class KlustersDataProvider(DataProvider):
     """Legacy Klusters data provider with the old format."""
-    def load(self, filename):
+    def load_probe(self, filename):
+        pass
+        
+    def load(self, filename, fileindex):
         # klusters tests
         nchannels = 32
         # nspikes = 10000
         nsamples = 20
         
+        self.filename = filename
+        self.fileindex = fileindex
+        
+        if filename.endswith('_spiky'):
+            filename = filename.replace('_spiky', '')
+            spiky = True
+        else:
+            spiky = False
+        
         try:
-            clusters = load_text(filename + ".clu.1", np.int32)
+            if spiky:
+                path = filename + "_spiky.clu.%d" % fileindex
+            else:
+                path = filename + ".clu.%d" % fileindex
+            clusters = load_text(path, np.int32)
             nspikes = len(clusters) - 1
         except Exception as e:
             log_warn("CLU file '%s' not found" % filename)
@@ -387,7 +406,7 @@ class KlustersDataProvider(DataProvider):
         nclusters = clusters[0]
         clusters = clusters[1:]
         
-        features = load_text(filename + ".fet.1", np.int32, skiprows=1)
+        features = load_text(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
         features = np.array(features, dtype=np.float32)
         features = features.reshape((-1, 97))
         # get the spiketimes
@@ -406,12 +425,12 @@ class KlustersDataProvider(DataProvider):
         
         # first: try fmask
         try:
-            masks = load_text(filename + ".fmask.1", np.float32, skiprows=1)
+            masks = load_text(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
             masks = masks[:,:-1:3]
         except Exception as e:
             try:
                 # otherwise, try mask
-                masks = load_text(filename + ".mask.1", np.float32, skiprows=1)
+                masks = load_text(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
                 masks = masks[:,:-1:3]
             except:
                 # finally, warning and default masks (everything to 1)
@@ -419,7 +438,7 @@ class KlustersDataProvider(DataProvider):
                 masks = np.ones((nspikes, nchannels))
         
         try:
-            waveforms = load_binary(filename + ".spk.1")
+            waveforms = load_binary(filename + ".spk.%d" % fileindex)
             waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
         except IOError as e:
             log_warn("SPK file '%s' not found" % filename)
@@ -495,8 +514,11 @@ class KlustersDataProvider(DataProvider):
         
         return self.holder
         
-    def save(self, filename):
-        pass
+    def save(self):
+        data = self.holder.clusters
+        data = np.hstack((data.max(), data))
+        save_text(self.filename + "_spiky.clu.%d" % self.fileindex, data)
+        
 
         
 class SpikeDetektH5DataProvider(DataProvider):
