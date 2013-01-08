@@ -139,7 +139,7 @@ class FeatureDataManager(Manager):
         
         self.nspikes, self.ndim = features.shape
         self.fetdim = fetdim
-        self.nchannels = (self.ndim - 1) // self.fetdim
+        self.nchannels = self.ndim // self.fetdim
         self.npoints = features.shape[0]
         self.features = features
         # self.colormap = colormap
@@ -792,7 +792,7 @@ class FeatureWidget(VisualizationWidget):
                     feature = 0
         
         # print sender
-        log_info("Projection changed in coord %s, channel=%d, feature=%s" \
+        log_debug("Projection changed in coord %s, channel=%d, feature=%s" \
             % (('X', 'Y')[coord], channel, ('A', 'B', 'C')[feature]))
         # record the new projection
         self.projection[coord] = (channel, feature)

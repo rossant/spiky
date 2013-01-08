@@ -4,10 +4,8 @@ Spiky: graphical interface for semi-automatic spike sorting
 Major features
 --------------
 
-  * cluster merge with button / M press
   * cluster split with button / S press
-  * split with different clusters: split everything
-  * undo/redo
+    (split with different clusters: split everything)
   * save
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)

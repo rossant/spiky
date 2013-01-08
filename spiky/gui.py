@@ -209,11 +209,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # undo action
         self.undo_action = QtGui.QAction("&Undo", self)
         self.undo_action.setShortcut("CTRL+Z")
+        self.undo_action.setEnabled(False)
         self.undo_action.triggered.connect(self.undo, QtCore.Qt.UniqueConnection)
         
         # redo action
         self.redo_action = QtGui.QAction("&Redo", self)
         self.redo_action.setShortcut("CTRL+Y")
+        self.redo_action.setEnabled(False)
         self.redo_action.triggered.connect(self.redo, QtCore.Qt.UniqueConnection)
         
         
@@ -245,6 +247,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         actions_menu.addAction(self.undo_action)
         actions_menu.addAction(self.redo_action)
+        
+        actions_menu.addSeparator()
         
         actions_menu.addAction(self.merge_action)
         
@@ -285,18 +289,24 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.am.do(spiky.MergeAction, self.sdh.get_clusters(), newcluster)
         self.cluster_widget.update_view(self.sdh)
         self.cluster_widget.view.select(newcluster)
+        self.undo_action.setEnabled(self.am.undo_enabled())
+        self.redo_action.setEnabled(self.am.redo_enabled())
         
     def undo(self):
         action = self.am.undo()
         if action is not None:
             self.cluster_widget.update_view(self.sdh)
             self.cluster_widget.view.select_multiple(action.clusters_to_merge)
+        self.undo_action.setEnabled(self.am.undo_enabled())
+        self.redo_action.setEnabled(self.am.redo_enabled())
         
     def redo(self):
         action = self.am.redo()
         if action is not None:
             self.cluster_widget.update_view(self.sdh)
             self.cluster_widget.view.select(action.new_cluster)
+        self.undo_action.setEnabled(self.am.undo_enabled())
+        self.redo_action.setEnabled(self.am.redo_enabled())
         
         
     # Event methods

@@ -118,6 +118,12 @@ class ActionManager(object):
             self.stack.append(action)
             action.execute()
             return action
+            
+    def undo_enabled(self):
+        return len(self.stack) > 0
+            
+    def redo_enabled(self):
+        return len(self.unstack) > 0
         
     
     

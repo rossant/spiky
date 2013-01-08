@@ -515,12 +515,13 @@ class ClusterTreeView(QtGui.QTreeView):
             sel_model.select(cl, sel_model.Select | sel_model.Rows)
             
     def select_all(self):
-        groups = self.model().get_groups()
-        gr0 = groups[0].index
-        gr1 = groups[-1].index
-        sel = QtGui.QItemSelection(gr0, gr1)
-        sel_model = self.selectionModel()
-        sel_model.select(sel, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
+        # groups = self.model().get_groups()
+        # gr0 = groups[0].index
+        # gr1 = groups[-1].index
+        # sel = QtGui.QItemSelection(gr0, gr1)
+        # sel_model = self.selectionModel()
+        # sel_model.select(sel, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
+        self.select_multiple([cl.clusteridx() for cl in self.get_clusters()])
         
     def select_cluster(self, direction):
         # list of all cluster indices
@@ -653,16 +654,24 @@ class ClusterWidget(QtGui.QWidget):
         clusters = self.view.selected_clusters()
         groupindices = [g.groupidx() for g in self.model.get_groups()]
         groupidx = max(groupindices) + 1
-        self.model.add_group(groupidx, "Group %d" % groupidx)
+        name = "Group %d" % groupidx
+        self.model.add_group(groupidx, name)
+        self.dh.clusters_info.groups_info.append(dict(name=name,
+            groupidx=groupidx))
         self.view.expandAll()
+        print self.dh.clusters_info.groups_info
     
     def remove_group_action(self):
         errors = []
         for groupidx in self.view.selected_groups():
-            try:
-                self.model.remove_group(groupidx)
-            except:
-                errors.append(groupidx)
+            # try:
+            self.model.remove_group(groupidx)
+            for grp in self.dh.clusters_info.groups_info:
+                if grp['groupidx'] == groupidx:
+                    self.dh.clusters_info.groups_info.remove(grp)
+                    break
+            # except:
+                # errors.append(groupidx)
         if errors:
             msg = "Non-empty groups were not deleted."
             self.main_window.statusBar().showMessage(msg, 5000)
