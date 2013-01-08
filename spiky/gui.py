@@ -85,17 +85,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # initialize the data holder and select holder
         self.initialize_data()
-        self.initall()
-        
-        # set stylesheet
-        self.setStyleSheet(STYLESHEET)
-        # set empty status bar
-        self.statusBar().addPermanentWidget(QtGui.QWidget(self))
-        self.restore_geometry()
-        # show the window
-        self.show()
-        
-    def initall(self):
         # list all dock and central widgets
         self.allwidgets = []
         # initialize actions
@@ -104,8 +93,18 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.initialize()
         # initialize menu
         self.initialize_menu()
+        # initialize toolbar
+        self.initialize_toolbar()
         # initialize all signals/slots connections between widgets
         self.initialize_connections()
+        
+        # set stylesheet
+        self.setStyleSheet(STYLESHEET)
+        # set empty status bar
+        self.statusBar().addPermanentWidget(QtGui.QWidget(self))
+        self.restore_geometry()
+        # show the window
+        self.show()
 
         
     # Widget creation methods
@@ -129,10 +128,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.allwidgets.append(widget)
         return widget, dockwidget
         
-    # def update_dock(self, dock, widget_class):
-        # widget = widget_class(self, self.sdh)
-        # dock.setWidget(widget)
-        
     def add_central(self, widget_class, name=None, minsize=None):
         """Add a central widget in the main window."""
         if name is None:
@@ -146,19 +141,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.allwidgets.append(widget)
         return widget
         
-    # def update_central(self, widget_class):
-        # widget = widget_class(self, self.sdh)
-        # self.setCentralWidget(widget)
-    
     
     # Initialization
     # --------------
-    def initialize_data(self):
-        # load mock data
-        self.provider = sdataio.MockDataProvider()
-        self.dh = self.provider.load(nspikes=0, nclusters=0)
-        self.sdh = sdataio.SelectDataHolder(self.dh)
-        
     def initialize(self):
         """Make the UI initialization."""
         
@@ -181,11 +166,17 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.waveform_action = self.waveform_dock_widget.toggleViewAction()
         self.correlograms_action = self.correlograms_dock_widget.toggleViewAction()
         
+    def initialize_data(self):
+        # load mock data
+        self.provider = sdataio.MockDataProvider()
+        self.dh = self.provider.load(nspikes=0, nclusters=0)
+        self.sdh = sdataio.SelectDataHolder(self.dh)
+        
     def initialize_actions(self):
         """Initialize all global actions."""
         # automatic projection action
         self.autoproj_action = QtGui.QAction("Automatic projection", self)
-        self.autoproj_action.setIcon(get_icon("magic"))
+        self.autoproj_action.setIcon(spiky.get_icon("magic"))
         self.autoproj_action.setShortcut("P")
         self.autoproj_action.setStatusTip("Automatically choose the best " +
             "projection in the FeatureView.")
@@ -194,11 +185,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # open action
         self.open_action = QtGui.QAction("&Open", self)
         self.open_action.setShortcut("CTRL+O")
+        self.open_action.setIcon(spiky.get_icon("open"))
         self.open_action.triggered.connect(self.open_file, QtCore.Qt.UniqueConnection)
         
         # save action
         self.save_action = QtGui.QAction("&Save", self)
         self.save_action.setShortcut("CTRL+S")
+        self.save_action.setIcon(spiky.get_icon("save"))
         self.save_action.triggered.connect(self.save_file, QtCore.Qt.UniqueConnection)
         
         # exit action
@@ -208,23 +201,31 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         # merge action
         self.merge_action = QtGui.QAction("&Merge", self)
+        self.merge_action.setIcon(spiky.get_icon("merge"))
         self.merge_action.setShortcut("M")
+        self.merge_action.setEnabled(False)
         self.merge_action.triggered.connect(self.merge, QtCore.Qt.UniqueConnection)
+        
+        # merge action
+        self.split_action = QtGui.QAction("&Split", self)
+        self.split_action.setIcon(spiky.get_icon("split"))
+        self.split_action.setShortcut("S")
+        self.split_action.setEnabled(False)
+        self.split_action.triggered.connect(self.split, QtCore.Qt.UniqueConnection)
         
         # undo action
         self.undo_action = QtGui.QAction("&Undo", self)
         self.undo_action.setShortcut("CTRL+Z")
+        self.undo_action.setIcon(spiky.get_icon("undo"))
         self.undo_action.setEnabled(False)
         self.undo_action.triggered.connect(self.undo, QtCore.Qt.UniqueConnection)
         
         # redo action
         self.redo_action = QtGui.QAction("&Redo", self)
         self.redo_action.setShortcut("CTRL+Y")
+        self.redo_action.setIcon(spiky.get_icon("redo"))
         self.redo_action.setEnabled(False)
         self.redo_action.triggered.connect(self.redo, QtCore.Qt.UniqueConnection)
-        
-        
-        
         
     def initialize_menu(self):
         """Initialize the menu."""
@@ -242,7 +243,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # Views menu
         # ----------
         views_menu = self.menuBar().addMenu("&Views")
-        
         views_menu.addAction(self.cluster_action)
         views_menu.addAction(self.waveform_action)
         views_menu.addAction(self.correlograms_action)
@@ -251,14 +251,25 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # Actions menu
         # ------------
         actions_menu = self.menuBar().addMenu("&Actions")
-        
         actions_menu.addAction(self.undo_action)
         actions_menu.addAction(self.redo_action)
-        
         actions_menu.addSeparator()
-        
         actions_menu.addAction(self.merge_action)
+        actions_menu.addAction(self.split_action)
         
+    def initialize_toolbar(self):
+        # self.toolbar = QtGui.QToolBar(self)
+        self.toolbar = self.addToolBar("SpikyToolbar")
+        self.toolbar.setObjectName("SpikyToolbar")
+        self.toolbar.addAction(self.open_action)
+        self.toolbar.addAction(self.save_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.merge_action)
+        self.toolbar.addAction(self.split_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.undo_action)
+        self.toolbar.addAction(self.redo_action)
+    
         
     # Action methods
     # --------------
@@ -297,7 +308,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
         
-        
     def merge(self):
         """Merge selected clusters."""
         newcluster = self.dh.new_cluster()
@@ -306,6 +316,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.cluster_widget.view.select(newcluster)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
+        
+    def split(self):
+        # TODO
+        log_warn("Split not implemented yet")
         
     def undo(self):
         action = self.am.undo()
@@ -360,7 +374,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def initialize_connections(self):
         """Initialize the signals/slots connections between widgets."""
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
-
+        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
         
@@ -383,6 +398,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
             if sender == self.waveform_widget.view:
                 if hasattr(self, 'feature_widget'):
                     self.feature_widget.view.highlight_spikes(spikes)
+    
+    def slotClusterSelectionChanged(self, sender, clusters):
+        # enable or disable merge action as a function of the number of 
+        # selected clusters
+        if len(clusters) >= 2:
+            self.merge_action.setEnabled(True)
+        else:
+            self.merge_action.setEnabled(False)
     
     
     # User preferences related methods
