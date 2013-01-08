@@ -201,9 +201,23 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action.setShortcut("CTRL+Q")
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
+        # merge action
         self.merge_action = QtGui.QAction("&Merge", self)
         self.merge_action.setShortcut("M")
         self.merge_action.triggered.connect(self.merge, QtCore.Qt.UniqueConnection)
+        
+        # undo action
+        self.undo_action = QtGui.QAction("&Undo", self)
+        self.undo_action.setShortcut("CTRL+Z")
+        self.undo_action.triggered.connect(self.undo, QtCore.Qt.UniqueConnection)
+        
+        # redo action
+        self.redo_action = QtGui.QAction("&Redo", self)
+        self.redo_action.setShortcut("CTRL+Y")
+        self.redo_action.triggered.connect(self.redo, QtCore.Qt.UniqueConnection)
+        
+        
+        
         
     def initialize_menu(self):
         """Initialize the menu."""
@@ -228,6 +242,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # Actions menu
         # ------------
         actions_menu = self.menuBar().addMenu("&Actions")
+        
+        actions_menu.addAction(self.undo_action)
+        actions_menu.addAction(self.redo_action)
         
         actions_menu.addAction(self.merge_action)
         
@@ -268,6 +285,18 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.am.do(spiky.MergeAction, self.sdh.get_clusters(), newcluster)
         self.cluster_widget.update_view(self.sdh)
         self.cluster_widget.view.select(newcluster)
+        
+    def undo(self):
+        action = self.am.undo()
+        if action is not None:
+            self.cluster_widget.update_view(self.sdh)
+            self.cluster_widget.view.select_multiple(action.clusters_to_merge)
+        
+    def redo(self):
+        action = self.am.redo()
+        if action is not None:
+            self.cluster_widget.update_view(self.sdh)
+            self.cluster_widget.view.select(action.new_cluster)
         
         
     # Event methods

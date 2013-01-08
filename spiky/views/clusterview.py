@@ -323,11 +323,13 @@ class ClusterGroupManager(TreeModel):
             groupidx = self.get_groupidx(target.clusteridx())
             
         # assign groups to selected clusters
+        self.can_signal_selection = False
         for source in source_items:
             clusteridx = source.clusteridx()
             oldgroupidx = self.get_groupidx(clusteridx)
             if oldgroupidx != groupidx:
                 self.assign(clusteridx, groupidx)
+        self.can_signal_selection = True
         
     def data(self, index, role):
         """Return custom background color for the last column of cluster
@@ -463,13 +465,16 @@ class ClusterTreeView(QtGui.QTreeView):
     # -----------------
     def selectionChanged(self, selected, deselected):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
-        # emit the ClusterSelectionToChange signal
-        clusters = self.selected_clusters()
-        groups = self.selected_groups()
-        for group in groups:
-            clusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
-        ssignals.emit(self, "ClusterSelectionToChange",
-            np.sort(np.unique(np.array(clusters, dtype=np.int32))))
+        can_signal_selection = getattr(self, 'can_signal_selection', True)
+        can_signal_selection = can_signal_selection and getattr(self.model(), 'can_signal_selection', True)
+        if can_signal_selection:
+            # emit the ClusterSelectionToChange signal
+            clusters = self.selected_clusters()
+            groups = self.selected_groups()
+            for group in groups:
+                clusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
+            ssignals.emit(self, "ClusterSelectionToChange",
+                np.sort(np.unique(np.array(clusters, dtype=np.int32))))
         
     def select(self, cluster):
         """Select a cluster.
@@ -493,6 +498,22 @@ class ClusterTreeView(QtGui.QTreeView):
         sel_model.select(cluster, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
         self.scrollTo(cluster, QtGui.QAbstractItemView.EnsureVisible)
         
+    def select_multiple(self, clusters):
+        if len(clusters) == 0:
+            return
+        elif len(clusters) == 1:
+            self.select(clusters[0])
+        else:
+            # HACK: loop to select multiple clusters without sending signals
+            self.can_signal_selection = False
+            sel_model = self.selectionModel()
+            for cluster in clusters[:-1]:
+                cl = self.get_cluster(cluster).index
+                sel_model.select(cl, sel_model.Select | sel_model.Rows)
+            self.can_signal_selection = True
+            cl = self.get_cluster(clusters[-1]).index
+            sel_model.select(cl, sel_model.Select | sel_model.Rows)
+            
     def select_all(self):
         groups = self.model().get_groups()
         gr0 = groups[0].index
@@ -500,7 +521,6 @@ class ClusterTreeView(QtGui.QTreeView):
         sel = QtGui.QItemSelection(gr0, gr1)
         sel_model = self.selectionModel()
         sel_model.select(sel, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
-        
         
     def select_cluster(self, direction):
         # list of all cluster indices
@@ -630,6 +650,7 @@ class ClusterWidget(QtGui.QWidget):
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
             
     def add_group_action(self):
+        clusters = self.view.selected_clusters()
         groupindices = [g.groupidx() for g in self.model.get_groups()]
         groupidx = max(groupindices) + 1
         self.model.add_group(groupidx, "Group %d" % groupidx)

@@ -110,12 +110,14 @@ class ActionManager(object):
             action = self.stack.pop()
             self.unstack.append(action)
             action.unexecute()
+            return action
         
     def redo(self):
         if len(self.unstack) > 0:
             action = self.unstack.pop()
             self.stack.append(action)
             action.execute()
+            return action
         
     
     
