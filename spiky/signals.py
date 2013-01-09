@@ -28,6 +28,11 @@ class SpikySignals(QtCore.QObject):
     ClusterSelectionToChange = QtCore.pyqtSignal(object, np.ndarray)
     ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
     
+    # A cluster has been assigned to a new group
+    ClusterChangedGroup = QtCore.pyqtSignal(object, int, int)
+    NewClusterGroup = QtCore.pyqtSignal(object, int)
+    DeleteClusterGroup = QtCore.pyqtSignal(object, int)
+    
     # Select spikes for splitting
     SelectSpikes = QtCore.pyqtSignal(object, np.ndarray)
     
@@ -39,6 +44,9 @@ class SpikySignals(QtCore.QObject):
         self.ClusterSelectionToChange.disconnect()
         self.ClusterSelectionChanged.disconnect()
         self.SelectSpikes.disconnect()
+        self.ClusterChangedGroup.disconnect()
+        self.NewClusterGroup.disconnect()
+        self.DeleteClusterGroup.disconnect()
         
         
     

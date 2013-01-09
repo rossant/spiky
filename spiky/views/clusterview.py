@@ -321,6 +321,9 @@ class ClusterGroupManager(TreeModel):
         # else, if it is a cluster, take the corresponding group
         elif type(target) == ClusterItem:
             groupidx = self.get_groupidx(target.clusteridx())
+        else:
+            # empty target
+            return
             
         # assign groups to selected clusters
         self.can_signal_selection = False
@@ -403,6 +406,8 @@ class ClusterGroupManager(TreeModel):
         oldgroupidx = oldgroup.groupidx()
         newgroup = self.get_group(groupidx)
         cluster = self.get_cluster(clusteridx)
+        # signal that a cluster has been assigned to a new group
+        ssignals.emit(self, "ClusterChangedGroup", clusteridx, groupidx)
         # add cluster in the new group
         self.add_cluster(clusteridx, name=cluster.name(), parent=newgroup,
             spkcount=cluster.spkcount(), color=cluster.color())
@@ -662,22 +667,24 @@ class ClusterWidget(QtGui.QWidget):
         groupidx = max(groupindices) + 1
         name = "Group %d" % groupidx
         self.model.add_group(groupidx, name)
-        self.dh.clusters_info.groups_info.append(dict(name=name,
-            groupidx=groupidx))
+        ssignals.emit(self, "NewClusterGroup", groupidx)
+        # self.dh.clusters_info.groups_info.append(dict(name=name,
+            # groupidx=groupidx))
         self.view.expandAll()
-        print self.dh.clusters_info.groups_info
+        # print self.dh.clusters_info.groups_info
     
     def remove_group_action(self):
         errors = []
         for groupidx in self.view.selected_groups():
-            # try:
-            self.model.remove_group(groupidx)
-            for grp in self.dh.clusters_info.groups_info:
-                if grp['groupidx'] == groupidx:
-                    self.dh.clusters_info.groups_info.remove(grp)
-                    break
-            # except:
-                # errors.append(groupidx)
+            try:
+                self.model.remove_group(groupidx)
+                # for grp in self.dh.clusters_info.groups_info:
+                    # if grp['groupidx'] == groupidx:
+                        # self.dh.clusters_info.groups_info.remove(grp)
+                        # break
+                ssignals.emit(self, "DeleteClusterGroup", groupidx)
+            except:
+                errors.append(groupidx)
         if errors:
             msg = "Non-empty groups were not deleted."
             self.main_window.statusBar().showMessage(msg, 5000)

@@ -167,7 +167,7 @@ class SplitAction(Action):
         colors = np.zeros(nclusters, dtype=np.int32)
         groups = np.zeros(nclusters, dtype=np.int32)
         new_colors = np.mod(colors[-1] + 1 + np.arange(nclusters_to_split), len(COLORMAP))
-        new_groups = np.tile([groups[self.old_cluster_indices[clusters_to_split[0]]]], nclusters_to_split)
+        new_groups = self.old_groups[[self.old_cluster_indices[c] for c in clusters_to_split]]
         # new_color = self.dh.clusters_info.colors[self.dh.clusters_info.cluster_indices[self.clusters_to_merge[0]]]
         # new_group = self.dh.clusters_info.groups[self.dh.clusters_info.cluster_indices[self.clusters_to_merge[0]]]
         i = 0

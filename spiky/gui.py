@@ -44,12 +44,6 @@ class DataUpdater(QtGui.QWidget):
     """
     def __init__(self, dh):
         super(DataUpdater, self).__init__()
-        
-        # reset_signals()
-        # print "reset"
-        # global SIGNALS
-        # SIGNALS = SpikySignals()
-        
         self.dh = dh
         self.initialize_connections()
         
@@ -389,6 +383,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
+        ssignals.SIGNALS.NewClusterGroup.connect(self.slotNewClusterGroup)
+        ssignals.SIGNALS.DeleteClusterGroup.connect(self.slotDeleteClusterGroup)
+        ssignals.SIGNALS.ClusterChangedGroup.connect(self.slotClusterChangedGroup)
+        
+        
         
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
@@ -430,6 +429,23 @@ class SpikyMainWindow(QtGui.QMainWindow):
         else:
             self.split_action.setEnabled(False)
     
+    def slotNewClusterGroup(self, sender, groupidx):
+        name = "Group %d" % groupidx
+        self.dh.clusters_info.groups_info.append(dict(name=name,
+            groupidx=groupidx))
+    
+    def slotDeleteClusterGroup(self, sender, groupidx):
+        for grp in self.dh.clusters_info.groups_info:
+            if grp['groupidx'] == groupidx:
+                self.dh.clusters_info.groups_info.remove(grp)
+                break
+    
+    def slotClusterChangedGroup(self, sender, clusteridx, groupidx):
+        # self.dh.clusters_info.groups
+        cluster_rel = self.dh.clusters_info.cluster_indices[clusteridx]
+        # print cluster_rel
+        self.dh.clusters_info.groups[cluster_rel] = groupidx
+        
     
     # User preferences related methods
     # --------------------------------
