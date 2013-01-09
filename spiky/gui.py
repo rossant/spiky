@@ -398,14 +398,16 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
-        ssignals.SIGNALS.NewClusterGroup.connect(self.slotNewClusterGroup)
-        ssignals.SIGNALS.DeleteClusterGroup.connect(self.slotDeleteClusterGroup)
+        ssignals.SIGNALS.NewGroup.connect(self.slotNewGroup)
+        ssignals.SIGNALS.DeleteGroup.connect(self.slotDeleteGroup)
         ssignals.SIGNALS.ClusterChangedGroup.connect(self.slotClusterChangedGroup)
-        ssignals.SIGNALS.ClusterColorChanged.connect(self.slotClusterColorChanged)
-        ssignals.SIGNALS.GroupColorChanged.connect(self.slotGroupColorChanged)
+        ssignals.SIGNALS.ClusterChangedColor.connect(self.slotClusterChangedColor)
+        ssignals.SIGNALS.GroupChangedColor.connect(self.slotGroupChangedColor)
+        ssignals.SIGNALS.RenameGroup.connect(self.slotRenameGroup)
         
         
-        
+    # Highlight slots
+    #----------------
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
         
@@ -440,6 +442,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.split_action.setEnabled(False)
         self.selected_spikes = None
     
+    
+    # Selection slots
+    #----------------
     def slotSelectSpikes(self, sender, spikes):
         self.selected_spikes = spikes
         # print spikes
@@ -449,24 +454,49 @@ class SpikyMainWindow(QtGui.QMainWindow):
         else:
             self.split_action.setEnabled(False)
     
-    def slotNewClusterGroup(self, sender, groupidx):
+    
+    # Group slots
+    #------------
+    def slotNewGroup(self, sender, groupidx):
         name = "Group %d" % groupidx
         self.dh.clusters_info.groups_info.append(dict(name=name,
             groupidx=groupidx, coloridx=0))
     
-    def slotDeleteClusterGroup(self, sender, groupidx):
+    def slotRenameGroup(self, sender, groupidx, name):
+        for grp in self.dh.clusters_info.groups_info:
+            print grp['groupidx'], grp['name'], groupidx
+            if grp['groupidx'] == groupidx:
+                grp['name'] = name
+                break
+        self.cluster_widget.update_view(self.sdh)
+        print
+        
+    def slotDeleteGroup(self, sender, groupidx):
         for grp in self.dh.clusters_info.groups_info:
             if grp['groupidx'] == groupidx:
                 self.dh.clusters_info.groups_info.remove(grp)
                 break
     
+    def slotGroupChangedColor(self, sender, groupidx, coloridx):
+        groups = self.cluster_widget.view.selected_groups()
+        
+        for grp in self.dh.clusters_info.groups_info:
+            if grp['groupidx'] == groupidx:
+                grp['coloridx'] = coloridx
+                break
+        
+        self.cluster_widget.update_view(self.sdh)
+        
+        
+    # Cluster slots
+    #--------------
     def slotClusterChangedGroup(self, sender, clusteridx, groupidx):
         # self.dh.clusters_info.groups
         cluster_rel = self.dh.clusters_info.cluster_indices[clusteridx]
         # print cluster_rel
         self.dh.clusters_info.groups[cluster_rel] = groupidx
         
-    def slotClusterColorChanged(self, sender, clusteridx, coloridx):
+    def slotClusterChangedColor(self, sender, clusteridx, coloridx):
         clusters = self.cluster_widget.view.selected_clusters()
         
         cluster_rel = self.dh.clusters_info.cluster_indices[clusteridx]
@@ -480,23 +510,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # update the views by selecting the clusters again
         self.cluster_widget.view.select_multiple(clusters)
         
-    def slotGroupColorChanged(self, sender, groupidx, coloridx):
-        groups = self.cluster_widget.view.selected_groups()
         
-        for grp in self.dh.clusters_info.groups_info:
-            if grp['groupidx'] == groupidx:
-                grp['coloridx'] = coloridx
-                break
-        
-        self.cluster_widget.update_view(self.sdh)
-        # self.feature_widget.update_view(self.sdh)
-        # self.waveform_widget.update_view(self.sdh)
-        # self.correlograms_widget.update_view(self.sdh)
-        
-        # update the views by selecting the clusters again
-        # self.cluster_widget.view.select_multiple(group)
-        
-    
     # User preferences related methods
     # --------------------------------
     def save_geometry(self):

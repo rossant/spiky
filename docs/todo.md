@@ -14,40 +14,33 @@ Minor features
   * optional color for groups, and option to use that color for all clusters
     in that group on the feature view. ON by default for MUA.
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
-  * possibility to change the color of clusters permanently
+  * selection of cluster: highlight also in waveformview
+  * undo change color
+  * use the existing XML file (reverse engineer) and store all information
+    related to visualization in here (cluster colors, probe scaling, etc)
   
-  * small widget with text information (number of spikes, highlighted spikes...)
-  * function for automatic zoom in waveformview as a function of
-    channels and clusters
-    
+  * feature view and waveform view: display cluster index of the closest object
+    from the mouse, when pressing a button
   * buttons for all commands (reset view for any view)
   * interaction mode buttons: deactivate in gray to highlight the current mode
   
-  * selection of cluster: highlight also in waveformview
   * display mean/std waveform (see klusters)
   * highlighting: less transient with CTRL + click (click to deactivate)
   * option to change width/bin of correlograms
   * option to toggle showing masks as gray waveforms in waveform view
   * option to select the max number of waveforms to display (selected at
     random)
-  * use the existing XML file (reverse engineer) and store all information
-    related to visualization in here (cluster colors, probe scaling, etc)
+  * function for automatic zoom in waveformview as a function of
+    channels and clusters
+  * small widget with text information (number of spikes, highlighted spikes...)
 
 
 Improvements
 ------------
 
-  * feature view gray points transparency depth
   * normalize correlograms
+  * feature view gray points transparency depth
   * correlogram computations in external thread
-
-
-Fixes
------
-
-  * make sure the GUI work in IPython
-  * force cleaning up of widgets upon closing
-  * fix focus issue with floating docks
 
   
 Optimizations
@@ -56,11 +49,24 @@ Optimizations
   * pre-compute the highlighted colors instead of computing the HSV-RGB double
     conversion for every pixel!
   * improve the computation of cross-correlograms
+
+
+Fixes
+-----
+
+  * make sure the GUI work in IPython
+  * force cleaning up of widgets upon closing
+  * fix focus issue with floating docks
   
   
 Refactoring
 -----------
 
+  * reorganize clusters model: to_dict and from_dict methods in the model,
+    and whenever a change happens in the cluster view, a signal is raised and
+    processed in the gui, which does dataholder.XX = model.to_dict() so that
+    the cluster information are synchronized between the tree model and the
+    dataholder.
   * refactor interactions in waveformview/featureview with different
     processors...
   * refactoring correlograms: put the actual computations outside dataio

@@ -245,6 +245,9 @@ class GroupItem(TreeItem):
     def groupidx(self):
         return self.item_data['groupidx']
         
+    def __repr__(self):
+        return "<group {0:d} '{1:s}'>".format(self.groupidx(), self.name())
+        
 
 class ClusterGroupManager(TreeModel):
     headers = ['name', 'nspikes', 'color']
@@ -588,12 +591,6 @@ class ClusterTreeView(QtGui.QTreeView):
         # Disable all keyboard actions with modifiers, to avoid conflicts with
         # CTRL+arrows in FeatureView
         key = e.key()
-        # print key, self.modifiers
-        # if key in self.modifiers:
-            # self.modifier = key
-            # # return
-        # if self.modifier:
-            # return
         modif = e.modifiers()
         ctrl = modif & QtCore.Qt.ControlModifier
         shift = modif & QtCore.Qt.ShiftModifier
@@ -646,6 +643,9 @@ class ClusterWidget(QtGui.QWidget):
         self.add_group_action = QtGui.QAction("Add group", self)
         self.add_group_action.triggered.connect(self.add_group, QtCore.Qt.UniqueConnection)
         
+        self.rename_group_action = QtGui.QAction("Rename group", self)
+        self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
+        
         self.remove_group_action = QtGui.QAction("Remove group", self)
         self.remove_group_action.triggered.connect(self.remove_group, QtCore.Qt.UniqueConnection)
         
@@ -653,6 +653,7 @@ class ClusterWidget(QtGui.QWidget):
         self.context_menu.addAction(self.change_color_action)
         self.context_menu.addSeparator()
         self.context_menu.addAction(self.add_group_action)
+        self.context_menu.addAction(self.rename_group_action)
         self.context_menu.addAction(self.remove_group_action)
         
     def create_color_dialog(self):
@@ -690,8 +691,10 @@ class ClusterWidget(QtGui.QWidget):
         groups = self.view.selected_groups()
         
         if len(groups) > 0:
+            self.rename_group_action.setEnabled(True)
             self.remove_group_action.setEnabled(True)
         else:
+            self.rename_group_action.setEnabled(False)
             self.remove_group_action.setEnabled(False)
             
         if len(clusters) > 0 or len(groups) > 0:
@@ -707,11 +710,21 @@ class ClusterWidget(QtGui.QWidget):
         groupidx = max(groupindices) + 1
         name = "Group %d" % groupidx
         self.model.add_group(groupidx, name)
-        ssignals.emit(self, "NewClusterGroup", groupidx)
-        # self.dh.clusters_info.groups_info.append(dict(name=name,
-            # groupidx=groupidx))
+        ssignals.emit(self, "NewGroup", groupidx)
         self.view.expandAll()
-        # print self.dh.clusters_info.groups_info
+    
+    def rename_group(self):
+        groups = self.view.selected_groups()
+        groupidx = groups[0]
+        group = self.model.get_group(groupidx)
+        print groupidx, group
+        # return
+        name = group.name()
+        text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
+                QtGui.QLineEdit.Normal, name)
+        if ok:
+            ssignals.emit(self, "RenameGroup", groupidx, text)
+        
     
     def remove_group(self):
         errors = []
@@ -722,7 +735,7 @@ class ClusterWidget(QtGui.QWidget):
                     # if grp['groupidx'] == groupidx:
                         # self.dh.clusters_info.groups_info.remove(grp)
                         # break
-                ssignals.emit(self, "DeleteClusterGroup", groupidx)
+                ssignals.emit(self, "DeleteGroup", groupidx)
             except:
                 errors.append(groupidx)
         if errors:
@@ -736,9 +749,9 @@ class ClusterWidget(QtGui.QWidget):
         rgb = np.array(color.getRgbF()[:3]).reshape((1, -1))
         i = np.argmin(np.abs(colors.COLORMAP - rgb).sum(axis=1))
         for cluster in clusters:
-            ssignals.emit(self, "ClusterColorChanged", cluster, i)
+            ssignals.emit(self, "ClusterChangedColor", cluster, i)
         for group in groups:
-            ssignals.emit(self, "GroupColorChanged", group, i)
+            ssignals.emit(self, "GroupChangedColor", group, i)
     
     
     # Save and restore geometry
