@@ -26,12 +26,16 @@ def generate_hsv(n0=20):
     H = H[~((i==5) | (i==7) | (i==10) | (i==12) | (i==15) |(i==17) | (i==18) | (i==19))]
     # H = H[((i==15) |(i==17) | (i==18) | (i==19))]
 
-    H = np.repeat(H, 2)
+    H = np.repeat(H, 4)
     
     n = len(H)
     S = np.ones(n)
     V = np.ones(n)
+    # change V for half of the colors
     V[1::2] = .75
+    # change S for half of the colors
+    S[2::4] = .75
+    S[3::4] = .75
     
     hsv = np.zeros((n, 3))
     hsv[:,0] = H
@@ -48,7 +52,8 @@ COLORS = hsv_to_rgb(generate_hsv())
 COLORS = np.clip(COLORS, 0, 1)
 COLORS_COUNT = len(COLORS)
 step = 17  # needs to be prime with COLORS_COUNT
-perm = np.mod(np.arange(0, step * COLORS_COUNT, step), COLORS_COUNT)
+perm = np.mod(np.arange(0, step * 24, step), 24)
+perm = np.hstack((2 * perm, 2 * perm + 1))
 COLORS = COLORS[perm,...]
 COLORMAP = np.array(COLORS)
 
@@ -82,8 +87,14 @@ if __name__ == "__main__":
     
     hsv_rect(hsv, (-1,0,1,1))
     
+    # highlight
     hsv[:,1] -= 0.5 # white -> color
     hsv[:,2] += 0.5 # black -> white
+    
+    # hsv[:,1] -= 0.25 # white -> color
+    # hsv[:,2] += 0.5 # black -> white
+    
+    
     hsv_rect(hsv, (-1,-1,1,0))
     
     ylim(-1,1)
