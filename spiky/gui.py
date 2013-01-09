@@ -227,10 +227,19 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # ---------
         file_menu = self.menuBar().addMenu("&File")
         
-        # Quit
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.save_action)
         file_menu.addSeparator()
+        
+        # open last file
+        filename = SETTINGS.get('mainWindow/last_data_file', None)
+        if filename:
+            self.open_last_action = QtGui.QAction(filename, self)
+            self.open_last_action.setShortcut("CTRL+ALT+O")
+            self.open_last_action.triggered.connect(self.open_last_file, QtCore.Qt.UniqueConnection)
+            file_menu.addAction(self.open_last_action)
+            file_menu.addSeparator()
+        
         file_menu.addAction(self.quit_action)
         
         
@@ -274,12 +283,18 @@ class SpikyMainWindow(QtGui.QMainWindow):
         if filename:
             self.load_file(filename)
         
+    def open_last_file(self, *args):
+        filename = SETTINGS.get('mainWindow/last_data_file', None)
+        self.load_file(filename)
+        
     def save_file(self, *args):
         self.provider.save()
         
     def load_file(self, filename):
         r = re.search(r"([^\n]+)\.[^\.]+\.([0-9]+)$", filename)
         if r:
+            # save last opened file
+            SETTINGS.set('mainWindow/last_data_file', filename)
             filename = r.group(1)
             fileindex = int(r.group(2))
         else:
@@ -419,6 +434,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
             self.merge_action.setEnabled(True)
         else:
             self.merge_action.setEnabled(False)
+        # disable split when changing selection of clusters
+        self.split_action.setEnabled(False)
+        self.selected_spikes = None
     
     def slotSelectSpikes(self, sender, spikes):
         self.selected_spikes = spikes

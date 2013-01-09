@@ -109,8 +109,6 @@ class SplitAction(Action):
         self.old_colors = self.dh.clusters_info.colors
         self.old_groups = self.dh.clusters_info.groups
         
-        # print self.spikes_to_split
-        
         clusters = self.dh.clusters.copy()
         
         # array with clusters to split
@@ -120,8 +118,6 @@ class SplitAction(Action):
         # create nclusters_to_split new clusters
         nc = self.dh.new_cluster()
         new_clusters = np.arange(nc, nc + nclusters_to_split)
-        
-        # print clusters_to_split, new_clusters
         
         for cluster, new_cluster in zip(clusters_to_split, new_clusters):
             # spikes which are in the current cluster
@@ -146,30 +142,10 @@ class SplitAction(Action):
         # for each cluster absolute index, its relative index
         cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
         
-        # update colors and groups
-        # colors = self.old_colors.copy()
-        # groups = self.old_groups.copy()
-        
-        # # group of new clusters = group of the first cluster to split
-        # new_groups = np.tile([groups[self.old_cluster_indices[clusters_to_split[0]]]], nclusters_to_split)
-        # # color of new clusters = new colors following the last color
-        # new_colors = np.mod(colors[-1] + 1 + np.arange(nclusters_to_split), len(COLORMAP))
-        
-        # colors = np.array(np.hstack((colors, new_colors)), dtype=np.int32)
-        # groups = np.array(np.hstack((groups, new_groups)), dtype=np.int32)
-        
-        # print new_colors, len(new_colors)
-        # print colors, len(colors)
-        # print
-        # print new_groups, len(new_groups)
-        # print groups, len(groups)
-        
         colors = np.zeros(nclusters, dtype=np.int32)
         groups = np.zeros(nclusters, dtype=np.int32)
-        new_colors = np.mod(colors[-1] + 1 + np.arange(nclusters_to_split), len(COLORMAP))
+        new_colors = np.mod(self.old_colors[-1] + 1 + np.arange(nclusters_to_split), len(COLORMAP))
         new_groups = self.old_groups[[self.old_cluster_indices[c] for c in clusters_to_split]]
-        # new_color = self.dh.clusters_info.colors[self.dh.clusters_info.cluster_indices[self.clusters_to_merge[0]]]
-        # new_group = self.dh.clusters_info.groups[self.dh.clusters_info.cluster_indices[self.clusters_to_merge[0]]]
         i = 0
         for cluster in cluster_names:
             # old and new cluster relative indices
@@ -185,9 +161,7 @@ class SplitAction(Action):
                 colors[cluster_rel_new] = new_colors[i]
                 groups[cluster_rel_new] = new_groups[i]
                 i += 1
-        # for cluster, new_cluster in zip(clusters_to_split, new_clusters):
-            
-        
+                
         # update
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters

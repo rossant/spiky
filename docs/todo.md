@@ -38,7 +38,6 @@ Minor features
 Improvements
 ------------
 
-  * splitting: new group = group of the source cluster
   * feature view gray points transparency depth
   * normalize correlograms
   * correlogram computations in external thread
