@@ -375,9 +375,11 @@ class ClusterGroupManager(TreeModel):
           if (type(cluster) == ClusterItem)]
             
     def get_cluster(self, clusteridx):
-        return [cluster for cluster in self.get_descendants(self.root_item) \
-          if (type(cluster) == ClusterItem) and \
-                (cluster.clusteridx() == clusteridx)][0]
+        l = [cluster for cluster in self.get_descendants(self.root_item) \
+                  if (type(cluster) == ClusterItem) and \
+                        (cluster.clusteridx() == clusteridx)]
+        if l:
+            return l[0]
                 
     def get_clusters_in_group(self, groupidx):
         group = self.get_group(groupidx)
@@ -508,11 +510,15 @@ class ClusterTreeView(QtGui.QTreeView):
             self.can_signal_selection = False
             sel_model = self.selectionModel()
             for cluster in clusters[:-1]:
-                cl = self.get_cluster(cluster).index
-                sel_model.select(cl, sel_model.Select | sel_model.Rows)
+                cl = self.get_cluster(cluster)
+                if cl:
+                    cl = cl.index
+                    sel_model.select(cl, sel_model.Select | sel_model.Rows)
             self.can_signal_selection = True
-            cl = self.get_cluster(clusters[-1]).index
-            sel_model.select(cl, sel_model.Select | sel_model.Rows)
+            cl = self.get_cluster(clusters[-1])
+            if cl:
+                cl = cl.index
+                sel_model.select(cl, sel_model.Select | sel_model.Rows)
             
     def select_all(self):
         # groups = self.model().get_groups()

@@ -5,23 +5,26 @@ Major features
 --------------
 
   * cluster split with button / S press
-    (split with different clusters: split everything)
   * GUI to visualize probe files
   
 
 Minor features
 --------------
   
-  * cluster group renaming
+  * recent files
   * small widget with text information (number of spikes, highlighted spikes...)
   * function for automatic zoom in waveformview as a function of
     channels and clusters
+    
   * buttons for all commands (reset view for any view)
   * interaction mode buttons: deactivate in gray to highlight the current mode
+  
+  * cluster group renaming
   * optional color for groups, and option to use that color for all clusters
     in that group on the feature view. ON by default for MUA.
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * possibility to change the color of clusters permanently
+  
   * selection of cluster: highlight also in waveformview
   * display mean/std waveform (see klusters)
   * highlighting: less transient with CTRL + click (click to deactivate)

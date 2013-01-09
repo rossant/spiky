@@ -28,6 +28,9 @@ class SpikySignals(QtCore.QObject):
     ClusterSelectionToChange = QtCore.pyqtSignal(object, np.ndarray)
     ClusterSelectionChanged = QtCore.pyqtSignal(object, np.ndarray)
     
+    # Select spikes for splitting
+    SelectSpikes = QtCore.pyqtSignal(object, np.ndarray)
+    
     def reset(self):
         self.HighlightSpikes.disconnect()
         self.ProjectionToChange.disconnect()
@@ -35,6 +38,7 @@ class SpikySignals(QtCore.QObject):
         self.AutomaticProjection.disconnect()
         self.ClusterSelectionToChange.disconnect()
         self.ClusterSelectionChanged.disconnect()
+        self.SelectSpikes.disconnect()
         
         
     

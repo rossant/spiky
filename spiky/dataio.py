@@ -324,6 +324,8 @@ class SelectDataHolder(object):
         # relative cluster indices
         clusters_rel = [self.dataholder.clusters_info.cluster_indices[cl] for cl in clusters]
         
+        self.spike_ids = np.nonzero(select_mask)[0]
+        
         # nspikes is the number of True elements in select_mask
         self.nspikes = select_mask.sum()
         # TODO: move that outside dataio
@@ -377,7 +379,7 @@ class KlustersDataProvider(DataProvider):
     def load_probe(self, filename):
         pass
         
-    def load(self, filename, fileindex):
+    def load(self, filename, fileindex=1):
         # klusters tests
         nchannels = 32
         # nspikes = 10000

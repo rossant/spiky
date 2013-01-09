@@ -142,6 +142,7 @@ class FeatureDataManager(Manager):
         self.nchannels = self.ndim // self.fetdim
         self.npoints = features.shape[0]
         self.features = features
+        self.spike_ids = spike_ids
         # self.colormap = colormap
         
         # data organizer: reorder data according to clusters
@@ -405,10 +406,13 @@ class FeatureSelectionManager(Manager):
         
         if do_update:
             
-            # TODO
             # emit the SelectionSpikes signal
-            # if do_emit:
-                # emit(self.parent, 'SelectionSpikes', spikes)
+            if do_emit:
+                if len(spikes) > 0:
+                    aspikes = self.data_manager.spike_ids[spikes]
+                else:
+                    aspikes = spikes
+                ssignals.emit(self.parent, 'SelectSpikes', aspikes)
             
             self.paint_manager.set_data(
                 selection=self.selection_mask, visual='features')
@@ -506,7 +510,7 @@ class FeatureInteractionManager(PlotInteractionManager):
     def selection_end_point(self, parameter):
         self.selection_manager.end_point(parameter)
         
-    def selection_cancel_selection(self, parameter):
+    def selection_cancel(self, parameter):
         self.selection_manager.cancel_selection()
 
     def automatic_projection(self, parameter):
@@ -523,7 +527,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         
         self.register('AddSelectionPoint', self.selection_add_point)
         self.register('EndSelectionPoint', self.selection_end_point)
-        self.register('CancelSelectionPoint', self.selection_cancel_selection)
+        self.register('CancelSelectionPoint', self.selection_cancel)
         
         self.register('SelectProjection', self.select_projection)
         self.register('AutomaticProjection', self.automatic_projection)
@@ -723,7 +727,8 @@ class FeatureWidget(VisualizationWidget):
                       clusters=self.dh.clusters,
                       # colormap=self.dh.colormap,
                       cluster_colors=self.dh.cluster_colors,
-                      masks=self.dh.masks)
+                      masks=self.dh.masks,
+                      spike_ids=self.dh.spike_ids)
         return self.view
         
     def update_view(self, dh=None):
@@ -734,7 +739,8 @@ class FeatureWidget(VisualizationWidget):
                       clusters=self.dh.clusters,
                       cluster_colors=self.dh.cluster_colors,
                       clusters_unique=self.dh.clusters_unique,
-                      masks=self.dh.masks)
+                      masks=self.dh.masks,
+                      spike_ids=self.dh.spike_ids)
         self.update_nspikes_viewer(self.dh.nspikes, 0)
 
     def create_toolbar(self):

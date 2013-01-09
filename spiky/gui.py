@@ -310,22 +310,31 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
     def merge(self):
         """Merge selected clusters."""
-        newcluster = self.dh.new_cluster()
-        self.am.do(spiky.MergeAction, self.sdh.get_clusters(), newcluster)
+        action = self.am.do(spiky.MergeAction, self.sdh.get_clusters())
         self.cluster_widget.update_view(self.sdh)
-        self.cluster_widget.view.select(newcluster)
+        self.cluster_widget.view.select(action.new_cluster)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
         
     def split(self):
-        # TODO
-        log_warn("Split not implemented yet")
+        """Split selected spikes."""
+        action = self.am.do(spiky.SplitAction, self.selected_spikes)
+        self.cluster_widget.update_view(self.sdh)
+        # select old and new clusters after split
+        cl = np.hstack((action.clusters_to_split, action.new_clusters))
+        self.cluster_widget.view.select_multiple(cl)
+        self.undo_action.setEnabled(self.am.undo_enabled())
+        self.redo_action.setEnabled(self.am.redo_enabled())
+        self.feature_widget.view.process_interaction('CancelSelectionPoint')
         
     def undo(self):
         action = self.am.undo()
         if action is not None:
             self.cluster_widget.update_view(self.sdh)
-            self.cluster_widget.view.select_multiple(action.clusters_to_merge)
+            if isinstance(action, spiky.MergeAction):
+                self.cluster_widget.view.select_multiple(action.clusters_to_merge)
+            if isinstance(action, spiky.SplitAction):
+                self.cluster_widget.view.select_multiple(action.clusters_to_split)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
         
@@ -333,7 +342,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
         action = self.am.redo()
         if action is not None:
             self.cluster_widget.update_view(self.sdh)
-            self.cluster_widget.view.select(action.new_cluster)
+            if isinstance(action, spiky.MergeAction):
+                self.cluster_widget.view.select(action.new_cluster)
+            if isinstance(action, spiky.SplitAction):
+                cl = np.hstack((action.clusters_to_split, action.new_clusters))
+                self.cluster_widget.view.select_multiple(cl)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
         
@@ -375,6 +388,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         """Initialize the signals/slots connections between widgets."""
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
         
     def slotHighlightSpikes(self, sender, spikes):
         """Called whenever spikes are selected in a view.
@@ -406,6 +420,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
             self.merge_action.setEnabled(True)
         else:
             self.merge_action.setEnabled(False)
+    
+    def slotSelectSpikes(self, sender, spikes):
+        self.selected_spikes = spikes
+        # print spikes
+        # print self.dh.clusters[spikes]
+        if len(spikes) >= 1:
+            self.split_action.setEnabled(True)
+        else:
+            self.split_action.setEnabled(False)
     
     
     # User preferences related methods
