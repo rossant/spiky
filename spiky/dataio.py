@@ -490,7 +490,7 @@ class KlustersDataProvider(DataProvider):
         self.holder.masks = masks
         
         # a list of dict with the info about each group
-        groups_info = [dict(name='Group 0', groupidx=0)]
+        groups_info = [dict(name='Group 0', groupidx=0, coloridx=0)]
         self.holder.clusters = clusters
         self.holder.clusters_info = Info(
             colors=np.mod(np.arange(nclusters), len(COLORMAP)),
@@ -639,7 +639,7 @@ class MockDataProvider(DataProvider):
         # a list of dict with the info about each group
         # groups_info = [dict(name='Interneurons'),
                        # dict(name='MUA')]
-        groups_info = [dict(name='Group 0', groupidx=0),]
+        groups_info = [dict(name='Group 0', groupidx=0, coloridx=0),]
         if nspikes > 0:
             self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         else:

@@ -637,9 +637,36 @@ class ClusterWidget(QtGui.QWidget):
         self.setLayout(vbox)
         
     def add_menu(self):
+        
+        self.create_color_dialog()
+        
+        self.change_color_action = QtGui.QAction("Change color", self)
+        self.change_color_action.triggered.connect(self.change_color, QtCore.Qt.UniqueConnection)
+        
+        self.add_group_action = QtGui.QAction("Add group", self)
+        self.add_group_action.triggered.connect(self.add_group, QtCore.Qt.UniqueConnection)
+        
+        self.remove_group_action = QtGui.QAction("Remove group", self)
+        self.remove_group_action.triggered.connect(self.remove_group, QtCore.Qt.UniqueConnection)
+        
         self.context_menu = QtGui.QMenu(self)
-        self.context_menu.addAction("Add group", self.add_group_action)
-        self.context_menu.addAction("Remove group", self.remove_group_action)
+        self.context_menu.addAction(self.change_color_action)
+        self.context_menu.addSeparator()
+        self.context_menu.addAction(self.add_group_action)
+        self.context_menu.addAction(self.remove_group_action)
+        
+    def create_color_dialog(self):
+        self.color_dialog = QtGui.QColorDialog(self)
+        self.color_dialog.setOptions(QtGui.QColorDialog.DontUseNativeDialog)
+        for i in xrange(48):
+            if i < len(colors.COLORMAP):
+                rgb = colors.COLORMAP[i] * 255
+                # rgb = colors.COLORMAP[i]
+            else:
+                rgb = (255, 255, 255)
+                # rgb = (1., 1., 1.)
+            k = 6 * (np.mod(i, 8)) + i // 8
+            self.color_dialog.setStandardColor(k, QtGui.qRgb(*rgb))
         
     def create_tree_view(self, dh):
         """Create the Tree View widget, and populates it using the data 
@@ -659,9 +686,22 @@ class ClusterWidget(QtGui.QWidget):
         self.view.set_model(self.model)
         
     def contextMenuEvent(self, event):
+        clusters = self.view.selected_clusters()
+        groups = self.view.selected_groups()
+        
+        if len(groups) > 0:
+            self.remove_group_action.setEnabled(True)
+        else:
+            self.remove_group_action.setEnabled(False)
+            
+        if len(clusters) > 0 or len(groups) > 0:
+            self.change_color_action.setEnabled(True)
+        else:
+            self.change_color_action.setEnabled(False)
+            
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
             
-    def add_group_action(self):
+    def add_group(self):
         clusters = self.view.selected_clusters()
         groupindices = [g.groupidx() for g in self.model.get_groups()]
         groupidx = max(groupindices) + 1
@@ -673,7 +713,7 @@ class ClusterWidget(QtGui.QWidget):
         self.view.expandAll()
         # print self.dh.clusters_info.groups_info
     
-    def remove_group_action(self):
+    def remove_group(self):
         errors = []
         for groupidx in self.view.selected_groups():
             try:
@@ -688,6 +728,17 @@ class ClusterWidget(QtGui.QWidget):
         if errors:
             msg = "Non-empty groups were not deleted."
             self.main_window.statusBar().showMessage(msg, 5000)
+    
+    def change_color(self):
+        clusters = self.view.selected_clusters()
+        groups = self.view.selected_groups()
+        color = self.color_dialog.getColor()
+        rgb = np.array(color.getRgbF()[:3]).reshape((1, -1))
+        i = np.argmin(np.abs(colors.COLORMAP - rgb).sum(axis=1))
+        for cluster in clusters:
+            ssignals.emit(self, "ClusterColorChanged", cluster, i)
+        for group in groups:
+            ssignals.emit(self, "GroupColorChanged", group, i)
     
     
     # Save and restore geometry
