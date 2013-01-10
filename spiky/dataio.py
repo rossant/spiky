@@ -277,6 +277,7 @@ class SelectDataHolder(object):
     """Provides access to the data related to selected clusters."""
     def __init__(self, dataholder):
         self.dataholder = dataholder
+        self.override_color = False
         self.clustercache = ClusterCache(dataholder, self)
         self.spike_dependent_variables = [
             'spiketimes',
@@ -322,7 +323,14 @@ class SelectDataHolder(object):
         
         self.baselines = counts / float(self.dataholder.duration)
         self.nclusters = len(clusters)
-        self.cluster_colors = np.array([self.dataholder.clusters_info['clusters_info'][cluster]['color'] for cluster in clusters])
+        # cluster colors
+        self.cluster_colors_original = np.array([self.dataholder.clusters_info['clusters_info'][cluster]['color'] for cluster in clusters])
+        # list of group indices for each cluster
+        groups = np.array([self.dataholder.clusters_info['clusters_info'][cluster]['groupidx'] for cluster in clusters])
+        # cluster overriden colors: the color of the corresponding group
+        self.cluster_overriden_colors = np.array([self.dataholder.clusters_info['groups_info'][groupidx]['color'] for groupidx in groups])
+        # handle -1 color when 
+        # self.cluster_overriden_colors[self.cluster_overriden_colors < 0] == 1
         # unique clusters
         self.clusters_unique = clusters
         
@@ -332,6 +340,13 @@ class SelectDataHolder(object):
             for varname in self.spike_dependent_variables:
                 if hasattr(self.dataholder, varname):
                     setattr(self, varname, getattr(self.dataholder, varname)[select_mask,...])
+    
+    @property
+    def cluster_colors(self):
+        if self.override_color:
+            return self.cluster_overriden_colors
+        else:
+            return self.cluster_colors_original
         
     def get_clusters(self):
         return self.clusters_unique
@@ -458,7 +473,7 @@ class KlustersDataProvider(DataProvider):
         self.holder.clusters = clusters
         
         # create the groups info object
-        groups_info = {0: dict(groupidx=0, name='Group 0', color=-1, spkcount=nspikes)}
+        groups_info = {0: dict(groupidx=0, name='Group 0', color=0, spkcount=nspikes)}
         clusters_info = get_clusters_info(clusters)
         nclusters = len(clusters_info)
         self.holder.nclusters = nclusters
@@ -556,7 +571,7 @@ class MockDataProvider(DataProvider):
             self.holder.clusters = np.zeros(0)
         
         # create the groups info object
-        groups_info = {0: dict(groupidx=0, name='Group 0', color=-1, spkcount=nspikes)}
+        groups_info = {0: dict(groupidx=0, name='Group 0', color=0, spkcount=nspikes)}
         clusters_info = get_clusters_info(self.holder.clusters)
         
         self.holder.clusters_info = dict(

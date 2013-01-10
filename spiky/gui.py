@@ -221,6 +221,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.redo_action.setEnabled(False)
         self.redo_action.triggered.connect(self.redo, QtCore.Qt.UniqueConnection)
         
+        # override color action
+        self.override_color_action = QtGui.QAction("Override &color", self)
+        self.override_color_action.setShortcut("C")
+        # self.override_color_action.setIcon(spiky.get_icon("redo"))
+        # self.override_color_action.setEnabled(False)
+        self.override_color_action.triggered.connect(self.override_color, QtCore.Qt.UniqueConnection)
+        
     def initialize_menu(self):
         """Initialize the menu."""
         # File menu
@@ -249,6 +256,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         views_menu.addAction(self.cluster_action)
         views_menu.addAction(self.waveform_action)
         views_menu.addAction(self.correlograms_action)
+        views_menu.addSeparator()
+        views_menu.addAction(self.override_color_action)
         
         
         # Actions menu
@@ -360,7 +369,21 @@ class SpikyMainWindow(QtGui.QMainWindow):
                 self.cluster_widget.view.select_multiple(cl)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
+    
+    def override_color(self):
+        # get selected clusters
+        # clusters = self.cluster_widget.view.selected_clusters()
         
+        self.sdh.override_color = not(self.sdh.override_color)
+        
+        # self.cluster_widget.update_view(self.sdh)
+        self.feature_widget.update_view(self.sdh)
+        self.waveform_widget.update_view(self.sdh)
+        self.correlograms_widget.update_view(self.sdh)
+        
+        # re-select the selected clusters
+        # self.cluster_widget.view.select_multiple(clusters)
+    
         
     # Event methods
     # -------------
@@ -401,6 +424,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
         ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
+        # ssignals.SIGNALS.OverrideColor.connect(self.slotOverrideColor)
         
         
     # Highlight slots
@@ -438,6 +462,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # disable split when changing selection of clusters
         self.split_action.setEnabled(False)
         self.selected_spikes = None
+    
+    # def slotOverrideColor(self, sender):
+        # # TODO
+        # pass
     
     
     # Selection slots

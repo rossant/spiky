@@ -790,7 +790,7 @@ class ClusterWidget(QtGui.QWidget):
         groupindices = [g.groupidx() for g in self.model.get_groups()]
         groupidx = max(groupindices) + 1
         name = "Group %d" % groupidx
-        self.model.add_group(groupidx=groupidx, name=name, color=-1, spkcount=0)
+        self.model.add_group(groupidx=groupidx, name=name, color=0, spkcount=0)
         ssignals.emit(self, "ClusterInfoToUpdate")
         self.view.expandAll()
         
@@ -839,7 +839,7 @@ class ClusterWidget(QtGui.QWidget):
             # groups with no color: set to -1
             if nocolor and isinstance(index.internalPointer(), GroupItem):
                 # update the color
-                self.model.setData(index, -1)
+                self.model.setData(index, 0)
             # clusters, or groups too if the color is not white: set the color
             else:
                 # update the color

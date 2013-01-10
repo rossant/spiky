@@ -10,8 +10,7 @@ Major features
 Minor features
 --------------
   
-  * option to use group color for all clusters in that group on the feature
-    view. ON by default for MUA.
+  * option to use group color for all clusters ON by default for MUA.
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * selection of cluster: highlight also in waveformview
   * undo change color
