@@ -339,6 +339,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def undo(self):
         action = self.am.undo()
         if action is not None:
+            # self.dh.clusters_info = self.cluster_widget.model.to_dict()
             self.cluster_widget.update_view(self.sdh)
             if isinstance(action, spiky.MergeAction):
                 self.cluster_widget.view.select_multiple(action.clusters_to_merge)
@@ -350,6 +351,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def redo(self):
         action = self.am.redo()
         if action is not None:
+            # self.dh.clusters_info = self.cluster_widget.model.to_dict()
             self.cluster_widget.update_view(self.sdh)
             if isinstance(action, spiky.MergeAction):
                 self.cluster_widget.view.select(action.new_cluster)
@@ -398,12 +400,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
-        ssignals.SIGNALS.NewGroup.connect(self.slotNewGroup)
-        ssignals.SIGNALS.DeleteGroup.connect(self.slotDeleteGroup)
-        ssignals.SIGNALS.ClusterChangedGroup.connect(self.slotClusterChangedGroup)
-        ssignals.SIGNALS.ClusterChangedColor.connect(self.slotClusterChangedColor)
-        ssignals.SIGNALS.GroupChangedColor.connect(self.slotGroupChangedColor)
-        ssignals.SIGNALS.RenameGroup.connect(self.slotRenameGroup)
+        ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
         
         
     # Highlight slots
@@ -457,57 +454,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
     
     # Group slots
     #------------
-    def slotNewGroup(self, sender, groupidx):
-        name = "Group %d" % groupidx
-        self.dh.clusters_info.groups_info.append(dict(name=name,
-            groupidx=groupidx, coloridx=0))
-    
-    def slotRenameGroup(self, sender, groupidx, name):
-        for grp in self.dh.clusters_info.groups_info:
-            print grp['groupidx'], grp['name'], groupidx
-            if grp['groupidx'] == groupidx:
-                grp['name'] = name
-                break
-        self.cluster_widget.update_view(self.sdh)
-        print
-        
-    def slotDeleteGroup(self, sender, groupidx):
-        for grp in self.dh.clusters_info.groups_info:
-            if grp['groupidx'] == groupidx:
-                self.dh.clusters_info.groups_info.remove(grp)
-                break
-    
-    def slotGroupChangedColor(self, sender, groupidx, coloridx):
-        groups = self.cluster_widget.view.selected_groups()
-        
-        for grp in self.dh.clusters_info.groups_info:
-            if grp['groupidx'] == groupidx:
-                grp['coloridx'] = coloridx
-                break
-        
-        self.cluster_widget.update_view(self.sdh)
-        
-        
-    # Cluster slots
-    #--------------
-    def slotClusterChangedGroup(self, sender, clusteridx, groupidx):
-        # self.dh.clusters_info.groups
-        cluster_rel = self.dh.clusters_info.cluster_indices[clusteridx]
-        # print cluster_rel
-        self.dh.clusters_info.groups[cluster_rel] = groupidx
-        
-    def slotClusterChangedColor(self, sender, clusteridx, coloridx):
+    def slotClusterInfoToUpdate(self, sender):
+        # get selected clusters
         clusters = self.cluster_widget.view.selected_clusters()
-        
-        cluster_rel = self.dh.clusters_info.cluster_indices[clusteridx]
-        self.dh.clusters_info.colors[cluster_rel] = coloridx
-        
+        # update the data holder
+        self.dh.clusters_info = self.cluster_widget.model.to_dict()
         self.cluster_widget.update_view(self.sdh)
-        # self.feature_widget.update_view(self.sdh)
-        # self.waveform_widget.update_view(self.sdh)
-        # self.correlograms_widget.update_view(self.sdh)
-        
-        # update the views by selecting the clusters again
+        # re-select the selected clusters
         self.cluster_widget.view.select_multiple(clusters)
         
         

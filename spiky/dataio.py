@@ -4,9 +4,10 @@ import numpy.random as rdn
 import h5py
 from galry import *
 from colors import COLORMAP
-from tools import Info
+# from tools import Info
 
 __all__ = [
+    'get_clusters_info',
     'DataHolder',
     'SelectDataHolder',
     'DataProvider',
@@ -36,28 +37,24 @@ def load_binary(file, dtype=None, count=None):
 
 
 
+def get_clusters_info(clusters):
+    spkcounts = collections.Counter(clusters)
+    cluster_keys = sorted(spkcounts.keys())
+    nclusters = len(cluster_keys)
+    clusters_info = {}
+    for clusteridx in cluster_keys:
+        spkcount = spkcounts[clusteridx]
+        clusters_info[clusteridx] = {
+                'clusteridx': clusteridx,
+                'color': np.mod(clusteridx, len(COLORMAP)),
+                'spkcount': spkcount,
+                'groupidx': 0,
+            }
+    return clusters_info
 
     
-# class Probe(object):
-"""dict
-nchannels: number of channels in the probe
-positions: a nchannels*2 array with the coordinates of each channel
-defaut_view: a dict with the info of the default view in waveformview
-"""
-    
-# class ClustersInfo(object):
-"""dict
-nclusters: total number of clusters
-groups: array of int with the group index for every cluster
-group_info: a list of dict with the info for each group (name, etc)
-colors: a nclusters*3 array with the color of each cluster
-"""
-
-
 # Correlograms
 # ------------
-
-
 def brian(T1, T2, width=.02, bin=.001, T=None):
     '''
     Returns a cross-correlogram with lag in [-width,width] and given bin size.
@@ -109,7 +106,6 @@ def brian(T1, T2, width=.02, bin=.001, T=None):
     
     return H / W
 
-
 def get_correlogram(x, y, width=.021, bin=.001, duration=None):
 
     # return np.zeros(2*int(np.ceil(width / bin)))
@@ -121,7 +117,6 @@ def get_correlogram(x, y, width=.021, bin=.001, duration=None):
         return np.zeros(2*int(np.ceil(width / bin)))
     corr[len(corr)/2] = 0
     return corr
-    
     
 class ClusterCache(object):
     def __init__(self, dh, sdh, width=None, bin=None):
@@ -243,9 +238,6 @@ class ClusterCache(object):
         return [self.spiketimes[i] for i in clusters]
     
     
-    
-    
-    
 # Data holder
 # -----------
 class DataHolder(object):
@@ -278,8 +270,8 @@ class DataHolder(object):
         filter_info: a FilterInfo dic
     """
     def new_cluster(self):
-        ids = self.clusters_info.names
-        return ids.max() + 1
+        ids = self.clusters_info['clusters_info'].keys()
+        return max(ids) + 1
 
 class SelectDataHolder(object):
     """Provides access to the data related to selected clusters."""
@@ -297,16 +289,6 @@ class SelectDataHolder(object):
         # self.select_clusters([0,1,2])
         self.select_clusters([])
         
-    # def get_correlograms(self, clusters):
-        # return self.clustercache.get_correlograms(clusters)
-            
-    # def get_spikecounts(self, clusters):
-        # return self.clustercache.get_spikecounts(clusters)
-            
-    # def get_spiketimes(self, cluster):
-        # # return self.dataholder.spiketimes[self.dataholder.clusters == cluster]
-        # return self.clustercache.get_spiketimes([cluster])[0]
-        
     def _selector_ufunc(self, clusters=None):
         """Create a custom ufunc for cluster selection."""
         if clusters is None or len(clusters) == 0:
@@ -322,7 +304,7 @@ class SelectDataHolder(object):
         uf = self._selector_ufunc(clusters)
         select_mask = np.array(uf(self.dataholder.clusters), dtype=np.bool)
         # relative cluster indices
-        clusters_rel = [self.dataholder.clusters_info.cluster_indices[cl] for cl in clusters]
+        # clusters_rel = [self.dataholder.clusters_info.cluster_indices[cl] for cl in clusters]
         
         self.spike_ids = np.nonzero(select_mask)[0]
         
@@ -340,7 +322,7 @@ class SelectDataHolder(object):
         
         self.baselines = counts / float(self.dataholder.duration)
         self.nclusters = len(clusters)
-        self.cluster_colors = self.dataholder.clusters_info.colors[clusters_rel]
+        self.cluster_colors = np.array([self.dataholder.clusters_info['clusters_info'][cluster]['color'] for cluster in clusters])
         # unique clusters
         self.clusters_unique = clusters
         
@@ -405,7 +387,7 @@ class KlustersDataProvider(DataProvider):
             log_warn("CLU file '%s' not found" % filename)
             clusters = np.zeros(nspikes + 1, dtype=np.int32)
             clusters[0] = 1
-        nclusters = clusters[0]
+        # nclusters = clusters[0]
         clusters = clusters[1:]
         
         features = load_text(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
@@ -451,21 +433,7 @@ class KlustersDataProvider(DataProvider):
         self.holder.freq = 20000.
         
         
-        
-        # find the number of spikes in each cluster
-        # WARNING: the nclusters value in the .clu file may not correspond
-        # to the number of different clusters, so we just get rid of it
-        spkcounts = collections.Counter(clusters)
-        cluster_keys = sorted(spkcounts.keys())
-        spkcounts = np.array([spkcounts[key] for key in cluster_keys])
-        cluster_names = np.array(cluster_keys)#map(str, cluster_keys)
-        nclusters = len(cluster_names)
-        # for each cluster absolute index, its relative index
-        cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
-        
-        
         self.holder.nspikes = nspikes
-        self.holder.nclusters = nclusters
         self.holder.nchannels = nchannels
         
         # construct spike times from random interspike interval
@@ -474,14 +442,12 @@ class KlustersDataProvider(DataProvider):
         # TODO
         self.holder.duration = spiketimes[-1] / float(self.holder.freq)
     
-
-        # NEW: normalize waveforms at once
-        # waveforms = 2 * waveforms / np.abs(waveforms).max() - .5
+        # normalize waveforms at once
         waveforms = (waveforms - waveforms.mean())
         waveforms = waveforms / np.abs(waveforms).max()
         
         self.holder.waveforms = waveforms
-        self.holder.waveforms_info = Info(nsamples=nsamples)
+        self.holder.waveforms_info = dict(nsamples=nsamples)
         
         fetdim = 3
         self.holder.fetdim = fetdim
@@ -489,16 +455,18 @@ class KlustersDataProvider(DataProvider):
         
         self.holder.masks = masks
         
-        # a list of dict with the info about each group
-        groups_info = [dict(name='Group 0', groupidx=0, coloridx=0)]
         self.holder.clusters = clusters
-        self.holder.clusters_info = Info(
-            colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            names=cluster_names,
-            spkcounts=spkcounts,
+        
+        # create the groups info object
+        groups_info = {0: dict(groupidx=0, name='Group 0', color=-1, spkcount=nspikes)}
+        clusters_info = get_clusters_info(clusters)
+        nclusters = len(clusters_info)
+        self.holder.nclusters = nclusters
+        
+        self.holder.clusters_info = dict(
+            clusters_info=clusters_info,
             groups_info=groups_info,
-            cluster_indices=cluster_indices,
-            groups=np.zeros(nclusters),
+            # groups=np.zeros(nclusters, dtype=np.int32),
             )
 
         try:
@@ -506,11 +474,11 @@ class KlustersDataProvider(DataProvider):
         except Exception as e:
             print(str(e))
             probe = None
-        self.holder.probe = Info(positions=probe)
+        self.holder.probe = dict(positions=probe)
         
         # cross correlograms
         nsamples_correlograms = 20
-        self.holder.correlograms_info = Info(nsamples=nsamples_correlograms)
+        self.holder.correlograms_info = dict(nsamples=nsamples_correlograms)
         
         self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
         
@@ -528,57 +496,6 @@ class SpikeDetektH5DataProvider(DataProvider):
     def load(self, filename):
         
         pass
-        # self.holder = DataHolder()
-        
-        # self.freq = 20000.
-        
-        # self.holder.nspikes = nspikes
-        # self.holder.nclusters = nclusters
-        # self.holder.nchannels = nchannels
-        
-        # # construct spike times from random interspike interval
-        # self.holder.spiketimes = np.cumsum(np.random.randint(size=nspikes,
-            # low=int(self.freq*.005), high=int(self.freq*10)))
-        
-        # self.holder.waveforms = rdn.randn(nspikes, nsamples, nchannels)
-        # self.holder.waveforms_info = Info(nsamples=nsamples)
-        
-        # fetdim = 3
-        # # TODO
-        # # self.holder.features = rdn.randn(nspikes, nchannels, fetdim)
-        # self.holder.fetdim = fetdim
-        # self.holder.features = rdn.randn(nspikes, nchannels * fetdim + 1)
-        
-        # self.holder.masks = rdn.rand(nspikes, nchannels)
-        # self.holder.masks[self.holder.masks < .25] = 0
-        
-        # # a list of dict with the info about each group
-        # groups_info = [dict(name='Interneurons'),
-                       # dict(name='MUA')]
-        # self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
-        # self.holder.clusters_info = Info(
-            # colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            # names=['%d' % i for i in xrange(nclusters)],
-            # rates=rdn.rand(nclusters) * 20,
-            # groups_info=groups_info,
-            # groups=rdn.randint(low=0, high=len(groups_info), size=nclusters))
-
-        # self.holder.probe = Info(positions=np.loadtxt("data/buzsaki32.txt"))
-        
-        # # cross correlograms
-        # nsamples_correlograms = 20
-        # # self.holder.correlograms = rdn.rand(nclusters * (nclusters + 1) / 2,
-            # # nsamples_correlograms)
-        # self.holder.correlograms_info = Info(nsamples=nsamples_correlograms)
-        
-        # self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
-        
-        
-        # return self.holder
-        
-        
-        
-        
         
     def save(self, filename):
         pass
@@ -617,11 +534,8 @@ class MockDataProvider(DataProvider):
             waveforms = (waveforms - waveforms.mean())
             waveforms = waveforms / np.abs(waveforms).max()
         
-        # print waveforms.min(), waveforms.max()
-        
         self.holder.waveforms = waveforms
-        self.holder.waveforms_info = Info(nsamples=nsamples)
-        
+        self.holder.waveforms_info = dict(nsamples=nsamples)
         
         
         fetdim = 3
@@ -634,49 +548,33 @@ class MockDataProvider(DataProvider):
         self.holder.masks = np.array([0., .5, 1.])[masksind]
         # self.holder.masks[self.holder.masks < .25] = 0
 
-
-        
         # a list of dict with the info about each group
-        # groups_info = [dict(name='Interneurons'),
-                       # dict(name='MUA')]
         groups_info = [dict(name='Group 0', groupidx=0, coloridx=0),]
         if nspikes > 0:
             self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         else:
             self.holder.clusters = np.zeros(0)
         
+        # create the groups info object
+        groups_info = {0: dict(groupidx=0, name='Group 0', color=-1, spkcount=nspikes)}
+        clusters_info = get_clusters_info(self.holder.clusters)
         
-        spkcounts = collections.Counter(self.holder.clusters)
-        cluster_keys = sorted(spkcounts.keys())
-        spkcounts = np.array([spkcounts[key] for key in cluster_keys])
-        cluster_names = map(str, cluster_keys)
-        nclusters = len(cluster_names)
-        # for each cluster absolute index, its relative index
-        cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
-
-        
-        
-        
-        self.holder.clusters_info = Info(
-            colors=np.mod(np.arange(nclusters), len(COLORMAP)),
-            names=['%d' % i for i in xrange(nclusters)],
-            spkcounts=rdn.rand(nclusters) * 20,
+        self.holder.clusters_info = dict(
+            clusters_info=clusters_info,
             groups_info=groups_info,
-            groups=rdn.randint(low=0, high=len(groups_info), size=nclusters),
-            cluster_indices=cluster_indices,)
+            )
+            
 
         try:
             probe = np.loadtxt("data/buzsaki32.txt")
         except Exception as e:
             print(str(e))
             probe = None
-        self.holder.probe = Info(positions=probe)
+        self.holder.probe = dict(positions=probe)
         
         # cross correlograms
         nsamples_correlograms = 20
-        # self.holder.correlograms = rdn.rand(nclusters * (nclusters + 1) / 2,
-            # nsamples_correlograms)
-        self.holder.correlograms_info = Info(nsamples=nsamples_correlograms)
+        self.holder.correlograms_info = dict(nsamples=nsamples_correlograms)
         
         self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
         

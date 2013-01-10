@@ -1,6 +1,8 @@
 import collections
+from copy import deepcopy as dcopy
 import numpy as np
 from colors import COLORMAP
+from dataio import get_clusters_info
 
 class Action(object):
     def __init__(self, dh):
@@ -13,11 +15,25 @@ class Action(object):
         pass
         
     def unexecute(self):
-        pass
+        self.restore_state()
 
     def __repr__(self):
         return super(Action, self).__repr__()
 
+    def save_state(self):
+        # save old information (for redo)
+        self.old_nclusters = self.dh.nclusters
+        self.old_clusters = self.dh.clusters
+        self.old_clusters_info = dcopy(self.dh.clusters_info['clusters_info'])
+        self.old_groups_info = dcopy(self.dh.clusters_info['groups_info'])
+        
+    def restore_state(self):
+        # restore old information (for redo)
+        self.dh.nclusters = self.old_nclusters
+        self.dh.clusters = self.old_clusters
+        self.dh.clusters_info['clusters_info'] = self.old_clusters_info
+        self.dh.clusters_info['groups_info'] = self.old_groups_info
+        
         
 class MergeAction(Action):
     def set_params(self, clusters_to_merge):
@@ -29,66 +45,41 @@ class MergeAction(Action):
             return
         
         # save old information (for redo)
-        self.old_nclusters = self.dh.nclusters
-        self.old_clusters = self.dh.clusters
-        self.old_cluster_names = self.dh.clusters_info.names
-        self.old_spkcounts = self.dh.clusters_info.spkcounts
-        self.old_cluster_indices = self.dh.clusters_info.cluster_indices
-        self.old_colors = self.dh.clusters_info.colors
-        self.old_groups = self.dh.clusters_info.groups
+        self.save_state()
         
+        # get the index of the new cluster
         self.new_cluster = self.dh.new_cluster()
         
+        # copy and update the clusters array
         clusters = self.dh.clusters.copy()
         # update the clusters array
         ind = np.in1d(clusters, self.clusters_to_merge)
+        # if old cluster in clusters to merge, then assign to new cluster
         clusters[ind] = self.new_cluster
         
-        spkcounts = collections.Counter(clusters)
-        cluster_keys = sorted(spkcounts.keys())
-        spkcounts = np.array([spkcounts[key] for key in cluster_keys])
-        cluster_names = np.array(cluster_keys)#map(str, cluster_keys)
-        nclusters = len(cluster_names)
-        # for each cluster absolute index, its relative index
-        cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
+        # get clusters info
+        clusters_info = get_clusters_info(clusters)
+        nclusters = len(clusters_info)
         
         colors = np.zeros(nclusters, dtype=np.int32)
         groups = np.zeros(nclusters, dtype=np.int32)
-        new_color = self.dh.clusters_info.colors[self.dh.clusters_info.cluster_indices[self.clusters_to_merge[0]]]
-        new_group = self.dh.clusters_info.groups[self.dh.clusters_info.cluster_indices[self.clusters_to_merge[0]]]
-        for cluster in cluster_names:
-            # old and new cluster relative indices
-            cluster_rel_new = cluster_indices[cluster]
+        new_color = self.dh.clusters_info['clusters_info'][self.clusters_to_merge[0]]['color']
+        new_group = self.dh.clusters_info['clusters_info'][self.clusters_to_merge[0]]['groupidx']
+        for clusteridx, info in clusters_info.iteritems():
             # if the cluster has not been changed
-            if cluster != self.new_cluster and cluster not in self.clusters_to_merge:
+            if clusteridx != self.new_cluster and clusteridx not in self.clusters_to_merge:
                 # new color = old color
-                cluster_rel_old = self.dh.clusters_info.cluster_indices[cluster]
-                colors[cluster_rel_new] = self.dh.clusters_info.colors[cluster_rel_old]
-                groups[cluster_rel_new] = self.dh.clusters_info.groups[cluster_rel_old]
+                info['color'] = self.dh.clusters_info['clusters_info'][clusteridx]['color']
+                info['groupidx'] = self.dh.clusters_info['clusters_info'][clusteridx]['groupidx']
             # otherwise, set the new color
             else:
-                colors[cluster_rel_new] = new_color
-                groups[cluster_rel_new] = new_group
+                info['color'] = new_color
+                info['groupidx'] = new_group
         
         # update
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
-        self.dh.clusters_info.names = cluster_names
-        self.dh.clusters_info.spkcounts = spkcounts
-        self.dh.clusters_info.cluster_indices = cluster_indices
-        self.dh.clusters_info.colors = colors
-        self.dh.clusters_info.groups = groups
-        
-    def unexecute(self):
-        
-        # save old information (for redo)
-        self.dh.nclusters = self.old_nclusters
-        self.dh.clusters = self.old_clusters
-        self.dh.clusters_info.names = self.old_cluster_names
-        self.dh.clusters_info.spkcounts = self.old_spkcounts
-        self.dh.clusters_info.cluster_indices = self.old_cluster_indices
-        self.dh.clusters_info.colors = self.old_colors
-        self.dh.clusters_info.groups = self.old_groups
+        self.dh.clusters_info['clusters_info'] = clusters_info
         
     
 class SplitAction(Action):
@@ -101,13 +92,7 @@ class SplitAction(Action):
             return
         
         # save old information (for redo)
-        self.old_nclusters = self.dh.nclusters
-        self.old_clusters = self.dh.clusters
-        self.old_cluster_names = self.dh.clusters_info.names
-        self.old_spkcounts = self.dh.clusters_info.spkcounts
-        self.old_cluster_indices = self.dh.clusters_info.cluster_indices
-        self.old_colors = self.dh.clusters_info.colors
-        self.old_groups = self.dh.clusters_info.groups
+        self.save_state()
         
         clusters = self.dh.clusters.copy()
         
@@ -132,55 +117,27 @@ class SplitAction(Action):
         self.new_clusters = new_clusters
         self.clusters_to_split = clusters_to_split
         
-        # print clusters_to_split, new_clusters
+        # get clusters info
+        clusters_info = get_clusters_info(clusters)
+        nclusters = len(clusters_info)
         
-        spkcounts = collections.Counter(clusters)
-        cluster_keys = sorted(spkcounts.keys())
-        spkcounts = np.array([spkcounts[key] for key in cluster_keys])
-        cluster_names = np.array(cluster_keys)#map(str, cluster_keys)
-        nclusters = len(cluster_names)
-        # for each cluster absolute index, its relative index
-        cluster_indices = dict([(key, i) for i, key in enumerate(cluster_keys)])
-        
-        colors = np.zeros(nclusters, dtype=np.int32)
-        groups = np.zeros(nclusters, dtype=np.int32)
-        new_colors = np.mod(self.old_colors[-1] + 1 + np.arange(nclusters_to_split), len(COLORMAP))
-        new_groups = self.old_groups[[self.old_cluster_indices[c] for c in clusters_to_split]]
-        i = 0
-        for cluster in cluster_names:
-            # old and new cluster relative indices
-            cluster_rel_new = cluster_indices[cluster]
+        # colors = np.zeros(nclusters, dtype=np.int32)
+        # groups = np.zeros(nclusters, dtype=np.int32)
+        for clusteridx, info in clusters_info.iteritems():
             # if the cluster has not been changed
-            if cluster not in new_clusters:
-                # new color = old color
-                cluster_rel_old = self.dh.clusters_info.cluster_indices[cluster]
-                colors[cluster_rel_new] = self.dh.clusters_info.colors[cluster_rel_old]
-                groups[cluster_rel_new] = self.dh.clusters_info.groups[cluster_rel_old]
-            # otherwise, set the new color
-            else:
-                colors[cluster_rel_new] = new_colors[i]
-                groups[cluster_rel_new] = new_groups[i]
-                i += 1
+            if clusteridx not in new_clusters:
+                info['color'] = self.dh.clusters_info['clusters_info'][clusteridx]['color']
+                info['groupidx'] = self.dh.clusters_info['clusters_info'][clusteridx]['groupidx']
+                
+        # group of new cluster = group of corresponding old cluster
+        for old_clusteridx, new_clusteridx in zip(clusters_to_split, new_clusters):
+            clusters_info[new_clusteridx]['groupidx'] = self.old_clusters_info[old_clusteridx]['groupidx']
+                
                 
         # update
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
-        self.dh.clusters_info.names = cluster_names
-        self.dh.clusters_info.spkcounts = spkcounts
-        self.dh.clusters_info.cluster_indices = cluster_indices
-        self.dh.clusters_info.colors = colors
-        self.dh.clusters_info.groups = groups
-        
-    def unexecute(self):
-        
-        # save old information (for redo)
-        self.dh.nclusters = self.old_nclusters
-        self.dh.clusters = self.old_clusters
-        self.dh.clusters_info.names = self.old_cluster_names
-        self.dh.clusters_info.spkcounts = self.old_spkcounts
-        self.dh.clusters_info.cluster_indices = self.old_cluster_indices
-        self.dh.clusters_info.colors = self.old_colors
-        self.dh.clusters_info.groups = self.old_groups
+        self.dh.clusters_info['clusters_info'] = clusters_info
         
         
 class ActionManager(object):
@@ -219,8 +176,6 @@ class ActionManager(object):
         return len(self.unstack) > 0
         
     
-    
-        
 if __name__ == '__main__':
     from spiky import *
     pr = KlustersDataProvider()
@@ -233,21 +188,15 @@ if __name__ == '__main__':
         print "*** INITIAL ***"
         print dh.nclusters
         # print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print
         
-        am.do(MergeAction, [2,3], 100)
+        am.do(MergeAction, [2,3])
         
         print "*** MERGE 2, 3 ==> 100 ***"
         print dh.nclusters
         # print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print
         
         am.undo()
@@ -256,23 +205,17 @@ if __name__ == '__main__':
         print "*** UNDO ***"
         print dh.nclusters
         # print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print 
         
         
         
-        am.do(MergeAction, [4,5,6,7], 200)
+        am.do(MergeAction, [4,5,6,7])
         
         print "*** MERGE 4, 5, 6, 7 ==> 200 ***"
         print dh.nclusters
         # print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print
         
         am.undo()
@@ -281,10 +224,7 @@ if __name__ == '__main__':
         print "*** UNDO ***"
         print dh.nclusters
         # print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print 
         
         
@@ -294,10 +234,7 @@ if __name__ == '__main__':
         print "*** REDO ***"
         print dh.nclusters
         # print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print 
         
     
@@ -305,10 +242,7 @@ if __name__ == '__main__':
         print "*** INITIAL ***"
         print dh.nclusters
         print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print
         
         am.do(SplitAction, [8])
@@ -316,10 +250,7 @@ if __name__ == '__main__':
         print "*** SPLIT 8 ***"
         print dh.nclusters
         print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print
         
         am.undo()
@@ -328,49 +259,9 @@ if __name__ == '__main__':
         print "*** UNDO ***"
         print dh.nclusters
         print dh.clusters
-        print dh.clusters_info.names
-        print dh.clusters_info.spkcounts
-        print dh.clusters_info.cluster_indices
-        print dh.clusters_info.colors
+        print dh.clusters_info
         print 
         
         
-        
-        # am.do(SplitAction, np.arange(100))
-        
-        # print "*** SPLIT [0+1, 10+1, 20+1, 30+1, 40+1] ***"
-        # print dh.nclusters
-        # # print dh.clusters
-        # print dh.clusters_info.names
-        # print dh.clusters_info.spkcounts
-        # print dh.clusters_info.cluster_indices
-        # print dh.clusters_info.colors
-        # print
-        
-        # am.undo()
-        
-        
-        # print "*** UNDO ***"
-        # print dh.nclusters
-        # # print dh.clusters
-        # print dh.clusters_info.names
-        # print dh.clusters_info.spkcounts
-        # print dh.clusters_info.cluster_indices
-        # print dh.clusters_info.colors
-        # print 
-        
-        
-        # am.redo()
-        
-        
-        # print "*** REDO ***"
-        # print dh.nclusters
-        # # print dh.clusters
-        # print dh.clusters_info.names
-        # print dh.clusters_info.spkcounts
-        # print dh.clusters_info.cluster_indices
-        # print dh.clusters_info.colors
-        # print 
-        
-        
-    split_test()
+    merge_test()
+    # split_test()

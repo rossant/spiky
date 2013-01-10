@@ -10,9 +10,8 @@ Major features
 Minor features
 --------------
   
-  * cluster group renaming
-  * optional color for groups, and option to use that color for all clusters
-    in that group on the feature view. ON by default for MUA.
+  * option to use group color for all clusters in that group on the feature
+    view. ON by default for MUA.
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * selection of cluster: highlight also in waveformview
   * undo change color
@@ -62,11 +61,6 @@ Fixes
 Refactoring
 -----------
 
-  * reorganize clusters model: to_dict and from_dict methods in the model,
-    and whenever a change happens in the cluster view, a signal is raised and
-    processed in the gui, which does dataholder.XX = model.to_dict() so that
-    the cluster information are synchronized between the tree model and the
-    dataholder.
   * refactor interactions in waveformview/featureview with different
     processors...
   * refactoring correlograms: put the actual computations outside dataio

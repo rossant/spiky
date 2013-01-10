@@ -938,7 +938,7 @@ class WaveformWidget(VisualizationWidget):
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
                       cluster_colors=self.dh.cluster_colors,
-                      geometrical_positions=self.dh.probe.positions,
+                      geometrical_positions=self.dh.probe['positions'],
                       masks=self.dh.masks,
                       **geometry_preferences
                       # user preferences
@@ -958,7 +958,7 @@ class WaveformWidget(VisualizationWidget):
                       clusters=self.dh.clusters,
                       clusters_unique=self.dh.clusters_unique,
                       cluster_colors=self.dh.cluster_colors,
-                      geometrical_positions=self.dh.probe.positions,
+                      geometrical_positions=self.dh.probe['positions'],
                       masks=self.dh.masks
                       )
     

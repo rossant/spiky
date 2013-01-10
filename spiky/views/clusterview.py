@@ -1,3 +1,4 @@
+import pprint
 import numpy as np
 import numpy.random as rnd
 from galry import *
@@ -15,6 +16,8 @@ __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
            'ClusterTreeView', 'ClusterWidget']
 
 
+# Generic classes
+# ---------------
 class TreeItem(object):
     def __init__(self, parent=None, data=None):
         """data is an OrderedDict"""
@@ -157,6 +160,9 @@ class TreeModel(QtCore.QAbstractItemModel):
         item = index.internalPointer()
         return item.data(index.column())
 
+    def setData(self, index, data, role):
+        return False
+        
     def supportedDropActions(self): 
         return QtCore.Qt.MoveAction         
 
@@ -165,7 +171,7 @@ class TreeModel(QtCore.QAbstractItemModel):
             return QtCore.Qt.ItemIsEnabled
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
                QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
-
+            
     def mimeTypes(self):
         return ['text/xml']
 
@@ -190,33 +196,25 @@ class TreeModel(QtCore.QAbstractItemModel):
         """
         print "drag", target, sources
 
-"""
 
-To enable editing in your model, you must also implement setData(), and 
-reimplement flags() to ensure that ItemIsEditable is returned. You can also 
-reimplement headerData() and setHeaderData() to control the way the headers 
-for your model are presented.
-The dataChanged() and headerDataChanged() signals must be emitted explicitly 
-when reimplementing the setData() and setHeaderData() functions, respectively.
-
-"""
-
+# Specific item classes
+# ---------------------
 class ClusterItem(TreeItem):
-    def __init__(self, parent=None, name=None, clusteridx=None, color=None,
+    def __init__(self, parent=None, clusteridx=None, color=None, #name=None,
             spkcount=None):
         if color is None:
-            color = 0#(1., 1., 1.)
+            color = 0 #(1., 1., 1.)
         data = OrderedDict()
         # different columns fields
-        data['name'] = str(name)
+        # data['name'] = str(name)
         data['spkcount'] = spkcount
         data['color'] = color
         # the index is the last column
         data['clusteridx'] = clusteridx
         super(ClusterItem, self).__init__(parent=parent, data=data)
 
-    def name(self):
-        return self.item_data['name']
+    # def name(self):
+        # return self.item_data['name']
 
     def spkcount(self):
         return self.item_data['spkcount']
@@ -229,18 +227,24 @@ class ClusterItem(TreeItem):
 
 
 class GroupItem(TreeItem):
-    def __init__(self, parent=None, name=None, groupidx=None):
+    def __init__(self, parent=None, name=None, groupidx=None, color=None, spkcount=None):
         data = OrderedDict()
         # different columns fields
         data['name'] = name
-        data['spkcount'] = None
-        data['color'] = None
+        data['spkcount'] = spkcount
+        data['color'] = color
         # the index is the last column
         data['groupidx'] = groupidx
         super(GroupItem, self).__init__(parent=parent, data=data)
 
     def name(self):
         return self.item_data['name']
+
+    def color(self):
+        return self.item_data['color']
+
+    def spkcount(self):
+        return self.item_data['spkcount']
 
     def groupidx(self):
         return self.item_data['groupidx']
@@ -249,10 +253,12 @@ class GroupItem(TreeItem):
         return "<group {0:d} '{1:s}'>".format(self.groupidx(), self.name())
         
 
+# Custom model
+# ------------
 class ClusterGroupManager(TreeModel):
-    headers = ['name', 'nspikes', 'color']
+    headers = ['Cluster', 'Spikes', 'Color']
     
-    def __init__(self, clusters_info=None):
+    def __init__(self, info=None):
         """Initialize the tree model.
         
         Arguments:
@@ -263,28 +269,163 @@ class ClusterGroupManager(TreeModel):
         
         """
         super(ClusterGroupManager, self).__init__(self.headers)
-        self.initialize(clusters_info=clusters_info)
+        self.from_dict(info)
         
-    def initialize(self, clusters_info=None):
-        for idx, groupinfo in enumerate(clusters_info.groups_info):
-            groupitem = self.add_group(idx, groupinfo['name'])
-            clusterindices = sorted(np.nonzero(clusters_info.groups == idx)[0])
-            for clusteridx in clusterindices:
-                clusteritem = self.add_cluster(
-                    int(clusters_info.names[clusteridx]),
-                    name=clusters_info.names[clusteridx],
-                    color=clusters_info.colors[clusteridx],
-                    spkcount=clusters_info.spkcounts[clusteridx],
-                    parent=groupitem)
     
+    # I/O methods
+    # -----------
+    def from_dict(self, info):
+        # go through all groups
+        for groupidx, groupinfo in info['groups_info'].iteritems():
+            # add group
+            spkcount = np.sum([cl['spkcount'] for cl in info['clusters_info'].values() if cl['groupidx'] == groupidx])
+            groupitem = self.add_group(groupidx=groupidx, name=groupinfo['name'],
+                color=groupinfo['color'], spkcount=spkcount)
+        
+        # go through all clusters
+        for clusteridx, clusterinfo in info['clusters_info'].iteritems():
+            # cluster = info.clusters_info[clusteridx]
+            # add cluster
+            clusteritem = self.add_cluster(
+                clusteridx=clusteridx,
+                # name=info.names[clusteridx],
+                color=clusterinfo['color'],
+                spkcount=clusterinfo['spkcount'],
+                # assign the group as a parent of this cluster
+                parent=self.get_group(clusterinfo['groupidx']))
+    
+    def to_dict(self):
+        dic = {'groups_info': {}, 'clusters_info': {}}
+        groups = self.get_groups()
+        allclusters = self.get_clusters()
+        # dic['groups'] = np.zeros(len(allclusters), dtype=np.int32)
+        for group in groups:
+            groupidx = group.groupidx()
+            clusters = self.get_clusters_in_group(groupidx)
+            # group spike count
+            spkcount = np.array([cluster.spkcount() for cluster in clusters]).sum()
+            # set the group info object
+            dic['groups_info'][groupidx] = {
+                    'groupidx': groupidx,
+                    'name': group.name(),
+                    'color': group.color(),
+                    'spkcount': spkcount,
+                }
+            # assign the group to all the clusters in the group
+            # dic['groups'][clusters] = groupidx
+            for cluster in clusters:
+                clusteridx = cluster.clusteridx()
+                dic['clusters_info'][clusteridx] = {
+                        'clusteridx': clusteridx,
+                        'groupidx': groupidx,
+                        'color': cluster.color(),
+                        'spkcount': cluster.spkcount(),
+                    }
+        
+        # DEBUG
+        # pprint.pprint(dic)
+        
+        return dic
+    
+    
+    # Data methods
+    # ------------
     def headerData(self, section, orientation, role):
         if (orientation == QtCore.Qt.Horizontal) and (role == QtCore.Qt.DisplayRole):
             return self.headers[section]
         
-    def add_group(self, groupidx, name):
+    def data(self, index, role):
+        """Return custom background color for the last column of cluster
+        items."""
+        item = index.internalPointer()
+        
+        # default
+        # if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            # return item.data(index.column())
+        
+        col = index.column()
+        # group item
+        if type(item) == GroupItem:
+            if col == 0:
+                if role == QtCore.Qt.DisplayRole:
+                    return str(item.name())
+            # spkcount
+            elif col == 1:
+                if role == QtCore.Qt.TextAlignmentRole:
+                    return QtCore.Qt.AlignRight
+                if role == QtCore.Qt.DisplayRole:
+                    return "%d" % item.spkcount()
+            # color
+            elif col == self.columnCount() - 1:
+                if role == QtCore.Qt.BackgroundRole:
+                    if item.color() >= 0:
+                        color = np.array(colors.COLORMAP[item.color()]) * 255
+                        return QtGui.QColor(*color)
+                elif role == QtCore.Qt.DisplayRole:
+                    return ""
+                
+        # cluster item
+        if type(item) == ClusterItem:
+            # clusteridx
+            if col == 0:
+                if role == QtCore.Qt.DisplayRole:
+                    return str(item.clusteridx())
+            # spkcount
+            elif col == 1:
+                if role == QtCore.Qt.TextAlignmentRole:
+                    return QtCore.Qt.AlignRight
+                if role == QtCore.Qt.DisplayRole:
+                    return "%d" % item.spkcount()
+            # color
+            elif col == self.columnCount() - 1:
+                if role == QtCore.Qt.BackgroundRole:
+                    color = np.array(colors.COLORMAP[item.color()]) * 255
+                    return QtGui.QColor(*color)
+                    
+        # default
+        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            return item.data(col)
+        
+        # all text in black
+        if role == QtCore.Qt.ForegroundRole:
+            return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
+          
+    def setData(self, index, data, role=None):
+        # print index, data, role, index.isValid()
+        if role is None:
+            role = QtCore.Qt.EditRole
+        if index.isValid() and role == QtCore.Qt.EditRole:
+            item = index.internalPointer()
+            # print "*** set data ***", item
+            # if isinstance(item, GroupItem):
+            if index.column() == 0:
+                item.item_data['name'] = data
+            elif index.column() == 1:
+                item.item_data['spkcount'] = data
+            elif index.column() == 2:
+                item.item_data['color'] = data
+            self.dataChanged.emit(index, index)
+            # ssignals.emit(self, "ClusterInfoToUpdate")
+            return True
+    
+    def flags(self, index):
+        if not index.isValid():
+            return QtCore.Qt.ItemIsEnabled
+        # editable: only groups, and first column
+        if isinstance(index.internalPointer(), GroupItem) and index.column() == 0:
+            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
+                   QtCore.Qt.ItemIsEditable | \
+                   QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+        else:
+            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
+                   QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+        
+    
+    # Tree methods
+    # ------------
+    def add_group(self, **kwargs):
         """Add a group."""
-        groupitem = self.add_node(item_class=GroupItem, name=name,
-            groupidx=groupidx)
+        groupitem = self.add_node(item_class=GroupItem, **kwargs)
         return groupitem
         
     def remove_group(self, groupidx):
@@ -300,15 +441,11 @@ class ClusterGroupManager(TreeModel):
         else:
             log_warn("group %d does not exist" % groupidx)
         
-    def add_cluster(self, clusteridx, name, color=None, spkcount=None,
-                    parent=None):
-        # if parent is None:
-            # parent = self.item_root
+    def add_cluster(self, parent=None, **kwargs):
         cluster = self.add_node(item_class=ClusterItem, parent=parent, 
-                            name=name, color=color, spkcount=spkcount,
-                            clusteridx=clusteridx)
+                            **kwargs)
         return cluster
-        
+    
     def drag(self, target, sources):
         # get source ClusterItem nodes
         source_items = []
@@ -336,37 +473,27 @@ class ClusterGroupManager(TreeModel):
             if oldgroupidx != groupidx:
                 self.assign(clusteridx, groupidx)
         self.can_signal_selection = True
+        ssignals.emit(self, "ClusterInfoToUpdate")
         
-    def data(self, index, role):
-        """Return custom background color for the last column of cluster
-        items."""
-        item = index.internalPointer()
-        col = index.column()
-        # group item
-        if type(item) == GroupItem:
-            if role == QtCore.Qt.DisplayRole:
-                return item.data(col)
-        # cluster item
-        if type(item) == ClusterItem:
-            # spkcount
-            if col == 1:
-                if role == QtCore.Qt.TextAlignmentRole:
-                    return QtCore.Qt.AlignRight
-                if role == QtCore.Qt.DisplayRole:
-                    return "%d" % item.spkcount()
-            # color
-            elif col == self.columnCount() - 1:
-                if role == QtCore.Qt.BackgroundRole:
-                    color = np.array(colors.COLORMAP[item.color()]) * 255
-                    return QtGui.QColor(*color)
-                    
-        # default
-        if role == QtCore.Qt.DisplayRole:
-            return item.data(col)
-        # all text in black
-        if role == QtCore.Qt.ForegroundRole:
-            return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
-        
+    def assign(self, clusteridx, groupidx):
+        """Assign a group to a cluster."""
+        # remove this cluster from its previous group
+        oldgroup = self.get_group(self.get_groupidx(clusteridx))
+        oldgroupidx = oldgroup.groupidx()
+        newgroup = self.get_group(groupidx)
+        cluster = self.get_cluster(clusteridx)
+        # signal that a cluster has been assigned to a new group
+        # ssignals.emit(self, "ClusterChangedGroup", clusteridx, groupidx)
+        # add cluster in the new group
+        self.add_cluster(clusteridx=clusteridx, parent=newgroup,
+            spkcount=cluster.spkcount(), color=cluster.color())
+        # remove it from the old group
+        self.remove_node(cluster, oldgroup)
+        # ssignals.emit(self, "ClusterInfoToUpdate")
+
+    
+    # Getter methods
+    # --------------
     def get_groups(self):
         return [group for group in self.get_descendants(self.root_item) \
             if (type(group) == GroupItem)]
@@ -401,22 +528,7 @@ class ClusterGroupManager(TreeModel):
             if clusteridx in clusterindices:
                 return group.groupidx()
         return None
-            
-    def assign(self, clusteridx, groupidx):
-        """Assign a group to a cluster."""
-        # remove this cluster from its previous group
-        oldgroup = self.get_group(self.get_groupidx(clusteridx))
-        oldgroupidx = oldgroup.groupidx()
-        newgroup = self.get_group(groupidx)
-        cluster = self.get_cluster(clusteridx)
-        # signal that a cluster has been assigned to a new group
-        ssignals.emit(self, "ClusterChangedGroup", clusteridx, groupidx)
-        # add cluster in the new group
-        self.add_cluster(clusteridx, name=cluster.name(), parent=newgroup,
-            spkcount=cluster.spkcount(), color=cluster.color())
-        # remove it from the old group
-        self.remove_node(cluster, oldgroup)
-
+          
         
 class ClusterTreeView(QtGui.QTreeView):
     class ClusterDelegate(QtGui.QStyledItemDelegate):
@@ -441,14 +553,14 @@ class ClusterTreeView(QtGui.QTreeView):
             background-color: #3399ff;
             color: #ffffff;
         }
-        """);
+        """)
         
         self.setModel(model)
         self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.expandAll()
         self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.setAllColumnsShowFocus(True)
-        self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
+        # self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
         # select full rows
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
@@ -456,7 +568,6 @@ class ClusterTreeView(QtGui.QTreeView):
         # self.header().resizeSection(1, 80)
         # # set color column size
         self.header().resizeSection(2, 40)
-        
         
         # self.setRootIsDecorated(False)
         self.setItemDelegate(self.ClusterDelegate())
@@ -529,47 +640,14 @@ class ClusterTreeView(QtGui.QTreeView):
                 sel_model.select(cl, sel_model.Select | sel_model.Rows)
             
     def select_all(self):
-        # groups = self.model().get_groups()
-        # gr0 = groups[0].index
-        # gr1 = groups[-1].index
-        # sel = QtGui.QItemSelection(gr0, gr1)
-        # sel_model = self.selectionModel()
-        # sel_model.select(sel, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
         self.select_multiple([cl.clusteridx() for cl in self.get_clusters()])
         
-    def select_cluster(self, direction):
-        # list of all cluster indices
-        clusters = [cluster.clusteridx() for cluster in self.get_clusters()]
-        if not clusters:
-            return
-        # list of selected cluster indices
-        selected = self.selected_clusters()
-        
-        # find the cluster to select
-        to_select = None
-        # previous case
-        if direction == 'previous':
-            if len(selected) == 0:
-                to_select = clusters[-1]
-            else:
-                i = max(0, clusters.index(selected[0]) - 1)
-                to_select = clusters[i]
-        # next case
-        if direction == 'next':
-            if len(selected) == 0:
-                to_select = clusters[0]
-            else:
-                i = min(len(clusters) - 1, clusters.index(selected[-1]) + 1)
-                to_select = clusters[i]
-        if direction == 'top':
-            to_select = clusters[0]
-        if direction == 'bottom':
-            to_select = clusters[-1]
-                
-        # select the cluster
-        if to_select is not None:
-            self.select(to_select)
-        
+    def selected_items(self):
+        """Return the list of selected cluster indices."""
+        return [(v.internalPointer()) \
+                    for v in self.selectedIndexes() \
+                        if v.column() == 0]
+                            
     def selected_clusters(self):
         """Return the list of selected cluster indices."""
         return [(v.internalPointer().clusteridx()) \
@@ -643,8 +721,8 @@ class ClusterWidget(QtGui.QWidget):
         self.add_group_action = QtGui.QAction("Add group", self)
         self.add_group_action.triggered.connect(self.add_group, QtCore.Qt.UniqueConnection)
         
-        self.rename_group_action = QtGui.QAction("Rename group", self)
-        self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
+        # self.rename_group_action = QtGui.QAction("Rename group", self)
+        # self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
         
         self.remove_group_action = QtGui.QAction("Remove group", self)
         self.remove_group_action.triggered.connect(self.remove_group, QtCore.Qt.UniqueConnection)
@@ -653,7 +731,7 @@ class ClusterWidget(QtGui.QWidget):
         self.context_menu.addAction(self.change_color_action)
         self.context_menu.addSeparator()
         self.context_menu.addAction(self.add_group_action)
-        self.context_menu.addAction(self.rename_group_action)
+        # self.context_menu.addAction(self.rename_group_action)
         self.context_menu.addAction(self.remove_group_action)
         
     def create_color_dialog(self):
@@ -673,7 +751,7 @@ class ClusterWidget(QtGui.QWidget):
         """Create the Tree View widget, and populates it using the data 
         handler `dh`."""
         # pass the cluster data to the ClusterView
-        self.model = ClusterGroupManager(clusters_info=dh.clusters_info)
+        self.model = ClusterGroupManager(dh.clusters_info)
         
         # set the QTreeView options
         view = ClusterTreeView()
@@ -683,7 +761,7 @@ class ClusterWidget(QtGui.QWidget):
     def update_view(self, dh=None):
         if dh is not None:
             self.dh = dh
-        self.model = ClusterGroupManager(clusters_info=self.dh.clusters_info)
+        self.model = ClusterGroupManager(self.dh.clusters_info)
         self.view.set_model(self.model)
         
     def contextMenuEvent(self, event):
@@ -691,10 +769,10 @@ class ClusterWidget(QtGui.QWidget):
         groups = self.view.selected_groups()
         
         if len(groups) > 0:
-            self.rename_group_action.setEnabled(True)
+            # self.rename_group_action.setEnabled(True)
             self.remove_group_action.setEnabled(True)
         else:
-            self.rename_group_action.setEnabled(False)
+            # self.rename_group_action.setEnabled(False)
             self.remove_group_action.setEnabled(False)
             
         if len(clusters) > 0 or len(groups) > 0:
@@ -703,39 +781,25 @@ class ClusterWidget(QtGui.QWidget):
             self.change_color_action.setEnabled(False)
             
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
-            
+    
+    
+    # Change methods
+    # --------------
     def add_group(self):
         clusters = self.view.selected_clusters()
         groupindices = [g.groupidx() for g in self.model.get_groups()]
         groupidx = max(groupindices) + 1
         name = "Group %d" % groupidx
-        self.model.add_group(groupidx, name)
-        ssignals.emit(self, "NewGroup", groupidx)
+        self.model.add_group(groupidx=groupidx, name=name, color=-1, spkcount=0)
+        ssignals.emit(self, "ClusterInfoToUpdate")
         self.view.expandAll()
-    
-    def rename_group(self):
-        groups = self.view.selected_groups()
-        groupidx = groups[0]
-        group = self.model.get_group(groupidx)
-        print groupidx, group
-        # return
-        name = group.name()
-        text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
-                QtGui.QLineEdit.Normal, name)
-        if ok:
-            ssignals.emit(self, "RenameGroup", groupidx, text)
         
-    
     def remove_group(self):
         errors = []
         for groupidx in self.view.selected_groups():
             try:
                 self.model.remove_group(groupidx)
-                # for grp in self.dh.clusters_info.groups_info:
-                    # if grp['groupidx'] == groupidx:
-                        # self.dh.clusters_info.groups_info.remove(grp)
-                        # break
-                ssignals.emit(self, "DeleteGroup", groupidx)
+                ssignals.emit(self, "ClusterInfoToUpdate")
             except:
                 errors.append(groupidx)
         if errors:
@@ -743,15 +807,44 @@ class ClusterWidget(QtGui.QWidget):
             self.main_window.statusBar().showMessage(msg, 5000)
     
     def change_color(self):
-        clusters = self.view.selected_clusters()
-        groups = self.view.selected_groups()
-        color = self.color_dialog.getColor()
+        items = self.view.selected_items()
+        if not items:
+            return
+        initial_color = items[0].color()
+        if initial_color >= 0:
+            initial_color = 255 * colors.COLORMAP[initial_color]
+            initial_color = QtGui.QColor(*initial_color)
+            color = QtGui.QColorDialog.getColor(initial_color)
+        else:
+            color = QtGui.QColorDialog.getColor()
+        # return if the user canceled
+        if not color.isValid():
+            return
+        # get the RGB values of the chosen color
         rgb = np.array(color.getRgbF()[:3]).reshape((1, -1))
+        # test white: in this case, no color
+        if rgb.sum() >= 2.999:
+            nocolor = True
+        else:
+            nocolor = False
+        # take the closest color in the palette
         i = np.argmin(np.abs(colors.COLORMAP - rgb).sum(axis=1))
-        for cluster in clusters:
-            ssignals.emit(self, "ClusterChangedColor", cluster, i)
-        for group in groups:
-            ssignals.emit(self, "GroupChangedColor", group, i)
+        # print clusters
+        # items = self.view.selected_items()
+        for item in items:
+            # index of that item
+            index = item.index
+            # take the color item in column 2
+            index = index.sibling(index.row(), 2)
+            # groups with no color: set to -1
+            if nocolor and isinstance(index.internalPointer(), GroupItem):
+                # update the color
+                self.model.setData(index, -1)
+            # clusters, or groups too if the color is not white: set the color
+            else:
+                # update the color
+                self.model.setData(index, i)
+        ssignals.emit(self, "ClusterInfoToUpdate")
     
     
     # Save and restore geometry
