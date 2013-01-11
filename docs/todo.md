@@ -11,8 +11,6 @@ Message:
     may be slow with large data sets. Make sure you backup your data.
     These issues will be fixed in later releases.
     
-  * undoable actions with clusters info 
-  * undo change color
   * pre-compute the highlighted colors instead of computing the HSV-RGB double
     conversion for every pixel!  
   * normalize correlograms

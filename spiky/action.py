@@ -193,6 +193,17 @@ class ChangeGroupColorAction(Action):
             self.dh.clusters_info['groups_info'][groupidx]['color'] = self.color
         
         
+class ChangeClusterColorAction(Action):
+    def set_params(self, clusters, color):
+        self.clusters = clusters
+        self.color = color
+        
+    def execute(self):
+        self.save_state()
+        for clusteridx in self.clusters:
+            self.dh.clusters_info['clusters_info'][clusteridx]['color'] = self.color
+        
+        
 class RenameGroupAction(Action):
     def set_params(self, groupidx, name):
         self.groupidx = groupidx
@@ -202,6 +213,29 @@ class RenameGroupAction(Action):
         self.save_state()
         self.dh.clusters_info['groups_info'][self.groupidx]['name'] = self.name
         
+        
+class AddGroupAction(Action):
+    def execute(self):
+        self.save_state()
+        self.groupidx = max(self.dh.clusters_info['groups_info'].keys()) + 1
+        self.color = np.mod(max([self.dh.clusters_info['groups_info'][c]['color'] for c in self.dh.clusters_info['groups_info'].keys()]) + 1, len(COLORMAP))
+        self.name = "Group %d" % self.groupidx
+        self.dh.clusters_info['groups_info'][self.groupidx] = {
+            'groupidx': self.groupidx,
+            'name': self.name,
+            'spkcount': 0,
+            'color': self.color
+        }
+        
+        
+class RemoveGroupsAction(Action):
+    def set_params(self, groups):
+        self.groups = groups
+        
+    def execute(self):
+        self.save_state()
+        for groupidx in self.groups:
+            del self.dh.clusters_info['groups_info'][groupidx]
         
         
 

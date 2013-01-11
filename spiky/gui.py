@@ -309,7 +309,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
         ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
+        # signals emitted by child windows and request the main window to 
+        # process an action
         ssignals.SIGNALS.RenameGroupRequested.connect(self.slotRenameGroupRequested)
+        ssignals.SIGNALS.MoveClustersRequested.connect(self.slotMoveClustersRequested)
+        ssignals.SIGNALS.AddGroupRequested.connect(self.slotAddGroupRequested)
+        ssignals.SIGNALS.RemoveGroupsRequested.connect(self.slotRemoveGroupsRequested)
+        ssignals.SIGNALS.ChangeGroupColorRequested.connect(self.slotChangeGroupColorRequested)
+        ssignals.SIGNALS.ChangeClusterColorRequested.connect(self.slotChangeClusterColorRequested)
         
         
     # Action methods
@@ -372,6 +379,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
 
+        self.undo_action.setEnabled(self.am.undo_enabled())
+        self.redo_action.setEnabled(self.am.redo_enabled())
     
     # Generic Do/Redo methods
     # -----------------------
@@ -434,22 +443,21 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
     def slotRenameGroupRequested(self, sender, groupidx, name):
         self.do(spiky.RenameGroupAction, groupidx, name)
+        
+    def slotMoveClustersRequested(self, sender, clusters, groupidx):
+        self.do(spiky.MoveToGroupAction, clusters, groupidx)
     
-    def add_group(self):
-        # TODO: undoable action
-        pass
+    def slotAddGroupRequested(self, sender):
+        self.do(spiky.AddGroupAction)
         
-    def delete_group(self):
-        # TODO: undoable action
-        pass
+    def slotRemoveGroupsRequested(self, sender, groups):
+        self.do(spiky.RemoveGroupsAction, groups)
         
-    def change_group_color(self):
-        # TODO: undoable action
-        pass
+    def slotChangeGroupColorRequested(self, sender, groups, color):
+        self.do(spiky.ChangeGroupColorAction, groups, color)
         
-    def change_cluster_color(self):
-        # TODO: undoable action
-        pass
+    def slotChangeClusterColorRequested(self, sender, clusters, color):
+        self.do(spiky.ChangeClusterColorAction, clusters, color)
         
         
         

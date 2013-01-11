@@ -464,32 +464,12 @@ class ClusterGroupManager(TreeModel):
             # empty target
             return
             
-        # assign groups to selected clusters
-        self.can_signal_selection = False
-        for source in source_items:
-            clusteridx = source.clusteridx()
-            oldgroupidx = self.get_groupidx(clusteridx)
-            if oldgroupidx != groupidx:
-                self.assign(clusteridx, groupidx)
-        self.can_signal_selection = True
-        ssignals.emit(self, "ClusterInfoToUpdate")
+        # clusters to move
+        clusters = np.array([source.clusteridx() for source in source_items])
+        clusters = np.array([source.clusteridx() for source in source_items])
+        # emit signals
+        ssignals.emit(self, "MoveClustersRequested", clusters, groupidx)
         
-    def assign(self, clusteridx, groupidx):
-        """Assign a group to a cluster."""
-        # remove this cluster from its previous group
-        oldgroup = self.get_group(self.get_groupidx(clusteridx))
-        oldgroupidx = oldgroup.groupidx()
-        newgroup = self.get_group(groupidx)
-        cluster = self.get_cluster(clusteridx)
-        # signal that a cluster has been assigned to a new group
-        # ssignals.emit(self, "ClusterChangedGroup", clusteridx, groupidx)
-        # add cluster in the new group
-        self.add_cluster(clusteridx=clusteridx, parent=newgroup,
-            spkcount=cluster.spkcount(), color=cluster.color())
-        # remove it from the old group
-        self.remove_node(cluster, oldgroup)
-        # ssignals.emit(self, "ClusterInfoToUpdate")
-
     
     # Getter methods
     # --------------
@@ -725,7 +705,7 @@ class ClusterWidget(QtGui.QWidget):
         self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
         
         self.remove_group_action = QtGui.QAction("Remove group", self)
-        self.remove_group_action.triggered.connect(self.remove_group, QtCore.Qt.UniqueConnection)
+        self.remove_group_action.triggered.connect(self.remove_groups, QtCore.Qt.UniqueConnection)
         
         self.context_menu = QtGui.QMenu(self)
         self.context_menu.addAction(self.change_color_action)
@@ -786,31 +766,15 @@ class ClusterWidget(QtGui.QWidget):
     # Change methods
     # --------------
     def add_group(self):
-        clusters = self.view.selected_clusters()
-        groupindices = [g.groupidx() for g in self.model.get_groups()]
-        groupidx = max(groupindices) + 1
-        name = "Group %d" % groupidx
-        self.model.add_group(groupidx=groupidx, name=name, color=0, spkcount=0)
-        ssignals.emit(self, "ClusterInfoToUpdate")
-        self.view.expandAll()
+        ssignals.emit(self, "AddGroupRequested")
         
-    def remove_group(self):
-        errors = []
-        for groupidx in self.view.selected_groups():
-            try:
-                self.model.remove_group(groupidx)
-                ssignals.emit(self, "ClusterInfoToUpdate")
-            except:
-                errors.append(groupidx)
-        if errors:
-            msg = "Non-empty groups were not deleted."
-            self.main_window.statusBar().showMessage(msg, 5000)
-    
+    def remove_groups(self):
+        ssignals.emit(self, "RemoveGroupsRequested", np.array(self.view.selected_groups()))
+        
     def rename_group(self):
         groups = self.view.selected_groups()
         if groups:
             groupidx = groups[0]
-            
             group = self.model.get_group(groupidx)
             name = group.name()
             text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
@@ -841,22 +805,14 @@ class ClusterWidget(QtGui.QWidget):
             nocolor = False
         # take the closest color in the palette
         i = np.argmin(np.abs(colors.COLORMAP - rgb).sum(axis=1))
-        # print clusters
-        # items = self.view.selected_items()
-        for item in items:
-            # index of that item
-            index = item.index
-            # take the color item in column 2
-            index = index.sibling(index.row(), 2)
-            # groups with no color: set to -1
-            if nocolor and isinstance(index.internalPointer(), GroupItem):
-                # update the color
-                self.model.setData(index, 0)
-            # clusters, or groups too if the color is not white: set the color
-            else:
-                # update the color
-                self.model.setData(index, i)
-        ssignals.emit(self, "ClusterInfoToUpdate")
+        
+        # emit signal
+        groups = np.array(self.view.selected_groups())
+        clusters = np.array(self.view.selected_clusters())
+        if len(groups) > 0:
+            ssignals.emit(self, "ChangeGroupColorRequested", groups, i)
+        if len(clusters) > 0:
+            ssignals.emit(self, "ChangeClusterColorRequested", clusters, i)
     
     
     # Save and restore geometry

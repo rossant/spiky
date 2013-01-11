@@ -30,7 +30,13 @@ class SpikySignals(QtCore.QObject):
     
     # The cluster information has changed
     ClusterInfoToUpdate = QtCore.pyqtSignal(object)
+    
+    AddGroupRequested = QtCore.pyqtSignal(object)
+    RemoveGroupsRequested = QtCore.pyqtSignal(object, np.ndarray)
     RenameGroupRequested = QtCore.pyqtSignal(object, int, str)
+    MoveClustersRequested = QtCore.pyqtSignal(object, np.ndarray, int)
+    ChangeGroupColorRequested = QtCore.pyqtSignal(object, np.ndarray, int)
+    ChangeClusterColorRequested = QtCore.pyqtSignal(object, np.ndarray, int)
     
     # Select spikes for splitting
     SelectSpikes = QtCore.pyqtSignal(object, np.ndarray)
