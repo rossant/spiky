@@ -12,7 +12,6 @@ Message:
     These issues will be fixed in later releases.
     
   * invalidate correlograms when merging/splitting clusters
-  
 
   * test with big data sets
   * correlogram computations in external thread?
@@ -25,11 +24,14 @@ Major features
 --------------
 
   * GUI to visualize probe files
+  * new HDF5 file format
+  * robot
 
   
 Minor features
 --------------
   
+  * load probe file
   * selection of cluster: highlight also in waveformview
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)
