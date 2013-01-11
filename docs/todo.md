@@ -11,7 +11,6 @@ Message:
     may be slow with large data sets. Make sure you backup your data.
     These issues will be fixed in later releases.
     
-  * normalize correlograms
   * invalidate correlograms when merging/splitting clusters
   
 
