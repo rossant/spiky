@@ -91,25 +91,14 @@ def brian(T1, T2, width=.02, bin=.001, T=None):
     if T is None:
         T = max(T1[-1], T2[-1]) - min(T1[0], T2[0])
         
-        
     # Windowing function (triangle)
     W = np.zeros(2 * n)
     W[:n] = T - bin * np.arange(n - 1, -1, -1)
     W[n:] = T - bin * np.arange(n)
 
-    # print T
-    # print T1
-    # print T2
-    # print H
-    # print H / W
-    # print
-    
     return H / W
 
 def get_correlogram(x, y, width=.021, bin=.001, duration=None):
-
-    # return np.zeros(2*int(np.ceil(width / bin)))
-
     # TODO: this is highly unoptimized, optimize that
     corr = brian(x, y, width=width, bin=bin, T=duration)
     # print corr
@@ -117,6 +106,7 @@ def get_correlogram(x, y, width=.021, bin=.001, duration=None):
         return np.zeros(2*int(np.ceil(width / bin)))
     corr[len(corr)/2] = 0
     return corr
+    
     
 class ClusterCache(object):
     def __init__(self, dh, sdh, width=None, bin=None):
@@ -192,8 +182,6 @@ class ClusterCache(object):
                 duration=self.dh.duration)
             self.correlograms[(cluster0, cluster1)] = corr
 
-        # return corr
-        
     def get_correlogram(self, cluster0, cluster1=None):
         if cluster1 is None:
             cluster1 = cluster0
@@ -210,19 +198,9 @@ class ClusterCache(object):
         correlograms = []
         for i in xrange(len(clusters)):
             for j in xrange(i, len(clusters)):
-                # c = self.get_correlogram(clusters[i], clusters[j])
                 self.compute(clusters[i], clusters[j])
                 c = self.correlograms[(clusters[i], clusters[j])]
-                # if c is None:
-                    # c = np.zeros(self.histlen)
                 correlograms.append(c)
-        # print len(correlograms)
-        # print [len(c) for c in correlograms]
-        
-        # return np.vstack([self.correlograms[(ci, cj)]
-            # for (i, ci) in enumerate(clusters)
-                # for cj in clusters[i:]])
-                
         return np.vstack(correlograms)
     
     def get_spikecounts(self, clusters):
@@ -514,7 +492,6 @@ class KlustersDataProvider(DataProvider):
         save_text(filename, data)
         
 
-        
 class SpikeDetektH5DataProvider(DataProvider):
     """Legacy SpikeDetekt HDF5 data provider with the old format."""
     def load(self, filename):

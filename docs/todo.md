@@ -12,16 +12,22 @@ Message:
     These issues will be fixed in later releases.
     
   * normalize correlograms
+  * invalidate correlograms when merging/splitting clusters
   
-  * GUI to visualize probe files
 
   * test with big data sets
   * correlogram computations in external thread?
   
-  * build an installer
+  * build an installer (integrate galry directly?)
   * finish pre-release for Galry
 
+  
+Major features
+--------------
 
+  * GUI to visualize probe files
+
+  
 Minor features
 --------------
   

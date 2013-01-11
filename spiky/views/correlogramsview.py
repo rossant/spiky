@@ -71,6 +71,14 @@ class CorrelogramsDataManager(Manager):
         if histograms.size == 0:
             self.nhistograms = 0
         
+        else:
+            # normalize histograms
+            m = self.histograms.max(axis=1).reshape((-1, 1))
+            m[m == 0.] = 1.
+            self.histograms /= m
+        
+        # print self.nhistograms, self.nbins
+        
         self.nprimitives = self.nhistograms
         # index 0 = heterogeneous clusters, index>0 ==> cluster index + 1
         self.cluster_colors = cluster_colors
