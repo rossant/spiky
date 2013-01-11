@@ -12,8 +12,10 @@ Message:
     releases.
     
 
-  * option to use group color for all clusters ON by default for MUA.
+  * pre-compute the highlighted colors instead of computing the HSV-RGB double
+    conversion for every pixel!
   * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
+  * option to use group color for all clusters: ON by default for MUA.
   
   * normalize correlograms
   * GUI to visualize probe files
@@ -58,8 +60,6 @@ Improvements
 Optimizations
 -------------
 
-  * pre-compute the highlighted colors instead of computing the HSV-RGB double
-    conversion for every pixel!
   * improve the computation of cross-correlograms
 
 

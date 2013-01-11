@@ -37,7 +37,7 @@ def load_binary(file, dtype=None, count=None):
 
 
 
-def get_clusters_info(clusters):
+def get_clusters_info(clusters, groupidx=0):
     spkcounts = collections.Counter(clusters)
     cluster_keys = sorted(spkcounts.keys())
     nclusters = len(cluster_keys)
@@ -48,7 +48,7 @@ def get_clusters_info(clusters):
                 'clusteridx': clusteridx,
                 'color': np.mod(clusteridx, len(COLORMAP)),
                 'spkcount': spkcount,
-                'groupidx': 0,
+                'groupidx': groupidx,
             }
     return clusters_info
 
@@ -473,8 +473,13 @@ class KlustersDataProvider(DataProvider):
         self.holder.clusters = clusters
         
         # create the groups info object
-        groups_info = {0: dict(groupidx=0, name='Group 0', color=0, spkcount=nspikes)}
-        clusters_info = get_clusters_info(clusters)
+        # Default groups
+        groups_info = {
+            0: dict(groupidx=0, name='Noise', color=0, spkcount=0),
+            1: dict(groupidx=1, name='Multi-unit', color=1, spkcount=0),
+            2: dict(groupidx=2, name='Good', color=2, spkcount=nspikes),
+        }
+        clusters_info = get_clusters_info(clusters, groupidx=2)
         nclusters = len(clusters_info)
         self.holder.nclusters = nclusters
         

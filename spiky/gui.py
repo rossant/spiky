@@ -176,6 +176,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
             "projection in the FeatureView.")
         self.autoproj_action.triggered.connect(lambda e: ssignals.emit(self, "AutomaticProjection"), QtCore.Qt.UniqueConnection)
         
+        
+        
         # open action
         self.open_action = QtGui.QAction("&Open", self)
         self.open_action.setShortcut("CTRL+O")
@@ -193,6 +195,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action.setShortcut("CTRL+Q")
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
+        
+        
         # merge action
         self.merge_action = QtGui.QAction("&Merge", self)
         self.merge_action.setIcon(spiky.get_icon("merge"))
@@ -200,12 +204,27 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.merge_action.setEnabled(False)
         self.merge_action.triggered.connect(self.merge, QtCore.Qt.UniqueConnection)
         
-        # merge action
+        # split action
         self.split_action = QtGui.QAction("&Split", self)
         self.split_action.setIcon(spiky.get_icon("split"))
         self.split_action.setShortcut("S")
         self.split_action.setEnabled(False)
         self.split_action.triggered.connect(self.split, QtCore.Qt.UniqueConnection)
+        
+        
+        
+        # DEL
+        self.move_to_mua_action = QtGui.QAction("Move to &Multi-Unit", self)
+        self.move_to_mua_action.setShortcut("Del")
+        self.move_to_mua_action.setIcon(spiky.get_icon("multiunit"))
+        self.move_to_mua_action.triggered.connect(self.move_to_mua, QtCore.Qt.UniqueConnection)
+        
+        # SHIFT+DEL
+        self.move_to_noise_action = QtGui.QAction("Move to &Noise", self)
+        self.move_to_noise_action.setShortcut("Shift+Del")
+        self.move_to_noise_action.setIcon(spiky.get_icon("noise"))
+        self.move_to_noise_action.triggered.connect(self.move_to_noise, QtCore.Qt.UniqueConnection)
+        
         
         # undo action
         self.undo_action = QtGui.QAction("&Undo", self)
@@ -224,8 +243,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # override color action
         self.override_color_action = QtGui.QAction("Override &color", self)
         self.override_color_action.setShortcut("C")
-        # self.override_color_action.setIcon(spiky.get_icon("redo"))
-        # self.override_color_action.setEnabled(False)
+        self.override_color_action.setIcon(spiky.get_icon("override_color"))
         self.override_color_action.triggered.connect(self.override_color, QtCore.Qt.UniqueConnection)
         
     def initialize_menu(self):
@@ -268,6 +286,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         actions_menu.addSeparator()
         actions_menu.addAction(self.merge_action)
         actions_menu.addAction(self.split_action)
+        actions_menu.addSeparator()
+        actions_menu.addAction(self.move_to_mua_action)
+        actions_menu.addAction(self.move_to_noise_action)
         
     def initialize_toolbar(self):
         # self.toolbar = QtGui.QToolBar(self)
@@ -276,8 +297,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.toolbar.addAction(self.open_action)
         self.toolbar.addAction(self.save_action)
         self.toolbar.addSeparator()
+        self.toolbar.addAction(self.override_color_action)
+        self.toolbar.addSeparator()
         self.toolbar.addAction(self.merge_action)
         self.toolbar.addAction(self.split_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.move_to_mua_action)
+        self.toolbar.addAction(self.move_to_noise_action)
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.undo_action)
         self.toolbar.addAction(self.redo_action)
@@ -388,9 +414,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.redo_action.setEnabled(self.am.redo_enabled())
     
     def override_color(self):
-        # get selected clusters
-        # clusters = self.cluster_widget.view.selected_clusters()
-        
         self.sdh.override_color = not(self.sdh.override_color)
         
         # self.cluster_widget.update_view(self.sdh)
@@ -398,9 +421,20 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
         
-        # re-select the selected clusters
-        # self.cluster_widget.view.select_multiple(clusters)
-    
+    def move_to_mua(self):
+        clusters = self.cluster_widget.view.selected_clusters()
+        for clusteridx in clusters:
+            self.cluster_widget.model.assign(clusteridx, 1)
+        self.dh.clusters_info = self.cluster_widget.model.to_dict()
+        self.cluster_widget.update_view(self.sdh)
+        
+    def move_to_noise(self):
+        clusters = self.cluster_widget.view.selected_clusters()
+        for clusteridx in clusters:
+            self.cluster_widget.model.assign(clusteridx, 0)
+        self.dh.clusters_info = self.cluster_widget.model.to_dict()
+        self.cluster_widget.update_view(self.sdh)
+        
         
     # Event methods
     # -------------
@@ -479,10 +513,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # disable split when changing selection of clusters
         self.split_action.setEnabled(False)
         self.selected_spikes = None
-    
-    # def slotOverrideColor(self, sender):
-        # # TODO
-        # pass
     
     
     # Selection slots
