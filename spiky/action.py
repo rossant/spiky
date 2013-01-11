@@ -192,8 +192,21 @@ class ChangeGroupColorAction(Action):
         for groupidx in self.groups:
             self.dh.clusters_info['groups_info'][groupidx]['color'] = self.color
         
+        
+class RenameGroupAction(Action):
+    def set_params(self, groupidx, name):
+        self.groupidx = groupidx
+        self.name = name
+        
+    def execute(self):
+        self.save_state()
+        self.dh.clusters_info['groups_info'][self.groupidx]['name'] = self.name
+        
+        
+        
 
-
+# Action Manager
+# --------------
 class ActionManager(object):
     def __init__(self, dh):
         self.stack = []

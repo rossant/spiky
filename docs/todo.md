@@ -8,17 +8,17 @@ Message:
 
     This is an alpha pre-release of a software that is still in development.
     Some features are missing, bugs and crashes may appear, and the software
-    may be slow with large data sets. These issues will be fixed in later
-    releases.
+    may be slow with large data sets. Make sure you backup your data.
+    These issues will be fixed in later releases.
     
-
+  * undoable actions with clusters info 
+  * undo change color
   * pre-compute the highlighted colors instead of computing the HSV-RGB double
-    conversion for every pixel!
-  * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
-  * option to use group color for all clusters: ON by default for MUA.
-  
+    conversion for every pixel!  
   * normalize correlograms
+  
   * GUI to visualize probe files
+
   * test with big data sets
   * correlogram computations in external thread?
   
@@ -30,7 +30,6 @@ Minor features
 --------------
   
   * selection of cluster: highlight also in waveformview
-  * undo change color
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)
   

@@ -176,8 +176,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
             "projection in the FeatureView.")
         self.autoproj_action.triggered.connect(lambda e: ssignals.emit(self, "AutomaticProjection"), QtCore.Qt.UniqueConnection)
         
-        
-        
         # open action
         self.open_action = QtGui.QAction("&Open", self)
         self.open_action.setShortcut("CTRL+O")
@@ -195,8 +193,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action.setShortcut("CTRL+Q")
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
-        
-        
         # merge action
         self.merge_action = QtGui.QAction("&Merge", self)
         self.merge_action.setIcon(spiky.get_icon("merge"))
@@ -211,8 +207,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.split_action.setEnabled(False)
         self.split_action.triggered.connect(self.split, QtCore.Qt.UniqueConnection)
         
-        
-        
         # DEL
         self.move_to_mua_action = QtGui.QAction("Move to &Multi-Unit", self)
         self.move_to_mua_action.setShortcut("Del")
@@ -226,7 +220,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.move_to_noise_action.setIcon(spiky.get_icon("noise"))
         self.move_to_noise_action.triggered.connect(self.move_to_noise, QtCore.Qt.UniqueConnection)
         self.move_to_noise_action.setEnabled(False)
-        
         
         # undo action
         self.undo_action = QtGui.QAction("&Undo", self)
@@ -310,6 +303,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.override_color_action)
     
+    def initialize_connections(self):
+        """Initialize the signals/slots connections between widgets."""
+        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
+        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
+        ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
+        ssignals.SIGNALS.RenameGroupRequested.connect(self.slotRenameGroupRequested)
+        
         
     # Action methods
     # --------------
@@ -377,7 +378,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def do(self, action_class, *args):
         action = self.am.do(action_class, *args)
         self.cluster_widget.update_view(self.sdh)
-        self.cluster_widget.view.select_multiple(action.selected_clusters_after_redo())
+        clusters = action.selected_clusters_after_redo()
+        if len(clusters) > 0:
+            self.cluster_widget.view.select_multiple(clusters)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
         
@@ -385,7 +388,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         action = self.am.undo()
         if action is not None:
             self.cluster_widget.update_view(self.sdh)
-            self.cluster_widget.view.select_multiple(action.selected_clusters_after_undo())
+            clusters = action.selected_clusters_after_undo()
+            if len(clusters) > 0:
+                self.cluster_widget.view.select_multiple(clusters)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
         
@@ -393,7 +398,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         action = self.am.redo()
         if action is not None:
             self.cluster_widget.update_view(self.sdh)
-            self.cluster_widget.view.select_multiple(action.selected_clusters_after_redo())
+            clusters = action.selected_clusters_after_redo()
+            if len(clusters) > 0:
+                self.cluster_widget.view.select_multiple(clusters)
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
     
@@ -420,16 +427,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.move_to_group(0)
         
     def override_color(self):
-        # TODO: undoable action
         self.sdh.override_color = not(self.sdh.override_color)
         self.feature_widget.update_view(self.sdh)
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
         
-    def rename_group(self):
-        # TODO: undoable action
-        pass
-        
+    def slotRenameGroupRequested(self, sender, groupidx, name):
+        self.do(spiky.RenameGroupAction, groupidx, name)
+    
     def add_group(self):
         # TODO: undoable action
         pass
@@ -479,16 +484,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.reset_action_generator()
             
             
-    # Signals
-    # -------
-    def initialize_connections(self):
-        """Initialize the signals/slots connections between widgets."""
-        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
-        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
-        ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
-        
-        
     # Highlight slots
     #----------------
     def slotHighlightSpikes(self, sender, spikes):
@@ -515,7 +510,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
                     self.feature_widget.view.highlight_spikes(spikes)
     
     def slotClusterSelectionChanged(self, sender, clusters):
-        
         # enable/disable del/shift+del when no clusters are selected
         if len(clusters) >= 1:
             self.move_to_mua_action.setEnabled(True)

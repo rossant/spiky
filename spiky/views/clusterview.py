@@ -396,10 +396,9 @@ class ClusterGroupManager(TreeModel):
             role = QtCore.Qt.EditRole
         if index.isValid() and role == QtCore.Qt.EditRole:
             item = index.internalPointer()
-            # print "*** set data ***", item
-            # if isinstance(item, GroupItem):
             if index.column() == 0:
                 item.item_data['name'] = data
+                # ssignals.emit(self, 'RenameGroupRequested', item.groupidx(), data)
             elif index.column() == 1:
                 item.item_data['spkcount'] = data
             elif index.column() == 2:
@@ -412,13 +411,13 @@ class ClusterGroupManager(TreeModel):
         if not index.isValid():
             return QtCore.Qt.ItemIsEnabled
         # editable: only groups, and first column
-        if isinstance(index.internalPointer(), GroupItem) and index.column() == 0:
-            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
-                   QtCore.Qt.ItemIsEditable | \
-                   QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
-        else:
-            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
-                   QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+        # if isinstance(index.internalPointer(), GroupItem) and index.column() == 0:
+            # return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
+                   # QtCore.Qt.ItemIsEditable | \
+                   # QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+        # else:
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
+               QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
         
     
     # Tree methods
@@ -721,17 +720,18 @@ class ClusterWidget(QtGui.QWidget):
         self.add_group_action = QtGui.QAction("Add group", self)
         self.add_group_action.triggered.connect(self.add_group, QtCore.Qt.UniqueConnection)
         
-        # self.rename_group_action = QtGui.QAction("Rename group", self)
-        # self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
+        self.rename_group_action = QtGui.QAction("Rename group", self)
+        # self.rename_group_action.setShortcut("F2")
+        self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
         
         self.remove_group_action = QtGui.QAction("Remove group", self)
         self.remove_group_action.triggered.connect(self.remove_group, QtCore.Qt.UniqueConnection)
         
         self.context_menu = QtGui.QMenu(self)
         self.context_menu.addAction(self.change_color_action)
+        self.context_menu.addAction(self.rename_group_action)
         self.context_menu.addSeparator()
         self.context_menu.addAction(self.add_group_action)
-        # self.context_menu.addAction(self.rename_group_action)
         self.context_menu.addAction(self.remove_group_action)
         
     def create_color_dialog(self):
@@ -769,10 +769,10 @@ class ClusterWidget(QtGui.QWidget):
         groups = self.view.selected_groups()
         
         if len(groups) > 0:
-            # self.rename_group_action.setEnabled(True)
+            self.rename_group_action.setEnabled(True)
             self.remove_group_action.setEnabled(True)
         else:
-            # self.rename_group_action.setEnabled(False)
+            self.rename_group_action.setEnabled(False)
             self.remove_group_action.setEnabled(False)
             
         if len(clusters) > 0 or len(groups) > 0:
@@ -805,6 +805,18 @@ class ClusterWidget(QtGui.QWidget):
         if errors:
             msg = "Non-empty groups were not deleted."
             self.main_window.statusBar().showMessage(msg, 5000)
+    
+    def rename_group(self):
+        groups = self.view.selected_groups()
+        if groups:
+            groupidx = groups[0]
+            
+            group = self.model.get_group(groupidx)
+            name = group.name()
+            text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
+                    QtGui.QLineEdit.Normal, name)
+            if ok:
+                ssignals.emit(self, "RenameGroupRequested", groupidx, text)
     
     def change_color(self):
         items = self.view.selected_items()
