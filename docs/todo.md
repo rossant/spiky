@@ -1,17 +1,32 @@
 Spiky: graphical interface for semi-automatic spike sorting
 ===========================================================
 
-Major features
---------------
+Before alpha pre-release
+------------------------
 
-  * GUI to visualize probe files
+Message:
+
+    This is an alpha pre-release of a software that is still in development.
+    Some features are missing, bugs and crashes may appear, and the software
+    may be slow with large data sets. These issues will be fixed in later
+    releases.
+    
+
+  * option to use group color for all clusters ON by default for MUA.
+  * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   
+  * normalize correlograms
+  * GUI to visualize probe files
+  * test with big data sets
+  * correlogram computations in external thread?
+  
+  * build an installer
+  * finish pre-release for Galry
+
 
 Minor features
 --------------
   
-  * option to use group color for all clusters ON by default for MUA.
-  * default groups: good, noise (SH DEL), multiunit (DEL) move to groups
   * selection of cluster: highlight also in waveformview
   * undo change color
   * use the existing XML file (reverse engineer) and store all information
@@ -36,7 +51,6 @@ Minor features
 Improvements
 ------------
 
-  * normalize correlograms
   * feature view gray points transparency depth
   * correlogram computations in external thread
 

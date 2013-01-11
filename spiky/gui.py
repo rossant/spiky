@@ -297,7 +297,22 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.load_file(filename)
         
     def save_file(self, *args):
-        self.provider.save()
+        self.reset_action_generator()
+        folder = SETTINGS.get('mainWindow/last_data_dir')
+        
+        default_filename = self.filename
+        default_filename += "_spiky.clu.%d" % self.fileindex
+        
+        filename = None
+        if not hasattr(self, 'save_filename'):
+            filename = QtGui.QFileDialog.getSaveFileName(self, "Save a CLU file",
+                os.path.join(folder, default_filename))[0]
+            if filename:
+                self.save_filename = filename
+        else:
+            filename = self.save_filename
+        if filename:
+            self.provider.save(filename)
         
     def load_file(self, filename):
         r = re.search(r"([^\n]+)\.[^\.]+\.([0-9]+)$", filename)
@@ -306,6 +321,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
             SETTINGS.set('mainWindow/last_data_file', filename)
             filename = r.group(1)
             fileindex = int(r.group(2))
+            self.filename = filename
+            self.fileindex = fileindex
         else:
             log_warn(("The file could not be loaded because it is not like",
                 " *.i.*"))

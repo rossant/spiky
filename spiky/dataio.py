@@ -24,7 +24,7 @@ def load_text(file, dtype, skiprows=0):
     return np.loadtxt(file, dtype=dtype, skiprows=skiprows)
  
 def save_text(file, data):
-    return np.savetxt(file, data, fmt='%d')
+    return np.savetxt(file, data, fmt='%d', newline='\n')
         
 def load_binary(file, dtype=None, count=None):
     if dtype is None:
@@ -499,10 +499,14 @@ class KlustersDataProvider(DataProvider):
         
         return self.holder
         
-    def save(self):
+    def save(self, filename=None):
+        if filename is None:
+            self.filename + "_spiky.clu.%d" % self.fileindex
+        # add nclusters at the top of the clu file
         data = self.holder.clusters
         data = np.hstack((data.max(), data))
-        save_text(self.filename + "_spiky.clu.%d" % self.fileindex, data)
+        # save the CLU file
+        save_text(filename, data)
         
 
         
