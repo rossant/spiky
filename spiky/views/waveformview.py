@@ -13,43 +13,43 @@ import spiky.signals as ssignals
 
 __all__ = ['WaveformView', 'WaveformWidget']
 
-FSH = """
-vec3 Hue(float H)
-{
-    float R = abs(H * 6 - 3) - 1;
-    float G = 2 - abs(H * 6 - 2);
-    float B = 2 - abs(H * 6 - 4);
-    return vec3(clamp(R, 0, 1), clamp(G, 0, 1), clamp(B, 0, 1));
-}
+# FSH = """
+# vec3 Hue(float H)
+# {
+    # float R = abs(H * 6 - 3) - 1;
+    # float G = 2 - abs(H * 6 - 2);
+    # float B = 2 - abs(H * 6 - 4);
+    # return vec3(clamp(R, 0, 1), clamp(G, 0, 1), clamp(B, 0, 1));
+# }
 
-vec3 HSVtoRGB(vec3 HSV)
-{
-    return ((Hue(HSV.x) - 1) * HSV.y + 1) * HSV.z;
-}
+# vec3 HSVtoRGB(vec3 HSV)
+# {
+    # return ((Hue(HSV.x) - 1) * HSV.y + 1) * HSV.z;
+# }
 
-vec3 RGBtoHSV(vec3 RGB)
-{
-    vec3 HSV = vec3(0, 0, 0);
-    HSV.z = max(RGB.r, max(RGB.g, RGB.b));
-    float M = min(RGB.r, min(RGB.g, RGB.b));
-    float C = HSV.z - M;
-    if (C != 0)
-    {
-        HSV.y = C / HSV.z;
-        vec3 Delta = (HSV.z - RGB) / C;
-        Delta.rgb -= Delta.brg;
-        Delta.rg += vec2(2,4);
-        if (RGB.r >= HSV.z)
-            HSV.x = Delta.b;
-        else if (RGB.g >= HSV.z)
-            HSV.x = Delta.r;
-        else
-            HSV.x = Delta.g;
-        HSV.x = fract(HSV.x / 6);
-    }
-    return HSV;
-}
-"""
+# vec3 RGBtoHSV(vec3 RGB)
+# {
+    # vec3 HSV = vec3(0, 0, 0);
+    # HSV.z = max(RGB.r, max(RGB.g, RGB.b));
+    # float M = min(RGB.r, min(RGB.g, RGB.b));
+    # float C = HSV.z - M;
+    # if (C != 0)
+    # {
+        # HSV.y = C / HSV.z;
+        # vec3 Delta = (HSV.z - RGB) / C;
+        # Delta.rgb -= Delta.brg;
+        # Delta.rg += vec2(2,4);
+        # if (RGB.r >= HSV.z)
+            # HSV.x = Delta.b;
+        # else if (RGB.g >= HSV.z)
+            # HSV.x = Delta.r;
+        # else
+            # HSV.x = Delta.g;
+        # HSV.x = fract(HSV.x / 6);
+    # }
+    # return HSV;
+# }
+# """
 
 
 VERTEX_SHADER = """
@@ -85,23 +85,23 @@ VERTEX_SHADER = """
         
 FRAGMENT_SHADER = """
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
-    out_color = texture1D(cmap, index);
     
-    // TODO
+    if (vhighlight > 0) {
+        out_color = texture1D(hcmap, index);
+    }
+    else {
+        out_color = texture1D(cmap, index);
+    }
+    
     if (vmask == 0) {
-        out_color.xyz = vec3(.5, .5, .5);
+        if (vhighlight > 0) {
+            out_color.xyz = vec3(.75, .75, .75);
+        }
+        else {
+            out_color.xyz = vec3(.5, .5, .5);
+        }
     }
     out_color.w = .25 + .75 * vmask;
-        
-    if (vhighlight > 0)  {
-        //out_color.xyz = out_color.xyz + vec3(.5, .5, .5);
-        vec3 hsv = RGBtoHSV(out_color.xyz);
-        hsv.y = clamp(hsv.y - .5, 0, 1);
-        hsv.z = clamp(hsv.z + .5, 0, 1);
-        out_color.xyz = HSVtoRGB(hsv);
-    }
-    
-    //out_color.w = 1;
 """
 
 
@@ -665,10 +665,12 @@ class WaveformVisual(Visual):
         
         
         colormap = scolors.COLORMAP.reshape((1, ncolors, ncomponents))
+        hcolormap = scolors.HIGHLIGHT_COLORMAP.reshape((1, ncolors, ncomponents))
         
         cmap_index = cluster_colors[cluster]
         
         self.add_texture('cmap', ncomponents=ncomponents, ndim=1, data=colormap)
+        self.add_texture('hcmap', ncomponents=ncomponents, ndim=1, data=hcolormap)
         self.add_attribute('cmap_index', ndim=1, vartype='int', data=cmap_index)
         self.add_varying('cmap_vindex', vartype='int', ndim=1)
         
@@ -686,7 +688,7 @@ class WaveformVisual(Visual):
         self.is_position_3D = True
         
         # add hsv rgb conversion routines
-        self.add_fragment_header(FSH)
+        # self.add_fragment_header(FSH)
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)

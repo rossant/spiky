@@ -8,27 +8,35 @@ from dataio import get_clusters_info
 # Base class for actions
 # ----------------------
 class Action(object):
+    # Initialization methods
+    # ----------------------
     def __init__(self, dh):
         self.dh = dh
         
     def set_params(self, *args, **kwargs):
         pass
     
+    
+    # Execution methods
+    # -----------------
     def execute(self):
         self.save_state()
         
     def unexecute(self):
         self.restore_state()
 
+        
+    # Selection methods
+    # -----------------
     def selected_clusters_after_undo(self):
         return []
 
     def selected_clusters_after_redo(self):
         return []
         
-    def __repr__(self):
-        return super(Action, self).__repr__()
-
+        
+    # State methods
+    # -------------
     def save_state(self):
         # save old information (for redo)
         self.old_nclusters = self.dh.nclusters
@@ -43,6 +51,9 @@ class Action(object):
         self.dh.clusters_info['clusters_info'] = self.old_clusters_info
         self.dh.clusters_info['groups_info'] = self.old_groups_info
        
+    def __repr__(self):
+        return super(Action, self).__repr__()
+
 
 # Merge/Split actions
 # -------------------

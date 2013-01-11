@@ -1,7 +1,8 @@
 import numpy as np
+# from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
 
 
-__all__ = ['COLORMAP', 'COLORS', 'COLORS_COUNT', 'generate_colors']
+__all__ = ['COLORMAP', 'HIGHLIGHT_COLORMAP', 'COLORS', 'COLORS_COUNT', 'generate_colors']
 
 
 # Color creation routines
@@ -48,14 +49,28 @@ def generate_hsv(n0=20):
 # Global variables with all colors
 # --------------------------------
 # generate a list of RGB values for each color
-COLORS = hsv_to_rgb(generate_hsv())
+hsv = generate_hsv()
+hsv = np.clip(hsv, 0, 1)
+# hsv = hsv.reshape((1, -1, 3))
+COLORS = hsv_to_rgb(hsv)
 COLORS = np.clip(COLORS, 0, 1)
 COLORS_COUNT = len(COLORS)
 step = 17  # needs to be prime with COLORS_COUNT
 perm = np.mod(np.arange(0, step * 24, step), 24)
 perm = np.hstack((2 * perm, 2 * perm + 1))
-COLORS = COLORS[perm,...]
-COLORMAP = np.array(COLORS)
+COLORMAP = COLORS[perm, ...]
+# COLORMAP = np.array(COLORS)
+
+# Highlight color map
+# rgb = COLORMAP.reshape((1, -1, 3))
+# hsv = rgb_to_hsv(rgb)
+# decrease saturation, increase value
+hsv[:,1] -= .5
+hsv[:,2] += .5
+hsv = np.clip(hsv, 0, 1)
+hsv = hsv[perm, ...]
+HIGHLIGHT_COLORMAP = hsv_to_rgb(hsv)
+
 
 def generate_colors(n=None):
     if n is None:
@@ -70,35 +85,35 @@ if __name__ == "__main__":
     def hsv_rect(hsv, coords):
         col = hsv_to_rgb(hsv)
         col = np.clip(col, 0, 1)
+        rgb_rect(col, coords)
+    
+    def rgb_rect(rgb, coords):
         x0, y0, x1, y1 = coords
-        a = 2./len(col)
-        c = np.zeros((len(col), 4))
-        c[:,0] = np.linspace(x0, x1-a, len(col))
+        a = 2./len(rgb)
+        c = np.zeros((len(rgb), 4))
+        c[:,0] = np.linspace(x0, x1-a, len(rgb))
         c[:,1] = y0
-        c[:,2] = np.linspace(x0+a, x1, len(col))
+        c[:,2] = np.linspace(x0+a, x1, len(rgb))
         c[:,3] = y1
-        rectangles(coordinates=c, color=col)
+        rectangles(coordinates=c, color=rgb)
     
     from galry import *
-    
-    hsv = generate_hsv()
-    
     figure(constrain_navigation=False)
+    rgb_rect(COLORMAP, (-1,0,1,1))
+    rgb_rect(HIGHLIGHT_COLORMAP, (-1,-1,1,0))
+    ylim(-1,1)
+    show()
     
-    hsv_rect(hsv, (-1,0,1,1))
+    
+    
+    # hsv = generate_hsv()
+    # hsv_rect(hsv, (-1,0,1,1))
     
     # highlight
-    hsv[:,1] -= 0.5 # white -> color
-    hsv[:,2] += 0.5 # black -> white
+    # hsv[:,1] -= 0.5 # white -> color
+    # hsv[:,2] += 0.5 # black -> white
     
     # hsv[:,1] -= 0.25 # white -> color
     # hsv[:,2] += 0.5 # black -> white
     
-    
-    hsv_rect(hsv, (-1,-1,1,0))
-    
-    ylim(-1,1)
-    
-    show()
-    
-    
+    # hsv_rect(hsv, (-1,-1,1,0))
