@@ -573,7 +573,7 @@ class MockDataProvider(DataProvider):
         # self.holder.masks[self.holder.masks < .25] = 0
 
         # a list of dict with the info about each group
-        groups_info = [dict(name='Group 0', groupidx=0, coloridx=0),]
+        groups_info = [dict(name='Group 0', groupidx=0, color=0),]
         if nspikes > 0:
             self.holder.clusters = rdn.randint(low=0, high=nclusters, size=nspikes)
         else:

@@ -4,6 +4,9 @@ import numpy as np
 from colors import COLORMAP
 from dataio import get_clusters_info
 
+
+# Base class for actions
+# ----------------------
 class Action(object):
     def __init__(self, dh):
         self.dh = dh
@@ -12,11 +15,17 @@ class Action(object):
         pass
     
     def execute(self):
-        pass
+        self.save_state()
         
     def unexecute(self):
         self.restore_state()
 
+    def selected_clusters_after_undo(self):
+        return []
+
+    def selected_clusters_after_redo(self):
+        return []
+        
     def __repr__(self):
         return super(Action, self).__repr__()
 
@@ -33,8 +42,10 @@ class Action(object):
         self.dh.clusters = self.old_clusters
         self.dh.clusters_info['clusters_info'] = self.old_clusters_info
         self.dh.clusters_info['groups_info'] = self.old_groups_info
-        
-        
+       
+
+# Merge/Split actions
+# -------------------
 class MergeAction(Action):
     def set_params(self, clusters_to_merge):
         self.clusters_to_merge = np.array(clusters_to_merge)
@@ -80,6 +91,12 @@ class MergeAction(Action):
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
         self.dh.clusters_info['clusters_info'] = clusters_info
+        
+    def selected_clusters_after_undo(self):
+        return self.clusters_to_merge
+
+    def selected_clusters_after_redo(self):
+        return [self.new_cluster]
         
     
 class SplitAction(Action):
@@ -138,8 +155,45 @@ class SplitAction(Action):
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
         self.dh.clusters_info['clusters_info'] = clusters_info
+
+    def selected_clusters_after_undo(self):
+        return self.clusters_to_split
+
+    def selected_clusters_after_redo(self):
+        return np.hstack((self.clusters_to_split, self.new_clusters))
+        
+
+# Clusters info/Group actions
+# ---------------------------
+class MoveToGroupAction(Action):
+    def set_params(self, clusters, groupidx):
+        self.clusters = clusters
+        self.groupidx = groupidx
+        
+    def execute(self):
+        self.save_state()
+        for clusteridx in self.clusters:
+            self.dh.clusters_info['clusters_info'][clusteridx]['groupidx'] = self.groupidx
+        
+    def selected_clusters_after_undo(self):
+        return self.clusters
+
+    def selected_clusters_after_redo(self):
+        return self.clusters
         
         
+class ChangeGroupColorAction(Action):
+    def set_params(self, groups, color):
+        self.groups = groups
+        self.color = color
+        
+    def execute(self):
+        self.save_state()
+        for groupidx in self.groups:
+            self.dh.clusters_info['groups_info'][groupidx]['color'] = self.color
+        
+
+
 class ActionManager(object):
     def __init__(self, dh):
         self.stack = []

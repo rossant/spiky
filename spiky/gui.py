@@ -218,12 +218,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.move_to_mua_action.setShortcut("Del")
         self.move_to_mua_action.setIcon(spiky.get_icon("multiunit"))
         self.move_to_mua_action.triggered.connect(self.move_to_mua, QtCore.Qt.UniqueConnection)
+        self.move_to_mua_action.setEnabled(False)
         
         # SHIFT+DEL
         self.move_to_noise_action = QtGui.QAction("Move to &Noise", self)
         self.move_to_noise_action.setShortcut("Shift+Del")
         self.move_to_noise_action.setIcon(spiky.get_icon("noise"))
         self.move_to_noise_action.triggered.connect(self.move_to_noise, QtCore.Qt.UniqueConnection)
+        self.move_to_noise_action.setEnabled(False)
         
         
         # undo action
@@ -297,8 +299,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.toolbar.addAction(self.open_action)
         self.toolbar.addAction(self.save_action)
         self.toolbar.addSeparator()
-        self.toolbar.addAction(self.override_color_action)
-        self.toolbar.addSeparator()
         self.toolbar.addAction(self.merge_action)
         self.toolbar.addAction(self.split_action)
         self.toolbar.addSeparator()
@@ -307,6 +307,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.undo_action)
         self.toolbar.addAction(self.redo_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.override_color_action)
     
         
     # Action methods
@@ -368,72 +370,82 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.feature_widget.update_view(self.sdh)
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
-        
-    def merge(self):
-        """Merge selected clusters."""
-        action = self.am.do(spiky.MergeAction, self.sdh.get_clusters())
+
+    
+    # Generic Do/Redo methods
+    # -----------------------
+    def do(self, action_class, *args):
+        action = self.am.do(action_class, *args)
         self.cluster_widget.update_view(self.sdh)
-        self.cluster_widget.view.select(action.new_cluster)
+        self.cluster_widget.view.select_multiple(action.selected_clusters_after_redo())
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
-        
-    def split(self):
-        """Split selected spikes."""
-        action = self.am.do(spiky.SplitAction, self.selected_spikes)
-        self.cluster_widget.update_view(self.sdh)
-        # select old and new clusters after split
-        cl = np.hstack((action.clusters_to_split, action.new_clusters))
-        self.cluster_widget.view.select_multiple(cl)
-        self.undo_action.setEnabled(self.am.undo_enabled())
-        self.redo_action.setEnabled(self.am.redo_enabled())
-        self.feature_widget.view.process_interaction('CancelSelectionPoint')
         
     def undo(self):
         action = self.am.undo()
         if action is not None:
-            # self.dh.clusters_info = self.cluster_widget.model.to_dict()
             self.cluster_widget.update_view(self.sdh)
-            if isinstance(action, spiky.MergeAction):
-                self.cluster_widget.view.select_multiple(action.clusters_to_merge)
-            if isinstance(action, spiky.SplitAction):
-                self.cluster_widget.view.select_multiple(action.clusters_to_split)
+            self.cluster_widget.view.select_multiple(action.selected_clusters_after_undo())
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
         
     def redo(self):
         action = self.am.redo()
         if action is not None:
-            # self.dh.clusters_info = self.cluster_widget.model.to_dict()
             self.cluster_widget.update_view(self.sdh)
-            if isinstance(action, spiky.MergeAction):
-                self.cluster_widget.view.select(action.new_cluster)
-            if isinstance(action, spiky.SplitAction):
-                cl = np.hstack((action.clusters_to_split, action.new_clusters))
-                self.cluster_widget.view.select_multiple(cl)
+            self.cluster_widget.view.select_multiple(action.selected_clusters_after_redo())
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
     
-    def override_color(self):
-        self.sdh.override_color = not(self.sdh.override_color)
+    
+    # Do/Redo methods
+    # ---------------
+    def merge(self):
+        """Merge selected clusters."""
+        self.do(spiky.MergeAction, self.sdh.get_clusters())
         
-        # self.cluster_widget.update_view(self.sdh)
+    def split(self):
+        """Split selected spikes."""
+        self.do(spiky.SplitAction, self.selected_spikes)
+        self.feature_widget.view.process_interaction('CancelSelectionPoint')
+        
+    def move_to_group(self, groupidx):
+        clusters = self.sdh.get_clusters()
+        self.do(spiky.MoveToGroupAction, clusters, groupidx)
+        
+    def move_to_mua(self):
+        self.move_to_group(1)
+        
+    def move_to_noise(self):
+        self.move_to_group(0)
+        
+    def override_color(self):
+        # TODO: undoable action
+        self.sdh.override_color = not(self.sdh.override_color)
         self.feature_widget.update_view(self.sdh)
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
         
-    def move_to_mua(self):
-        clusters = self.cluster_widget.view.selected_clusters()
-        for clusteridx in clusters:
-            self.cluster_widget.model.assign(clusteridx, 1)
-        self.dh.clusters_info = self.cluster_widget.model.to_dict()
-        self.cluster_widget.update_view(self.sdh)
+    def rename_group(self):
+        # TODO: undoable action
+        pass
         
-    def move_to_noise(self):
-        clusters = self.cluster_widget.view.selected_clusters()
-        for clusteridx in clusters:
-            self.cluster_widget.model.assign(clusteridx, 0)
-        self.dh.clusters_info = self.cluster_widget.model.to_dict()
-        self.cluster_widget.update_view(self.sdh)
+    def add_group(self):
+        # TODO: undoable action
+        pass
+        
+    def delete_group(self):
+        # TODO: undoable action
+        pass
+        
+    def change_group_color(self):
+        # TODO: undoable action
+        pass
+        
+    def change_cluster_color(self):
+        # TODO: undoable action
+        pass
+        
         
         
     # Event methods
@@ -475,7 +487,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
         ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
-        # ssignals.SIGNALS.OverrideColor.connect(self.slotOverrideColor)
         
         
     # Highlight slots
@@ -504,12 +515,22 @@ class SpikyMainWindow(QtGui.QMainWindow):
                     self.feature_widget.view.highlight_spikes(spikes)
     
     def slotClusterSelectionChanged(self, sender, clusters):
+        
+        # enable/disable del/shift+del when no clusters are selected
+        if len(clusters) >= 1:
+            self.move_to_mua_action.setEnabled(True)
+            self.move_to_noise_action.setEnabled(True)
+        else:
+            self.move_to_mua_action.setEnabled(False)
+            self.move_to_noise_action.setEnabled(False)
+        
         # enable or disable merge action as a function of the number of 
         # selected clusters
         if len(clusters) >= 2:
             self.merge_action.setEnabled(True)
         else:
             self.merge_action.setEnabled(False)
+            
         # disable split when changing selection of clusters
         self.split_action.setEnabled(False)
         self.selected_spikes = None
