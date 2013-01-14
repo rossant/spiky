@@ -13,44 +13,6 @@ import spiky.signals as ssignals
 
 __all__ = ['WaveformView', 'WaveformWidget']
 
-# FSH = """
-# vec3 Hue(float H)
-# {
-    # float R = abs(H * 6 - 3) - 1;
-    # float G = 2 - abs(H * 6 - 2);
-    # float B = 2 - abs(H * 6 - 4);
-    # return vec3(clamp(R, 0, 1), clamp(G, 0, 1), clamp(B, 0, 1));
-# }
-
-# vec3 HSVtoRGB(vec3 HSV)
-# {
-    # return ((Hue(HSV.x) - 1) * HSV.y + 1) * HSV.z;
-# }
-
-# vec3 RGBtoHSV(vec3 RGB)
-# {
-    # vec3 HSV = vec3(0, 0, 0);
-    # HSV.z = max(RGB.r, max(RGB.g, RGB.b));
-    # float M = min(RGB.r, min(RGB.g, RGB.b));
-    # float C = HSV.z - M;
-    # if (C != 0)
-    # {
-        # HSV.y = C / HSV.z;
-        # vec3 Delta = (HSV.z - RGB) / C;
-        # Delta.rgb -= Delta.brg;
-        # Delta.rg += vec2(2,4);
-        # if (RGB.r >= HSV.z)
-            # HSV.x = Delta.b;
-        # else if (RGB.g >= HSV.z)
-            # HSV.x = Delta.r;
-        # else
-            # HSV.x = Delta.g;
-        # HSV.x = fract(HSV.x / 6);
-    # }
-    # return HSV;
-# }
-# """
-
 
 VERTEX_SHADER = """
     // get channel position
@@ -101,7 +63,7 @@ FRAGMENT_SHADER = """
             out_color.xyz = vec3(.5, .5, .5);
         }
     }
-    out_color.w = .25 + .75 * vmask;
+    out_color.w = .25 + .5 * vmask;
 """
 
 
@@ -313,8 +275,9 @@ class WaveformPositionManager(Manager):
         # HEURISTIC
         # self.diffxc, self.diffyc = [np.sqrt(float(self.nchannels))] * 2
         
+        # linear position: indexing from top to bottom
         linear_positions = np.zeros((self.nchannels, 2), dtype=np.float32)
-        linear_positions[:,1] = np.linspace(-1., 1., self.nchannels)
+        linear_positions[:,1] = np.linspace(1., -1., self.nchannels)
         
         # default geometrical position
         if geometrical_positions is None:

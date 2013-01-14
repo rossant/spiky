@@ -407,8 +407,8 @@ class DataProvider(object):
 
 class KlustersDataProvider(DataProvider):
     """Legacy Klusters data provider with the old format."""
-    def load_probe(self, filename):
-        pass
+    # def load_probe(self, filename):
+        # pass
         
     def load(self, filename, fileindex=1):
         # klusters tests
@@ -524,7 +524,7 @@ class KlustersDataProvider(DataProvider):
             )
 
         try:
-            probe = np.loadtxt("data/buzsaki32.txt")
+            probe = np.loadtxt(filename + ".probe")
         except Exception as e:
             print(str(e))
             probe = None
@@ -622,12 +622,12 @@ class MockDataProvider(DataProvider):
             )
             
 
-        try:
-            probe = np.loadtxt("data/buzsaki32.txt")
-        except Exception as e:
-            print(str(e))
-            probe = None
-        self.holder.probe = dict(positions=probe)
+        # try:
+            # probe = np.loadtxt("data/buzsaki32.txt")
+        # except Exception as e:
+            # print(str(e))
+            # probe = None
+        self.holder.probe = dict(positions=None)
         
         # cross correlograms
         nsamples_correlograms = 20

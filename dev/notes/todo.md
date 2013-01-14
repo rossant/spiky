@@ -13,13 +13,10 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * invalidate correlograms when merging/splitting clusters
-  * load probe file
-
-  * correlogram computations in external thread, signal in thread to signal
-    that the correlograms view needs to be updated
-  * test with big data sets
-
+  * limit the number of waves in the waveformview
+  * load XML
+  * average/std waveforms
+  * extra features at the end of the fet file (eg time), how to handle them?
   * initial launch: default window geometry config
   
   
@@ -34,6 +31,7 @@ Major features
 Minor features
 --------------
   
+  * "loading..." when loading file
   * selection of cluster: highlight also in waveformview
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)
@@ -99,6 +97,8 @@ Multiplatform notes
 Ideas
 -----
   
+  * ISI widget
+  * multiple widgets of the same type
   * Measure of cluster quality: ratio of mask/unmask on each channel
   * correlation matrix: later (lower priority)
   * feature view: when masks toggled (features gray) not possible to select

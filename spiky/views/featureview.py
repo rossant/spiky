@@ -23,48 +23,6 @@ __all__ = ['FeatureView', 'FeatureNavigationBindings',
            ]
 
 
-
-# FSH = """
-# vec3 Hue(float H)
-# {
-    # float R = abs(H * 6 - 3) - 1;
-    # float G = 2 - abs(H * 6 - 2);
-    # float B = 2 - abs(H * 6 - 4);
-    # return vec3(clamp(R, 0, 1), clamp(G, 0, 1), clamp(B, 0, 1));
-# }
-
-# vec3 HSVtoRGB(vec3 HSV)
-# {
-    # return ((Hue(HSV.x) - 1) * HSV.y + 1) * HSV.z;
-# }
-
-# vec3 RGBtoHSV(vec3 RGB)
-# {
-    # vec3 HSV = vec3(0, 0, 0);
-    # HSV.z = max(RGB.r, max(RGB.g, RGB.b));
-    # float M = min(RGB.r, min(RGB.g, RGB.b));
-    # float C = HSV.z - M;
-    # if (C != 0)
-    # {
-        # HSV.y = C / HSV.z;
-        # vec3 Delta = (HSV.z - RGB) / C;
-        # Delta.rgb -= Delta.brg;
-        # Delta.rg += vec2(2,4);
-        # if (RGB.r >= HSV.z)
-            # HSV.x = Delta.b;
-        # else if (RGB.g >= HSV.z)
-            # HSV.x = Delta.r;
-        # else
-            # HSV.x = Delta.g;
-        # HSV.x = fract(HSV.x / 6);
-    # }
-    # return HSV;
-# }
-# """
-
-
-
-
 VERTEX_SHADER = """
     // move the vertex to its position
     vec2 position = position0;
@@ -87,6 +45,7 @@ FRAGMENT_SHADER = """
     else {
         out_color = texture1D(cmap, index);
     }
+    out_color.w = .75;
         
     // toggle mask and masked points
     if ((vmask == 0) && (toggle_mask > 0)) {
@@ -98,7 +57,7 @@ FRAGMENT_SHADER = """
         }
         
         // mask only for masked points in mask activated mode
-        out_color.w = .5 + .5 * vmask;
+        out_color.w = .5 + .25 * vmask;
     }
 """
 
@@ -470,7 +429,9 @@ class FeatureSelectionManager(Manager):
     def end_point(self, point):
         """Terminate selection polygon."""
         point = self.interaction_manager.get_processor('navigation').get_data_coordinates(*point)
-        self.points[self.npoints + 1,:] = self.points[0,:]
+        # record the last point in the selection polygon
+        self.points[self.npoints + 1,:] = point
+        self.points[self.npoints + 2,:] = self.points[0,:]
         self.paint_manager.set_data(
                 position=self.points,
                 visual='selection_polygon')
