@@ -317,6 +317,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.RemoveGroupsRequested.connect(self.slotRemoveGroupsRequested)
         ssignals.SIGNALS.ChangeGroupColorRequested.connect(self.slotChangeGroupColorRequested)
         ssignals.SIGNALS.ChangeClusterColorRequested.connect(self.slotChangeClusterColorRequested)
+        ssignals.SIGNALS.CorrelogramsUpdated.connect(self.slotCorrelogramsUpdated)
         
         
     # Action methods
@@ -460,6 +461,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def slotChangeClusterColorRequested(self, sender, clusters, color):
         self.do(spiky.ChangeClusterColorAction, clusters, color)
         
+    def slotCorrelogramsUpdated(self, sender):
+        # print self.sdh.
+        self.correlograms_widget.update_view(self.sdh)
         
         
     # Event methods

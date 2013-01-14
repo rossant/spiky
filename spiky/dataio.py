@@ -1,10 +1,12 @@
 import collections
+import threading
 import numpy as np
 import numpy.random as rdn
 from copy import deepcopy
 import h5py
 from galry import *
 from colors import COLORMAP
+import signals
 # from tools import Info
 
 __all__ = [
@@ -109,7 +111,18 @@ def get_correlogram(x, y, width=.021, bin=.001, duration=None):
     return corr
     
     
+class CorrelogramsThread(QtCore.QThread):
+    def set_clustercache(self, clustercache):
+        self.clustercache = clustercache
+    
+    def run(self):
+        self.clustercache._get_correlograms()
+    
+    
 class ClusterCache(object):
+    
+    # finished = QtCore.pyqtSignal()
+    
     def __init__(self, dh, sdh, width=None, bin=None):
         self.dh = dh
         self.sdh = sdh
@@ -127,6 +140,13 @@ class ClusterCache(object):
         self.correlograms = {}
         self.spikecounts = {}
         self.spiketimes = {}
+        
+        self.th = CorrelogramsThread()
+        self.th.set_clustercache(self)
+        self.th.finished.connect(self.slotFinished)
+        
+        # self.is_finished = False
+        self._correlograms =  np.array([[]])
         
     def reset(self):
         self.correlograms.clear()
@@ -192,7 +212,10 @@ class ClusterCache(object):
         self.compute(cluster0, cluster1)
         return self.correlograms[(cluster0, cluster1)]
     
-    def get_correlograms(self, clusters):
+    def _get_correlograms(self):
+        clusters = self._clusters
+        # self.is_finished = False
+        
         if len(clusters) == 0:
             return np.array([[]])
         correlograms = []
@@ -201,7 +224,34 @@ class ClusterCache(object):
                 self.compute(clusters[i], clusters[j])
                 c = self.correlograms[(clusters[i], clusters[j])]
                 correlograms.append(c)
-        return np.vstack(correlograms)
+                
+        # self.is_finished = True
+        self._correlograms = np.vstack(correlograms)
+        
+        return self._correlograms
+        
+    def get_correlograms(self, clusters):
+        # return self._get_correlograms(clusters)
+        
+        self._clusters = clusters
+        
+        # start the thread only if it has not finished and it is not running
+        # if not self.is_finished:
+            
+        if not self.th.isRunning():
+            # print "start", clusters
+            self.th.start()
+        
+            # return np.array([[]])
+        
+        # else:
+            
+        return self._correlograms
+        
+    def slotFinished(self):
+        # print "finished"
+        self.sdh.correlograms = self._correlograms
+        signals.emit(self, 'CorrelogramsUpdated')
     
     def get_spikecounts(self, clusters):
         # make sure the requested information is available (the compute
@@ -277,6 +327,11 @@ class SelectDataHolder(object):
         f = eval(s)
         uf = np.frompyfunc(f, 1, 1)
         return uf
+        
+    # @property
+    # def correlograms(self):
+        # return self.clustercache.get_correlograms()
+    
         
     # @profile
     def select_clusters(self, clusters):
