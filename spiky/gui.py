@@ -144,7 +144,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # create the DataUpdater, which handles the ToChange signals and
         # change data in the DataHolder.
         self.du = DataUpdater(self.sdh)
-        self.am = spiky.ActionManager(self.dh)
+        self.am = spiky.ActionManager(self.dh, self.sdh)
         
         # central window, the dockable widgets are arranged around it
         self.cluster_widget, self.cluster_dock_widget = self.add_dock(sviews.ClusterWidget, QtCore.Qt.RightDockWidgetArea)
@@ -372,7 +372,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.dh = self.provider.load(filename, fileindex)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         self.du = DataUpdater(self.sdh)
-        self.am = spiky.ActionManager(self.dh)
+        self.am = spiky.ActionManager(self.dh, self.sdh)
         
         self.cluster_widget.update_view(self.sdh)
         self.feature_widget.update_view(self.sdh)
@@ -381,6 +381,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
 
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
+    
     
     # Generic Do/Redo methods
     # -----------------------

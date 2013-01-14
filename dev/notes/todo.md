@@ -1,16 +1,18 @@
 Spiky: graphical interface for semi-automatic spike sorting
 ===========================================================
 
+Message for alpha pre-release version:
+
+    This is an alpha version of a software that is still in development.
+    Some features are missing, bugs and crashes may appear, and the software
+    may be slow with large data sets. 
+    These issues will be fixed in later releases.
+    Make sure you backup your data before loading it (although the software
+    won't modify any of your files by default).
+    
 Before alpha pre-release
 ------------------------
 
-Message:
-
-    This is an alpha pre-release of a software that is still in development.
-    Some features are missing, bugs and crashes may appear, and the software
-    may be slow with large data sets. Make sure you backup your data.
-    These issues will be fixed in later releases.
-    
   * invalidate correlograms when merging/splitting clusters
   * load probe file
 

@@ -10,8 +10,9 @@ from dataio import get_clusters_info
 class Action(object):
     # Initialization methods
     # ----------------------
-    def __init__(self, dh):
+    def __init__(self, dh, sdh):
         self.dh = dh
+        self.sdh = sdh
         
     def set_params(self, *args, **kwargs):
         pass
@@ -44,12 +45,22 @@ class Action(object):
         self.old_clusters_info = dcopy(self.dh.clusters_info['clusters_info'])
         self.old_groups_info = dcopy(self.dh.clusters_info['groups_info'])
         
+        # save correlograms
+        self.old_correlograms = self.sdh.clustercache.correlograms
+        self.old_spikecounts = self.sdh.clustercache.spikecounts
+        self.old_spiketimes = self.sdh.clustercache.spiketimes
+        
     def restore_state(self):
         # restore old information (for redo)
         self.dh.nclusters = self.old_nclusters
         self.dh.clusters = self.old_clusters
         self.dh.clusters_info['clusters_info'] = self.old_clusters_info
         self.dh.clusters_info['groups_info'] = self.old_groups_info
+        
+        # restore correlograms
+        self.sdh.clustercache.correlograms = self.old_correlograms
+        self.sdh.clustercache.spikecounts = self.old_spikecounts
+        self.sdh.clustercache.spiketimes = self.old_spiketimes
        
     def __repr__(self):
         return super(Action, self).__repr__()
@@ -68,6 +79,9 @@ class MergeAction(Action):
         
         # save old information (for redo)
         self.save_state()
+        
+        # invalidate the cross correlograms of the clusters to merge
+        self.sdh.clustercache.invalidate(self.clusters_to_merge)
         
         # get the index of the new cluster
         self.new_cluster = self.dh.new_cluster()
@@ -131,6 +145,9 @@ class SplitAction(Action):
         # create nclusters_to_split new clusters
         nc = self.dh.new_cluster()
         new_clusters = np.arange(nc, nc + nclusters_to_split)
+        
+        # invalidate the cross correlograms of the clusters to merge
+        self.sdh.clustercache.invalidate(clusters_to_split)
         
         for cluster, new_cluster in zip(clusters_to_split, new_clusters):
             # spikes which are in the current cluster
@@ -253,13 +270,14 @@ class RemoveGroupsAction(Action):
 # Action Manager
 # --------------
 class ActionManager(object):
-    def __init__(self, dh):
+    def __init__(self, dh, sdh):
         self.stack = []
         self.unstack = []
         self.dh = dh
+        self.sdh = sdh
         
     def do(self, action_class, *args, **kwargs):
-        action = action_class(self.dh)
+        action = action_class(self.dh, self.sdh)
         action.set_params(*args, **kwargs)
         action.execute()
         self.stack.append(action)

@@ -1,6 +1,7 @@
 import collections
 import numpy as np
 import numpy.random as rdn
+from copy import deepcopy
 import h5py
 from galry import *
 from colors import COLORMAP
@@ -174,10 +175,10 @@ class ClusterCache(object):
 
         # compute correlograms of the two clusters if needed
         if (cluster0, cluster1) not in self.correlograms:
+            # print cluster0, cluster1
             # convert spike train units from samples counts to seconds
             x = x * 1. / self.dh.freq
             y = y * 1. / self.dh.freq
-            
             corr = get_correlogram(x, y, width=self.width, bin=self.bin,
                 duration=self.dh.duration)
             self.correlograms[(cluster0, cluster1)] = corr
@@ -194,7 +195,6 @@ class ClusterCache(object):
     def get_correlograms(self, clusters):
         if len(clusters) == 0:
             return np.array([[]])
-        # TODO: speed that up!
         correlograms = []
         for i in xrange(len(clusters)):
             for j in xrange(i, len(clusters)):
@@ -214,6 +214,7 @@ class ClusterCache(object):
         # function only computes something if necessary
         [self.compute(c) for c in clusters]
         return [self.spiketimes[i] for i in clusters]
+    
     
     
 # Data holder
