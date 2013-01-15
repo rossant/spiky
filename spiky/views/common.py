@@ -89,31 +89,6 @@ class SpikeDataOrganizer(object):
         else:
             permutation = np.array([], dtype=np.int32)
         return permutation
-        
-    # def reorder(self, permutation=None):
-        # if self.nclusters == 0 or self.nspikes == 0:
-            # self.data_reordered = self.data
-            # self.cluster_sizes = np.array([], dtype=np.int32)
-            # permutation = self.get_reordering()
-            # return self.data
-            
-        # if permutation is None:
-            # permutation = self.get_reordering()
-            
-        # # reorder data
-        # self.data_reordered = self.data[permutation,...]
-            
-        # # reorder masks
-        # self.masks = self.masks[permutation,:]
-        # self.clusters = self.clusters[permutation,:]
-        # self.clusters_rel = self.clusters_rel[permutation,:]
-        
-        # # array of cluster sizes as a function of the relative index
-        # self.cluster_sizes = np.array(map(operator.itemgetter(1),
-                                    # sorted(self.cluster_sizes_dict.iteritems(),
-                                            # key=operator.itemgetter(0))))
-        
-        # return self.data_reordered
 
 
 class HighlightManager(Manager):

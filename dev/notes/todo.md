@@ -14,8 +14,8 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * average/std waveforms
   * load XML
+  
   * extra features at the end of the fet file (eg time), how to handle them?
   * initial launch: default window geometry config
   
