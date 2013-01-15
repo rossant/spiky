@@ -754,8 +754,8 @@ class WaveformPaintManager(PlotPaintManager):
             # "superimposed",
             "channel_positions"
             )
-                
-        
+    
+    
 class WaveformInteractionManager(PlotInteractionManager):
     def select_channel(self, coord, xp, yp):
         # normalized coordinates

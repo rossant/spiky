@@ -231,6 +231,13 @@ class ChangeClusterColorAction(Action):
         for clusteridx in self.clusters:
             self.dh.clusters_info['clusters_info'][clusteridx]['color'] = self.color
         
+    def selected_clusters_after_undo(self):
+        return self.clusters
+
+    def selected_clusters_after_redo(self):
+        return self.clusters
+        
+    
         
 class RenameGroupAction(Action):
     def set_params(self, groupidx, name):

@@ -14,9 +14,8 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * limit the number of waves in the waveformview
-  * load XML
   * average/std waveforms
+  * load XML
   * extra features at the end of the fet file (eg time), how to handle them?
   * initial launch: default window geometry config
   
@@ -45,25 +44,30 @@ Minor features
   * highlighting: less transient with CTRL + click (click to deactivate)
   * option to change width/bin of correlograms
   * option to toggle showing masks as gray waveforms in waveform view
-  * option to select the max number of waveforms to display (selected at
-    random)
   * function for automatic zoom in waveformview as a function of
     channels and clusters
   * small widget with text information (number of spikes, highlighted spikes...)
 
-
-Improvements
-------------
-
   * feature view gray points transparency depth
-  * correlogram computations in external thread
 
   
-Optimizations
--------------
-
+Ideas
+-----
+  
+  * ISI widget
+  * multiple widgets of the same type
+  * Measure of cluster quality: ratio of mask/unmask on each channel
+  * correlation matrix: later (lower priority)
+  * feature view: when masks toggled (features gray) not possible to select
+    them. when no masks, everything can be selected.
+  * trace view (neuroscope)
+  * fetdim variable in controller widget (1 to ?)
   * improve the computation of cross-correlograms (specific algorithm for
     pairwise correlograms within a pool of neurons, maybe with numba)
+
+    
+Optimizations
+-------------
 
 
 Fixes
@@ -94,15 +98,3 @@ Multiplatform notes
   * windows/pyside cluster view: cluster selection not blue but gray (style not working?)
 
   
-Ideas
------
-  
-  * ISI widget
-  * multiple widgets of the same type
-  * Measure of cluster quality: ratio of mask/unmask on each channel
-  * correlation matrix: later (lower priority)
-  * feature view: when masks toggled (features gray) not possible to select
-    them. when no masks, everything can be selected.
-  * trace view (neuroscope)
-  * fetdim variable in controller widget (1 to ?)
-
