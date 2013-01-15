@@ -32,14 +32,16 @@ VERTEX_SHADER = """
     vmask = mask;
     vselection = selection;
         
-    gl_PointSize = 3.;
-    
+    if ((highlight > 0) || (selection > 0))
+        gl_PointSize = 5.;
+    else
+        gl_PointSize = 3.;
 """
      
      
 FRAGMENT_SHADER = """
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
-    if (vhighlight > 0) {
+    if ((vhighlight > 0) || (vselection > 0)) {
         out_color = texture1D(hcmap, index);
     }
     else {
@@ -268,6 +270,7 @@ class FeatureHighlightManager(HighlightManager):
         super(FeatureHighlightManager, self).initialize()
         self.highlight_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.highlighted_spikes = []
+        self.spike_ids = self.data_manager.spike_ids
         
     def find_enclosed_spikes(self, enclosing_box):
         x0, y0, x1, y1 = enclosing_box
@@ -290,6 +293,7 @@ class FeatureHighlightManager(HighlightManager):
         spkindices = np.nonzero(indices)[0]
         spkindices = np.unique(spkindices)
         return spkindices
+        # return self.spike_ids[spkindices]
         
     def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
@@ -301,13 +305,16 @@ class FeatureHighlightManager(HighlightManager):
         else:
             do_update = True
             self.highlight_mask[:] = 0
-            self.highlight_mask[spikes] = 1
+            # from absolue indices to relative indices
+            spikes_rel = np.digitize(spikes, self.spike_ids) - 1
+            self.highlight_mask[spikes_rel] = 1
         
         if do_update:
             
             # emit the HighlightSpikes signal
             if do_emit:
                 ssignals.emit(self.parent, 'HighlightSpikes', spikes)
+                    # self.spike_ids[np.array(spikes, dtype=np.int32)])
             
             self.paint_manager.set_data(
                 highlight=self.highlight_mask, visual='features')
@@ -320,7 +327,8 @@ class FeatureHighlightManager(HighlightManager):
         
     def highlighted(self, box):
         spikes = self.find_enclosed_spikes(box)
-        self.set_highlighted_spikes(spikes)
+        # from relative indices to absolute indices
+        self.set_highlighted_spikes(self.spike_ids[spikes])
         
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
@@ -729,8 +737,10 @@ class FeatureWidget(VisualizationWidget):
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         
-    def slotHighlightSpikes(self, parent, highlighted):
-        self.update_nspikes_viewer(self.dh.nspikes, len(highlighted))
+    def slotHighlightSpikes(self, sender, spikes):
+        self.update_nspikes_viewer(self.dh.nspikes, len(spikes))
+        if sender != self.view:
+            self.view.highlight_spikes(spikes)
         
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()

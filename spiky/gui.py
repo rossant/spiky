@@ -305,7 +305,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
     
     def initialize_connections(self):
         """Initialize the signals/slots connections between widgets."""
-        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        # ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
         ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
@@ -499,28 +499,28 @@ class SpikyMainWindow(QtGui.QMainWindow):
             
     # Highlight slots
     #----------------
-    def slotHighlightSpikes(self, sender, spikes):
-        """Called whenever spikes are selected in a view.
+    # def slotHighlightSpikes(self, sender, spikes):
+        # """Called whenever spikes are selected in a view.
         
-        Arguments:
-          * sender: the view which is at the origin of the signal emission.
-          * spikes: a Numpy array of integers with the indices of highlighted
-            spikes.
+        # Arguments:
+          # * sender: the view which is at the origin of the signal emission.
+          # * spikes: a Numpy array of integers with the indices of highlighted
+            # spikes.
         
-        """
-        # TODO: better design with the slot being in the target widgets directly
-        
-        # highlighting occurred in the feature widget
-        if hasattr(self, 'feature_widget'):
-            if sender == self.feature_widget.view:
-                if hasattr(self, 'waveform_widget'):
-                    self.waveform_widget.view.highlight_spikes(spikes)
+        # """
+        # # TODO: better design with the slot being in the target widgets directly
+        # pass
+        # # highlighting occurred in the feature widget
+        # if hasattr(self, 'feature_widget'):
+            # if sender == self.feature_widget.view:
+                # if hasattr(self, 'waveform_widget'):
+                    # self.waveform_widget.view.highlight_spikes(spikes)
             
-        # highlighting occurred in the waveform widget
-        if hasattr(self, 'waveform_widget'):
-            if sender == self.waveform_widget.view:
-                if hasattr(self, 'feature_widget'):
-                    self.feature_widget.view.highlight_spikes(spikes)
+        # # highlighting occurred in the waveform widget
+        # if hasattr(self, 'waveform_widget'):
+            # if sender == self.waveform_widget.view:
+                # if hasattr(self, 'feature_widget'):
+                    # self.feature_widget.view.highlight_spikes(spikes)
     
     def slotClusterSelectionChanged(self, sender, clusters):
         # enable/disable del/shift+del when no clusters are selected

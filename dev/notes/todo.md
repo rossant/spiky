@@ -8,7 +8,8 @@ Message for alpha pre-release version:
     may be slow with large data sets. 
     These issues will be fixed in later releases.
     Make sure you backup your data before loading it (although the software
-    won't modify any of your files by default).
+    won't modify any of your files by default, proposing you to save in 
+    a different CLU file).
     
 Before alpha pre-release
 ------------------------
@@ -32,7 +33,6 @@ Minor features
 --------------
   
   * "loading..." when loading file
-  * selection of cluster: highlight also in waveformview
   * use the existing XML file (reverse engineer) and store all information
     related to visualization in here (cluster colors, probe scaling, etc)
   

@@ -79,6 +79,7 @@ class WaveformHighlightManager(HighlightManager):
         self.nchannels = data_manager.nchannels
         self.nclusters = data_manager.nclusters
         self.nsamples = data_manager.nsamples
+        self.spike_ids = data_manager.spike_ids
         self.nspikes = data_manager.nspikes
         self.npoints = data_manager.npoints
         # self.get_data_position = data_manager.get_data_position
@@ -141,6 +142,7 @@ class WaveformHighlightManager(HighlightManager):
         
         spkindices = np.nonzero(ind.max(axis=1).max(axis=1))[0]
 
+        # return self.spike_ids[spkindices]
         return spkindices
 
     def find_indices_from_spikes(self, spikes):
@@ -167,8 +169,9 @@ class WaveformHighlightManager(HighlightManager):
             self.highlight_mask[:] = 0
         else:
             do_update = True
-            ind = self.find_indices_from_spikes(spikes)
-        
+            # from absolute indices to relative indices
+            spikes_rel = np.digitize(spikes, self.spike_ids) - 1
+            ind = self.find_indices_from_spikes(spikes_rel)
             self.highlight_mask[:] = 0
             self.highlight_mask[ind] = 1
         
@@ -177,6 +180,7 @@ class WaveformHighlightManager(HighlightManager):
             # emit the HighlightSpikes signal
             if do_emit:
                 ssignals.emit(self.parent, 'HighlightSpikes', spikes)
+                    # self.spike_ids[np.array(spikes, dtype=np.int32)])
                 
             self.paint_manager.set_data(
                 highlight=self.highlight_mask,
@@ -188,8 +192,10 @@ class WaveformHighlightManager(HighlightManager):
         # get selected spikes
         spikes = self.find_enclosed_spikes(box) 
         
-        # update the data buffer
-        self.set_highlighted_spikes(spikes)
+        # from relative indices to absolute indices
+        spikes = np.array(spikes, dtype=np.int32)
+        # print spikes
+        self.set_highlighted_spikes(self.spike_ids[spikes])
     
     def cancel_highlight(self):
         super(WaveformHighlightManager, self).cancel_highlight()
@@ -494,9 +500,6 @@ class WaveformDataManager(Manager):
         spike_ids is a Nspikes array, it contains the absolute indices of spikes
         """
         
-        # print waveforms.shape
-        # print cluster_colors
-        
         self.nspikes, self.nsamples, self.nchannels = waveforms.shape
         self.npoints = waveforms.size
         self.geometrical_positions = geometrical_positions
@@ -513,7 +516,6 @@ class WaveformDataManager(Manager):
                                                 spike_ids=spike_ids)
         
         # get reordered data
-        # self.permutation = self.data_organizer.permutation
         self.waveforms_reordered = self.data_organizer.data_reordered
         self.nclusters = self.data_organizer.nclusters
         self.clusters = self.data_organizer.clusters
@@ -522,7 +524,6 @@ class WaveformDataManager(Manager):
         self.clusters_unique = self.data_organizer.clusters_unique
         self.clusters_rel = self.data_organizer.clusters_rel
         self.cluster_sizes = self.data_organizer.cluster_sizes
-        # self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
         self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
         
         # prepare GPU data: waveform initial positions and colors
@@ -533,10 +534,7 @@ class WaveformDataManager(Manager):
         self.full_clusters = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
         self.full_channels = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
         
-        # normalize the initial waveforms
-        # self.data_normalizer = DataNormalizer(data)
-        # self.normalized_data = self.data_normalizer.normalize()
-        # NEW: normalization in dataio instead
+        # normalization in dataio instead
         self.normalized_data = data
         
         # position waveforms
@@ -921,6 +919,7 @@ class WaveformWidget(VisualizationWidget):
             self.dh = dh
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
+                      spike_ids=self.dh.spike_ids,
                       clusters_unique=self.dh.clusters_unique,
                       cluster_colors=self.dh.cluster_colors,
                       geometrical_positions=self.dh.probe['positions'],
@@ -930,12 +929,22 @@ class WaveformWidget(VisualizationWidget):
     def initialize_connections(self):
         ssignals.SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()
         
     def slotProjectionChanged(self, sender, coord, channel, feature):
         pass
+        
+    def slotHighlightSpikes(self, sender, spikes):
+        if sender != self.view:
+            self.view.highlight_spikes(spikes)
+        
+    def slotSelectSpikes(self, sender, spikes):
+        if sender != self.view:
+            self.view.highlight_spikes(spikes)
         
         
     # Save and restore geometry
