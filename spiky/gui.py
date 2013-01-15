@@ -497,31 +497,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.reset_action_generator()
             
             
-    # Highlight slots
-    #----------------
-    # def slotHighlightSpikes(self, sender, spikes):
-        # """Called whenever spikes are selected in a view.
-        
-        # Arguments:
-          # * sender: the view which is at the origin of the signal emission.
-          # * spikes: a Numpy array of integers with the indices of highlighted
-            # spikes.
-        
-        # """
-        # # TODO: better design with the slot being in the target widgets directly
-        # pass
-        # # highlighting occurred in the feature widget
-        # if hasattr(self, 'feature_widget'):
-            # if sender == self.feature_widget.view:
-                # if hasattr(self, 'waveform_widget'):
-                    # self.waveform_widget.view.highlight_spikes(spikes)
-            
-        # # highlighting occurred in the waveform widget
-        # if hasattr(self, 'waveform_widget'):
-            # if sender == self.waveform_widget.view:
-                # if hasattr(self, 'feature_widget'):
-                    # self.feature_widget.view.highlight_spikes(spikes)
-    
     def slotClusterSelectionChanged(self, sender, clusters):
         # enable/disable del/shift+del when no clusters are selected
         if len(clusters) >= 1:

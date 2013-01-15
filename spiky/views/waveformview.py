@@ -170,10 +170,13 @@ class WaveformHighlightManager(HighlightManager):
         else:
             do_update = True
             # from absolute indices to relative indices
-            spikes_rel = np.digitize(spikes, self.spike_ids) - 1
-            ind = self.find_indices_from_spikes(spikes_rel)
+            # only keep spikes that are displayed
+            spikes = np.intersect1d(spikes, self.spike_ids)
             self.highlight_mask[:] = 0
-            self.highlight_mask[ind] = 1
+            if len(spikes) > 0:
+                spikes_rel = np.digitize(spikes, self.spike_ids) - 1
+                ind = self.find_indices_from_spikes(spikes_rel)
+                self.highlight_mask[ind] = 1
         
         if do_update:
             
@@ -488,7 +491,7 @@ class WaveformDataManager(Manager):
                  clusters_unique=None,
                  masks=None, geometrical_positions=None, spike_ids=None,
                  spatial_arrangement=None, superposition=None,
-                 box_size=None, probe_scale=None):
+                 box_size=None, probe_scale=None, subselect=None):
         """
         waveforms is a Nspikes x Nsamples x Nchannels array.
         clusters is a Nspikes array, with the cluster absolute index for each
@@ -499,6 +502,16 @@ class WaveformDataManager(Manager):
         masks is a Nspikes x Nchannels array (with values in [0,1])
         spike_ids is a Nspikes array, it contains the absolute indices of spikes
         """
+        
+        # select only a subsample of the spikes
+        if subselect:
+            nspk = waveforms.shape[0]
+            indices = np.unique(np.random.randint(low=0, high=nspk, size=subselect))
+            waveforms = waveforms[indices,...]
+            spike_ids = spike_ids[indices,...]
+            clusters = clusters[indices,...]
+            masks = masks[indices,...]
+        
         
         self.nspikes, self.nsamples, self.nchannels = waveforms.shape
         self.npoints = waveforms.size
@@ -904,25 +917,26 @@ class WaveformWidget(VisualizationWidget):
                       geometrical_positions=self.dh.probe['positions'],
                       masks=self.dh.masks,
                       **geometry_preferences
-                      # user preferences
-                      # TODO: store this in the data file, or in the user
-                      # preferences
-                      # spatial_arrangement=geometry_preferences.get('spatial_arrangement', None),
-                      # superposition=geometry_preferencesget('superposition', None),
-                      # box_size=geometry_preferencesget('box_size', None),
-                      # probe_scale=geometry_preferencesget('probe_scale', None)
                       )
         return self.view
         
     def update_view(self, dh=None):
         if dh is not None:
             self.dh = dh
+            
+        # subselection only if more than 2 clusters
+        if len(self.dh.clusters_unique) > 1:
+            subselect = 1000
+        else:
+            subselect = None
+            
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
                       spike_ids=self.dh.spike_ids,
                       clusters_unique=self.dh.clusters_unique,
                       cluster_colors=self.dh.cluster_colors,
                       geometrical_positions=self.dh.probe['positions'],
+                      subselect=subselect,
                       masks=self.dh.masks
                       )
     
