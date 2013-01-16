@@ -14,9 +14,6 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * load XML
-  
-  * extra features at the end of the fet file (eg time), how to handle them?
   * initial launch: default window geometry config
   
   
@@ -26,6 +23,7 @@ Major features
   * GUI to visualize probe files
   * new HDF5 file format
   * robot
+  * extra features at the end of the fet file (eg time), how to handle them?
 
   
 Minor features

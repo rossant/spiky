@@ -7,6 +7,7 @@ import h5py
 from galry import *
 from colors import COLORMAP
 import signals
+from xmltools import parse_xml
 # from tools import Info
 
 __all__ = [
@@ -217,16 +218,18 @@ class ClusterCache(object):
         # self.is_finished = False
         
         if len(clusters) == 0:
-            return np.array([[]])
-        correlograms = []
-        for i in xrange(len(clusters)):
-            for j in xrange(i, len(clusters)):
-                self.compute(clusters[i], clusters[j])
-                c = self.correlograms[(clusters[i], clusters[j])]
-                correlograms.append(c)
-                
-        # self.is_finished = True
-        self._correlograms = np.vstack(correlograms)
+            self._correlograms = np.array([[]])
+            
+        else:
+            correlograms = []
+            for i in xrange(len(clusters)):
+                for j in xrange(i, len(clusters)):
+                    self.compute(clusters[i], clusters[j])
+                    c = self.correlograms[(clusters[i], clusters[j])]
+                    correlograms.append(c)
+                    
+            # self.is_finished = True
+            self._correlograms = np.vstack(correlograms)
         
         return self._correlograms
         
@@ -411,10 +414,21 @@ class KlustersDataProvider(DataProvider):
         # pass
         
     def load(self, filename, fileindex=1):
+        
+        # load XML
+        
+        try:
+            params = parse_xml(filename + ".xml")
+        except Exception as e:
+            raise Exception(("The XML file was not found and the data cannot "
+                "be loaded."))
+        
+        
         # klusters tests
-        nchannels = 32
-        # nspikes = 10000
-        nsamples = 20
+        nchannels = params['nchannels']
+        nsamples = params['nsamples']
+        fetdim = params['fetdim']
+        freq = params['rate']
         
         self.filename = filename
         self.fileindex = fileindex
@@ -441,14 +455,28 @@ class KlustersDataProvider(DataProvider):
         
         features = load_text(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
         features = np.array(features, dtype=np.float32)
-        features = features.reshape((-1, 97))
+        
+        # HACK: there are either 1 or 5 dimensions more than fetdim*nchannels
+        # we can't be sure so we first try 1, if it does not work we try 5
+        try:
+            features = features.reshape((-1, fetdim * nchannels + 1))
+        except:
+            log_warn("The number of columns is not fetdim (%d) x nchannels (%d) + 1." \
+                % (fetdim, nchannels))
+            try:
+                features = features.reshape((-1, fetdim * nchannels + 5))
+                
+            except:
+                log_warn("The number of columns is not fetdim (%d) x nchannels (%d) + 5, so I'm confused and I can't continue. Sorry :(" \
+                    % (fetdim, nchannels))
+            
+        
         # get the spiketimes
         spiketimes = features[:,-1].copy()
         # remove the last column in features, containing the spiketimes
-        features = features[:,:-1]
+        features = features[:,:nchannels * fetdim]
+        
         # normalize the data here
-        # dn = DataNormalizer(np.array(features, dtype=np.float32))
-        # features = dn.normalize(symmetric=True)
         m = features.min()
         M = features.max()
         # force symmetry
@@ -479,7 +507,7 @@ class KlustersDataProvider(DataProvider):
         
         self.holder = DataHolder()
         
-        self.holder.freq = 20000.
+        self.holder.freq = freq
         
         
         self.holder.nspikes = nspikes
@@ -498,7 +526,6 @@ class KlustersDataProvider(DataProvider):
         self.holder.waveforms = waveforms
         self.holder.waveforms_info = dict(nsamples=nsamples)
         
-        fetdim = 3
         self.holder.fetdim = fetdim
         self.holder.features = features
         
