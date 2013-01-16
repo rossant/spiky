@@ -1,5 +1,6 @@
 import os
-from distutils.core import setup
+# from distutils.core import setup
+from setuptools import *
 
 LONG_DESCRIPTION = """Spike sorting graphical interface."""
 
@@ -14,6 +15,7 @@ if __name__ == '__main__':
         author='Cyrille Rossant',
         author_email='rossant@github',
         packages=['spiky',
+                  'spiky.scripts',
                   'spiky.views',
                   
                   # INCLUDE GALRY
@@ -26,6 +28,9 @@ if __name__ == '__main__':
                   'galry.visuals.fontmaps',
                   
                   ],
+        entry_points = {
+            'console_scripts': [ 'spiky = spiky.scripts.runspiky:main' ]
+        },
         package_data={
             'spiky': ['icons/*.png'],
             
@@ -36,7 +41,8 @@ if __name__ == '__main__':
             
         },
         
-        # scripts=[''],
+        # scripts=['scripts/runspiky.py'],
+        
         url='https://github.com/rossant/spikyy',
         license='LICENSE.md',
         description='Spike sorting graphical interface.',

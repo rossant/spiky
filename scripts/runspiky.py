@@ -1,10 +1,13 @@
+#!/usr/bin/env python
+
 import sys
 import re
 import numpy as np
 from spiky import *
 
-if __name__ == '__main__':
+def main():
     filename = ""
+    
     if len(sys.argv) >= 2:
         filename = sys.argv[1]
         
@@ -22,4 +25,7 @@ if __name__ == '__main__':
         MySpiky = SpikyMainWindow
         
     window = show_window(MySpiky)
+
+if __name__ == '__main__':
+    main()
     

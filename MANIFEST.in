@@ -5,7 +5,7 @@ recursive-exclude experimental *
 recursive-exclude experimental/data *
 recursive-include spiky *.md *.py *.png
 recursive-include spiky/views *.md *.py
-recursive-include scripts *.py
+recursive-include spiky/scripts *.md *.py
 recursive-exclude spiky dumpprof.py kerprof.py *.bat
 recursive-exclude spiky/data *
 

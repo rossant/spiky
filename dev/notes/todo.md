@@ -14,7 +14,8 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * initial launch: default window geometry config
+  * make settings independent from pyqt/pyside
+    initial launch: default window geometry config
   
   
 Major features
