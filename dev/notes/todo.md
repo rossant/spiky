@@ -14,6 +14,7 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
+  * width of the waveform mean = std?
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
   
@@ -31,23 +32,22 @@ Minor features
 --------------
   
   * "loading..." when loading file
-  * use the existing XML file (reverse engineer) and store all information
-    related to visualization in here (cluster colors, probe scaling, etc)
+  * store visualization-related information in the XML file (cluster colors,
+    probe scaling, etc)
+  * history of actions
   
   * feature view and waveform view: display cluster index of the closest object
     from the mouse, when pressing a button
   * buttons for all commands (reset view for any view)
   * interaction mode buttons: deactivate in gray to highlight the current mode
   
-  * display mean/std waveform (see klusters)
   * highlighting: less transient with CTRL + click (click to deactivate)
   * option to change width/bin of correlograms
   * option to toggle showing masks as gray waveforms in waveform view
+  * feature view gray points transparency depth
   * function for automatic zoom in waveformview as a function of
     channels and clusters
   * small widget with text information (number of spikes, highlighted spikes...)
-
-  * feature view gray points transparency depth
 
   
 Ideas
