@@ -14,9 +14,11 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * width of the waveform mean = std?
+  * extra features at the end of the fet file (eg time), how to handle them?
+  * profiling
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
+  * width of the waveform mean = std?
   
   
 Major features
@@ -25,7 +27,6 @@ Major features
   * GUI to visualize probe files
   * new HDF5 file format
   * robot
-  * extra features at the end of the fet file (eg time), how to handle them?
 
   
 Minor features
