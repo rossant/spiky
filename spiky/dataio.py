@@ -105,11 +105,18 @@ def brian(T1, T2, width=.02, bin=.001, T=None):
 def get_correlogram(x, y, width=.021, bin=.001, duration=None):
     # TODO: this is highly unoptimized, optimize that
     corr = brian(x, y, width=width, bin=bin, T=duration)
+    # corr = None
     # print corr
     if corr is None:
         return np.zeros(2*int(np.ceil(width / bin)))
     corr[len(corr)/2] = 0
     return corr
+  
+  
+  
+  
+
+    
     
     
 class CorrelogramsThread(QtCore.QThread):
@@ -141,6 +148,9 @@ class ClusterCache(object):
         self.correlograms = {}
         self.spikecounts = {}
         self.spiketimes = {}
+        self.info = {'correlograms': self.correlograms,
+                     'spikecounts': self.spikecounts,
+                     'spiketimes': self.spiketimes}
         
         self.th = CorrelogramsThread()
         self.th.set_clustercache(self)
@@ -148,6 +158,9 @@ class ClusterCache(object):
         
         # self.is_finished = False
         self._correlograms =  np.array([[]])
+        
+    # def get_info(self):
+        # return self.info
         
     def reset(self):
         self.correlograms.clear()
@@ -311,6 +324,7 @@ class SelectDataHolder(object):
         self.dataholder = dataholder
         self.override_color = False
         self.clustercache = ClusterCache(dataholder, self)
+        # self.clustercache_info = self.clustercache.info
         self.spike_dependent_variables = [
             'spiketimes',
             'waveforms',
@@ -335,6 +349,8 @@ class SelectDataHolder(object):
     # def correlograms(self):
         # return self.clustercache.get_correlograms()
     
+    def invalidate(self, clusters):
+        self.clustercache.invalidate(clusters)
         
     # @profile
     def select_clusters(self, clusters):
@@ -359,6 +375,8 @@ class SelectDataHolder(object):
         # print self.correlograms
         
         self.baselines = counts / float(self.dataholder.duration)
+        
+        
         self.nclusters = len(clusters)
         # cluster colors
         self.cluster_colors_original = np.array([self.dataholder.clusters_info['clusters_info'][cluster]['color'] for cluster in clusters])

@@ -223,7 +223,6 @@ class CorrelogramsView(GalryWidget):
             log_debug("Initializing data for correlograms")
     
     
-
 class CorrelogramsWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh

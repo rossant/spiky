@@ -46,9 +46,10 @@ class Action(object):
         self.old_groups_info = dcopy(self.dh.clusters_info['groups_info'])
         
         # save correlograms
-        self.old_correlograms = self.sdh.clustercache.correlograms
-        self.old_spikecounts = self.sdh.clustercache.spikecounts
-        self.old_spiketimes = self.sdh.clustercache.spiketimes
+        # self.old_correlograms = self.sdh.clustercache.correlograms
+        # self.old_spikecounts = self.sdh.clustercache.spikecounts
+        # self.old_spiketimes = self.sdh.clustercache.spiketimes
+        self.old_clustercache_info = dcopy(self.sdh.clustercache.info)
         
     def restore_state(self):
         # restore old information (for redo)
@@ -58,9 +59,10 @@ class Action(object):
         self.dh.clusters_info['groups_info'] = self.old_groups_info
         
         # restore correlograms
-        self.sdh.clustercache.correlograms = self.old_correlograms
-        self.sdh.clustercache.spikecounts = self.old_spikecounts
-        self.sdh.clustercache.spiketimes = self.old_spiketimes
+        # self.sdh.clustercache.correlograms = self.old_correlograms
+        # self.sdh.clustercache.spikecounts = self.old_spikecounts
+        # self.sdh.clustercache.spiketimes = self.old_spiketimes
+        self.sdh.clustercache.info = self.old_clustercache_info
        
     def __repr__(self):
         return super(Action, self).__repr__()
@@ -81,7 +83,7 @@ class MergeAction(Action):
         self.save_state()
         
         # invalidate the cross correlograms of the clusters to merge
-        self.sdh.clustercache.invalidate(self.clusters_to_merge)
+        self.sdh.invalidate(self.clusters_to_merge)
         
         # get the index of the new cluster
         self.new_cluster = self.dh.new_cluster()
@@ -147,7 +149,7 @@ class SplitAction(Action):
         new_clusters = np.arange(nc, nc + nclusters_to_split)
         
         # invalidate the cross correlograms of the clusters to merge
-        self.sdh.clustercache.invalidate(clusters_to_split)
+        self.sdh.invalidate(clusters_to_split)
         
         for cluster, new_cluster in zip(clusters_to_split, new_clusters):
             # spikes which are in the current cluster
