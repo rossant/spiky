@@ -8,6 +8,7 @@ from galry import *
 from colors import COLORMAP
 import signals
 from xmltools import parse_xml
+from spiky.qtqueue import qtjobqueue
 # from tools import Info
 
 __all__ = [
@@ -280,7 +281,96 @@ class ClusterCache(object):
         # function only computes something if necessary
         [self.compute(c) for c in clusters]
         return [self.spiketimes[i] for i in clusters]
+
+
+
+@qtjobqueue
+class ClusterCache2(object):
+    def __init__(self, dh, sdh, width=None, bin=None):
+        self.dh = dh
+        self.sdh = sdh
+        
+        if width is None:
+            width = .02
+        if bin is None:
+            bin = .001
+        
+        self.width = width
+        self.bin = bin
+        self.histlen = 2 * int(np.ceil(width / bin))
+        
+        # cache correlograms, spike trains
+        self.correlograms = {}
+        self.spiketimes = {}
     
+    def invalidate(self, clusters):
+        # invalidate spike times
+        for cl in self.spiketimes.keys():
+            if cl in clusters:
+                del self.spiketimes[cl]
+                
+        # invalidate correlograms
+        for cl0, cl1 in self.correlograms.keys():
+            if cl0 in clusters or cl1 in clusters:
+                del self.correlograms[(cl0, cl1)]
+        
+        # TODO: call this?
+        # self.process(clusters)
+
+    def process(self, clusters):
+        """Compute or retrieve from the cache the spiketimes, spikecounts and
+        correlograms of all the specified clusters. Populates the SDH with 
+        the retrieved quantities."""
+        
+        if len(clusters) == 0:
+            return
+        
+        # SDH spiketimes and correlograms
+        spiketimes = []
+        correlograms = []
+        
+        # process spiketimes
+        for cluster in clusters:
+            # retrieve or compute spiketimes
+            if cluster not in self.spiketimes:
+                spikes = self.dh.spiketimes[self.dh.clusters == cluster]
+                self.spiketimes[cluster] = spikes
+            else:
+                spikes = self.spiketimes[cluster]
+            spiketimes.append(spikes)
+            
+        # process correlograms
+        for i in xrange(len(clusters)):
+            # first spike train
+            spk0 = spiketimes[i] / float(self.dh.freq)
+            for j in xrange(i, len(clusters)):
+                # second spike train
+                spk1 = spiketimes[j] / float(self.dh.freq)
+                
+                cl0 = clusters[i]
+                cl1 = clusters[j]
+                
+                # compute correlogram
+                if (cl0, cl1) not in self.correlograms:
+                    corr = get_correlogram(spk0, spk1, width=self.width, bin=self.bin,
+                        duration=self.dh.duration)
+                    self.correlograms[(cl0, cl1)] = corr
+                else:
+                    corr = self.correlograms[(cl0, cl1)]
+                correlograms.append(corr)
+                
+        # populate SDH
+        self.sdh.spiketimes = spiketimes
+        self.sdh.correlograms = np.vstack(correlograms)
+        
+        self.update_signal()
+    
+    def update_signal(self):
+        """Raise the update signal, specifying that the correlogram view
+        needs to be updated."""
+        signals.emit(self, 'CorrelogramsUpdated')
+        
+        
     
     
 # Data holder
@@ -323,7 +413,8 @@ class SelectDataHolder(object):
     def __init__(self, dataholder):
         self.dataholder = dataholder
         self.override_color = False
-        self.clustercache = ClusterCache(dataholder, self)
+        # self.clustercache = ClusterCache(dataholder, self)
+        self.clustercache = ClusterCache2(dataholder, self)
         # self.clustercache_info = self.clustercache.info
         self.spike_dependent_variables = [
             'spiketimes',
@@ -365,16 +456,21 @@ class SelectDataHolder(object):
         # nspikes is the number of True elements in select_mask
         self.nspikes = select_mask.sum()
         # TODO: move that outside dataio
-        self.correlograms = self.clustercache.get_correlograms(clusters)
+        # self.correlograms = self.clustercache.get_correlograms(clusters)
         
-        counts = self.clustercache.get_spikecounts(clusters)
-        counts = np.array([counts[i] for i in xrange(len(clusters)) 
-                        for j in xrange(i, len(clusters))])
+        # counts = self.clustercache.get_spikecounts(clusters)
+        # counts = np.array([counts[i] for i in xrange(len(clusters)) 
+                        # for j in xrange(i, len(clusters))])
+        
+        self.clustercache.process(clusters)
         
         # print counts
         # print self.correlograms
         
-        self.baselines = counts / float(self.dataholder.duration)
+        self.correlograms = np.array([[]])
+        self.baselines = np.array([])
+        
+        # self.baselines = counts / float(self.dataholder.duration)
         
         
         self.nclusters = len(clusters)
