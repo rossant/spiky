@@ -96,12 +96,14 @@ def brian(T1, T2, width=.02, bin=.001, T=None):
     if T is None:
         T = max(T1[-1], T2[-1]) - min(T1[0], T2[0])
         
-    # Windowing function (triangle)
-    W = np.zeros(2 * n)
-    W[:n] = T - bin * np.arange(n - 1, -1, -1)
-    W[n:] = T - bin * np.arange(n)
+    return H * 1.
+        
+    # # Windowing function (triangle)
+    # W = np.zeros(2 * n)
+    # W[:n] = T - bin * np.arange(n - 1, -1, -1)
+    # W[n:] = T - bin * np.arange(n)
 
-    return H / W
+    # return H / W
 
 def get_correlogram(x, y, width=.021, bin=.001, duration=None):
     # TODO: this is highly unoptimized, optimize that

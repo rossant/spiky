@@ -60,8 +60,6 @@ def get_histogram_points(hist):
 class CorrelogramsDataManager(Manager):
     def set_data(self, histograms=None, cluster_colors=None, baselines=None):
         
-        # self.clusters = clusters
-        # self.nclusters = nclusters
         self.histograms = histograms
         self.nhistograms, self.nbins = histograms.shape
         
@@ -69,23 +67,39 @@ class CorrelogramsDataManager(Manager):
         if histograms.size == 0:
             self.nhistograms = 0
         
-        else:
-            # normalize histograms
-            m = self.histograms.max(axis=1).reshape((-1, 1))
-            m[m == 0.] = 1.
-            self.histograms /= m
+        # add sub-diagonal
+        self.nclusters = int((-1 + np.sqrt(1 + 8 * self.nhistograms)) / 2.)
+        if self.nclusters:
+            cl = np.array([(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j >= i])
+            nonid = cl[:,0] != cl[:,1]
+            self.histograms = np.vstack((self.histograms, self.histograms[nonid,::-1]))
+            self.nhistograms, self.nbins = self.histograms.shape
         
-        # print self.nhistograms, self.nbins
+        # cluster i and j for each histogram in the view
+        clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j >= i]
+        clusters += [(j,i) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j > i]
+        self.clusters = np.array(clusters, dtype=np.int32)
+        
+        # normalization
+        for j in xrange(self.nclusters):
+            # histograms in a given row
+            ind = self.clusters[:,1] == j
+            # index of the (i,j) histogram
+            i0 = np.nonzero((cl[:,0] == cl[:,1]) & (cl[:,0] == j))[0][0]
+            # divide all histograms in the row by the max of this i0 histogram
+            m = self.histograms[i0,:].max()
+            if m > 0:
+                self.histograms[ind,:] /= m
+            # normalize all histograms in the row so that they all fit in the 
+            # window
+            m = self.histograms[ind,:].max()
+            if m > 0:
+                self.histograms[ind,:] /= m
         
         self.nprimitives = self.nhistograms
         # index 0 = heterogeneous clusters, index>0 ==> cluster index + 1
         self.cluster_colors = cluster_colors
         
-        # one histogram per cluster pair (i,j) 
-        # assert self.nhistograms == self.nclusters * (self.nclusters + 1) / 2
-        # deduce the number of clusters from the size of the histogram
-        self.nclusters = int((-1 + np.sqrt(1 + 8 * self.nhistograms)) / 2.)
-    
         # get the vertex positions
         X, Y = get_histogram_points(self.histograms)
         n = X.size
@@ -95,29 +109,23 @@ class CorrelogramsDataManager(Manager):
         self.position = np.empty((n, 2), dtype=np.float32)
         self.position[:,0] = X.ravel()
         self.position[:,1] = Y.ravel()
-
-        # print baselines
         
         # baselines of the correlograms
         self.baselines = baselines
-        
-        # cluster i and j for each histogram in the view
-        clusters = [(i,j) for i in xrange(self.nclusters) for j in xrange(self.nclusters) if j >= i]
-        self.clusters = np.array(clusters, dtype=np.int32)
-        
-        color_array_index = np.zeros(self.nhistograms, dtype=np.int32)
         
         # indices of histograms on the diagonal
         if self.nclusters:
             identity = self.clusters[:,0] == self.clusters[:,1]
         else:
             identity = []
+            
+        color_array_index = np.zeros(self.nhistograms, dtype=np.int32)
         
         color_array_index[identity] = np.array(cluster_colors + 1, dtype=np.int32)
+        # very first color in color map = white (cross-correlograms)
         self.color = np.vstack((np.ones((1, 3)), scolors.COLORMAP))
         self.color_array_index = color_array_index
         
-        self.clusters0 = self.clusters
         self.clusters = np.repeat(self.clusters, self.nsamples, axis=0)
         self.color_array_index = np.repeat(self.color_array_index, self.nsamples, axis=0)
         
@@ -137,6 +145,12 @@ class CorrelogramsVisual(PlotVisual):
             
         self.primitive_type = 'TRIANGLE_STRIP'
         # self.primitive_type = 'LINE_STRIP'
+        
+        # print position.shape
+        # print nhistograms
+        # print nclusters
+        # print clusters.shape
+        # print
         
         self.add_attribute("cluster", vartype="int", ndim=2, data=clusters)
         self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
@@ -210,7 +224,7 @@ class CorrelogramsBindings(SpikyBindings):
 
 class CorrelogramsView(GalryWidget):
     def initialize(self):
-        self.constrain_ratio = True
+        # self.constrain_ratio = True
         # self.constrain_navigation = True
         self.set_bindings(CorrelogramsBindings)
         self.set_companion_classes(paint_manager=CorrelogramsPaintManager,

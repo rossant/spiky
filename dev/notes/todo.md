@@ -13,10 +13,6 @@ Message for alpha pre-release version:
     
 Before alpha pre-release
 ------------------------
-
-  
-  * correlograms: normalize, in each row, by the max of the autocorrelogram
-    and add symmetric position for reverse cross CC (reverse time and normalize)
     
   * extra features at the end of the fet file (eg time), how to handle them?
 
