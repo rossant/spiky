@@ -16,11 +16,14 @@ Before alpha pre-release
 
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
+  * feature view and waveform view: display cluster index of the closest object
+    from the mouse, when pressing a button
+  * "loading..." when loading file
   
   
   OPTIMIZATION
-    * faster loadtxt?
   
+    * faster loadtxt?
   
   
 Major features
@@ -34,13 +37,11 @@ Major features
 Minor features
 --------------
   
-  * "loading..." when loading file
+
   * store visualization-related information in the XML file (cluster colors,
     probe scaling, etc)
   * history of actions
   
-  * feature view and waveform view: display cluster index of the closest object
-    from the mouse, when pressing a button
   * buttons for all commands (reset view for any view)
   * interaction mode buttons: deactivate in gray to highlight the current mode
   
@@ -66,10 +67,6 @@ Ideas
   * fetdim variable in controller widget (1 to ?)
   * improve the computation of cross-correlograms (specific algorithm for
     pairwise correlograms within a pool of neurons, maybe with numba)
-
-    
-Optimizations
--------------
 
 
 Fixes

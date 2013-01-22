@@ -1127,7 +1127,7 @@ class WaveformWidget(VisualizationWidget):
             subselect = 1000
         # elif len(self.dh.clusters_unique) == 1:
         elif self.dh.nclusters == 1:
-            subselect = 10000
+            subselect = 1000
         else:
             subselect = None
         

@@ -2,12 +2,9 @@ include *.md *.py
 recursive-exclude dev *
 recursive-include docs *.md *.py
 recursive-exclude experimental *
-recursive-exclude experimental/data *
 recursive-include spiky *.md *.py *.png
 recursive-include spiky/views *.md *.py
 recursive-include spiky/scripts *.md *.py
-recursive-exclude spiky dumpprof.py kerprof.py *.bat
-recursive-exclude spiky/data *
 
 recursive-include galry *.md *.py *.png
 recursive-include galry/test *.md *.py

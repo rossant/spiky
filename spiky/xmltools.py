@@ -32,6 +32,10 @@ def parse_xml(filename, fileindex=1):
                 c = g.find('channels')
                 if c is not None:
                     d['nchannels'] = len(c.findall('channel'))
+    
+    if 'nchannels' not in d:
+        d['nchannels'] = d['total_channels']
+    
     return d
     
 if __name__ == '__main__':
