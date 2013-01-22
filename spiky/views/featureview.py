@@ -86,6 +86,7 @@ class FeatureDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self, features=None, fetdim=None, clusters=None,
+                nchannels=None, nextrafet=None,
                 cluster_colors=None, clusters_unique=None,
                  masks=None, spike_ids=None):
         
@@ -93,7 +94,8 @@ class FeatureDataManager(Manager):
         
         self.nspikes, self.ndim = features.shape
         self.fetdim = fetdim
-        self.nchannels = self.ndim // self.fetdim
+        self.nchannels = nchannels
+        self.nextrafet = nextrafet
         self.npoints = features.shape[0]
         self.features = features
         self.spike_ids = spike_ids
@@ -139,8 +141,16 @@ class FeatureDataManager(Manager):
 
     def set_projection(self, coord, channel, feature, do_update=True):
         """Set the projection axes."""
-        i = channel * self.fetdim + feature
-        self.full_masks = self.masks[:,channel]
+        if channel < self.nchannels:
+            i = channel * self.fetdim + feature
+            self.full_masks = self.masks[:,channel]
+        # handle extra feature, with channel being directly the feature index
+        else:
+            # print self.nchannels * self.fetdim + self.nextrafet - 1, channel
+            i = min(self.nchannels * self.fetdim + self.nextrafet - 1,
+                    channel - self.nchannels + self.nchannels * self.fetdim)
+            # print channel, i
+            # i = channel
         self.data[:, coord] = self.features_reordered[:, i].ravel()
         
         if do_update:
@@ -703,6 +713,8 @@ class FeatureWidget(VisualizationWidget):
         self.view.set_data(fetdim=self.dh.fetdim,
                       features=self.dh.features,
                       clusters=self.dh.clusters,
+                      nchannels=self.dh.nchannels,
+                      nextrafet=self.dh.nextrafet,
                       # colormap=self.dh.colormap,
                       cluster_colors=self.dh.cluster_colors,
                       masks=self.dh.masks,
@@ -715,11 +727,14 @@ class FeatureWidget(VisualizationWidget):
         self.view.set_data(fetdim=self.dh.fetdim,
                       features=self.dh.features,
                       clusters=self.dh.clusters,
+                      nchannels=self.dh.nchannels,
+                      nextrafet=self.dh.nextrafet,
                       cluster_colors=self.dh.cluster_colors,
                       clusters_unique=self.dh.clusters_unique,
                       masks=self.dh.masks,
                       spike_ids=self.dh.spike_ids)
         self.update_nspikes_viewer(self.dh.nspikes, 0)
+        self.update_feature_widget()
 
     def create_toolbar(self):
         toolbar = QtGui.QToolBar(self)
@@ -778,8 +793,8 @@ class FeatureWidget(VisualizationWidget):
                     feature = 0
         
         # print sender
-        log_debug("Projection changed in coord %s, channel=%d, feature=%s" \
-            % (('X', 'Y')[coord], channel, ('A', 'B', 'C')[feature]))
+        log_debug("Projection changed in coord %s, channel=%d, feature=%d" \
+            % (('X', 'Y')[coord], channel, feature))
         # record the new projection
         self.projection[coord] = (channel, feature)
         
@@ -803,7 +818,8 @@ class FeatureWidget(VisualizationWidget):
         
     def set_feature_button(self, coord, feature):
         """Push the corresponding button."""
-        self.feature_buttons[coord][feature].setChecked(True)
+        if feature < len(self.feature_buttons[coord]):
+            self.feature_buttons[coord][feature].setChecked(True)
         
     def select_feature(self, coord, fet=0):
         """Select channel coord, feature fet."""
@@ -813,13 +829,22 @@ class FeatureWidget(VisualizationWidget):
         
     def select_channel(self, channel, coord=0):
         """Raise the ProjectionToChange signal when the channel is changed."""
-        
-        try:
-            channel = int(channel)
-            ssignals.emit(self, "ProjectionToChange", coord, channel,
-                     self.projection[coord][1])
-        except:
-            log_warn("'%s' is not a valid channel." % channel)
+        # print type(channel)
+        # return
+        # if isinstance(channel, basestring):
+        if channel.startswith('Extra'):
+            channel = channel[6:]
+            extra = True
+        else:
+            extra = False
+        # try:
+        channel = int(channel)
+        if extra:
+            channel += self.dh.nchannels #* self.dh.fetdim
+        ssignals.emit(self, "ProjectionToChange", coord, channel,
+                 self.projection[coord][1])
+        # except:
+            # log_warn("'%s' is not a valid channel." % channel)
         
     def _select_feature_getter(self, coord, fet):
         """Return the callback function for the feature selection."""
@@ -844,13 +869,13 @@ class FeatureWidget(VisualizationWidget):
         comboBox.setEditable(True)
         comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
         comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
+        comboBox.addItems(["Extra %d" % i for i in xrange(self.dh.nextrafet)])
         comboBox.editTextChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
-        comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
+        # comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
         # comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.channel_box[coord] = comboBox
-        gridLayout.addWidget(comboBox, 0, 0, 1, 3)
+        gridLayout.addWidget(comboBox, 0, 0, 1, self.dh.fetdim)
         
-        # TODO: use dh.fetdim instead of hard coded "3 features"
         # create 3 buttons for selecting the feature
         widths = [30] * self.dh.fetdim
         labels = ['PC%d' % i for i in xrange(1, self.dh.fetdim + 1)]
@@ -882,13 +907,24 @@ class FeatureWidget(VisualizationWidget):
         text = self.get_nspikes_text(nspikes, nspikes_highlighted)
         self.nspikes_viewer.setText(text)
         
+    def update_feature_widget(self):
+        for coord in [0, 1]:
+            comboBox = self.channel_box[coord]
+            # update the channels/features list only if necessary
+            if comboBox.count() != self.dh.nchannels + self.dh.nextrafet:
+                comboBox.blockSignals(True)
+                comboBox.clear()
+                comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
+                comboBox.addItems(["Extra %d" % i for i in xrange(self.dh.nextrafet)])
+                comboBox.blockSignals(False)
+        
     def create_controller(self):
         box = super(FeatureWidget, self).create_controller()
         
         # coord => channel combo box
         self.channel_box = [None, None]
         # coord => (butA, butB, butC)
-        self.feature_buttons = [[None] * 3, [None] * 3]
+        self.feature_buttons = [[None] * self.dh.fetdim, [None] * self.dh.fetdim]
         
         # add navigation toolbar
         self.toolbar = self.create_toolbar()

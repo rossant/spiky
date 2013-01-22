@@ -399,11 +399,12 @@ class KlustersDataProvider(DataProvider):
         # get the spiketimes
         spiketimes = features[:,-1].copy()
         # remove the last column in features, containing the spiketimes
-        features = features[:,:nchannels * fetdim]
+        # features = features[:,:nchannels * fetdim]
+        nextrafet = features.shape[1] - nchannels * fetdim
         
         # normalize the data here
-        m = features.min()
-        M = features.max()
+        m = features[:,:-nextrafet].min()
+        M = features[:,:-nextrafet].max()
         # force symmetry
         vx = max(np.abs(m), np.abs(M))
         m, M = -vx, vx
@@ -437,6 +438,7 @@ class KlustersDataProvider(DataProvider):
         
         self.holder.nspikes = nspikes
         self.holder.nchannels = nchannels
+        self.holder.nextrafet = nextrafet
         
         # construct spike times from random interspike interval
         self.holder.spiketimes = spiketimes
@@ -531,6 +533,7 @@ class MockDataProvider(DataProvider):
         self.holder.nspikes = nspikes
         self.holder.nclusters = nclusters
         self.holder.nchannels = nchannels
+        self.holder.nextrafet = 0
         
         self.holder.duration = 100.
         

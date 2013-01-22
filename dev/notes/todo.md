@@ -13,8 +13,6 @@ Message for alpha pre-release version:
     
 Before alpha pre-release
 ------------------------
-    
-  * extra features at the end of the fet file (eg time), how to handle them?
 
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
