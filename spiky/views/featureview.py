@@ -12,9 +12,6 @@ import spiky.colors as scolors
 import spiky
 import spiky.tools as stools
 import spiky.signals as ssignals
-# from signals import *
-# from colors import COLORMAP
-# import spiky.views.common as scommon
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
@@ -543,6 +540,15 @@ class FeatureInteractionManager(PlotInteractionManager):
 # Bindings
 # --------
 class FeatureBindings(SpikyBindings):
+    def set_zoombox_keyboard(self):
+        """Set zoombox bindings with the keyboard."""
+        self.set('LeftClickMove', 'ZoomBox',
+                    key_modifier='Shift',
+                    param_getter=lambda p: (p["mouse_press_position"][0],
+                                            p["mouse_press_position"][1],
+                                            p["mouse_position"][0],
+                                            p["mouse_position"][1]))
+                                            
     def set_highlight(self):
         # highlight
         self.set('MiddleClickMove',
@@ -615,6 +621,10 @@ class FeatureBindings(SpikyBindings):
         self.set('KeyPress', 'SelectNeighborFeature',
                  key='Right', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
+        
+    def initialize(self):
+        super(FeatureBindings, self).initialize()
+        self.set('KeyPress', 'SwitchInteractionMode', key='N')
         
         
 class FeatureNavigationBindings(FeatureBindings):

@@ -21,10 +21,13 @@ class Action(object):
     # Execution methods
     # -----------------
     def execute(self):
-        self.save_state()
+        pass
         
     def unexecute(self):
-        self.restore_state()
+        pass
+
+    def reexecute(self):
+        pass
 
         
     # Selection methods
@@ -38,32 +41,34 @@ class Action(object):
         
     # State methods
     # -------------
-    def save_state(self):
-        # save old information (for redo)
-        self.old_nclusters = self.dh.nclusters
-        self.old_clusters = self.dh.clusters
-        self.old_clusters_info = dcopy(self.dh.clusters_info['clusters_info'])
-        self.old_groups_info = dcopy(self.dh.clusters_info['groups_info'])
+    def save_oldstate(self):
+        # save old information (for undo)
+        self._old_nclusters = self.dh.nclusters
+        self._old_clusters = self.dh.clusters
+        self._old_clusters_info = dcopy(self.dh.clusters_info['clusters_info'])
+        self._old_groups_info = dcopy(self.dh.clusters_info['groups_info'])
         
-        # save correlograms
-        # self.old_correlograms = self.sdh.clustercache.correlograms
-        # self.old_spikecounts = self.sdh.clustercache.spikecounts
-        # self.old_spiketimes = self.sdh.clustercache.spiketimes
-        self.old_clustercache_info = dcopy(self.sdh.clustercache.info)
-        
-    def restore_state(self):
-        # restore old information (for redo)
-        self.dh.nclusters = self.old_nclusters
-        self.dh.clusters = self.old_clusters
-        self.dh.clusters_info['clusters_info'] = self.old_clusters_info
-        self.dh.clusters_info['groups_info'] = self.old_groups_info
-        
-        # restore correlograms
-        # self.sdh.clustercache.correlograms = self.old_correlograms
-        # self.sdh.clustercache.spikecounts = self.old_spikecounts
-        # self.sdh.clustercache.spiketimes = self.old_spiketimes
-        self.sdh.clustercache.info = self.old_clustercache_info
+    def restore_oldstate(self):
+        # restore old information (for undo)
+        self.dh.nclusters = self._old_nclusters
+        self.dh.clusters = self._old_clusters
+        self.dh.clusters_info['clusters_info'] = self._old_clusters_info
+        self.dh.clusters_info['groups_info'] = self._old_groups_info
        
+    def save_newstate(self):
+        # save old information (for undo)
+        self._new_nclusters = self.dh.nclusters
+        self._new_clusters = self.dh.clusters
+        self._new_clusters_info = dcopy(self.dh.clusters_info['clusters_info'])
+        self._new_groups_info = dcopy(self.dh.clusters_info['groups_info'])
+        
+    def restore_newstate(self):
+        # restore old information (for undo)
+        self.dh.nclusters = self._new_nclusters
+        self.dh.clusters = self._new_clusters
+        self.dh.clusters_info['clusters_info'] = self._new_clusters_info
+        self.dh.clusters_info['groups_info'] = self._new_groups_info
+
     def __repr__(self):
         return super(Action, self).__repr__()
 
@@ -78,9 +83,6 @@ class MergeAction(Action):
         # if no clusters to merge: do nothing
         if len(self.clusters_to_merge) == 0:
             return
-        
-        # save old information (for redo)
-        self.save_state()
         
         # invalidate the cross correlograms of the clusters to merge
         self.sdh.invalidate(self.clusters_to_merge)
@@ -118,6 +120,12 @@ class MergeAction(Action):
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
         self.dh.clusters_info['clusters_info'] = clusters_info
+
+    def unexecute(self):
+        self.sdh.invalidate(self.clusters_to_merge)
+
+    def reexecute(self):
+        self.sdh.invalidate(self.clusters_to_merge)
         
     def selected_clusters_after_undo(self):
         return self.clusters_to_merge
@@ -130,18 +138,17 @@ class SplitAction(Action):
     def set_params(self, spikes_to_split):
         self.spikes_to_split = np.array(spikes_to_split)
 
+    # @profile
     def execute(self):
+        
         # if no clusters to merge: do nothing
         if len(self.spikes_to_split) == 0:
             return
         
-        # save old information (for redo)
-        self.save_state()
-        
         clusters = self.dh.clusters.copy()
         
         # array with clusters to split
-        clusters_to_split = np.unique(self.old_clusters[self.spikes_to_split])
+        clusters_to_split = np.unique(self._old_clusters[self.spikes_to_split])
         clusters_to_split.sort()
         nclusters_to_split = len(clusters_to_split)
         # create nclusters_to_split new clusters
@@ -153,7 +160,7 @@ class SplitAction(Action):
         
         for cluster, new_cluster in zip(clusters_to_split, new_clusters):
             # spikes which are in the current cluster
-            spikes_in_cluster = np.nonzero(self.old_clusters == cluster)[0]
+            spikes_in_cluster = np.nonzero(self._old_clusters == cluster)[0]
             # the spikes in the current cluster to be split
             spikes_in_cluster_to_split = np.in1d(spikes_in_cluster, self.spikes_to_split)
             spikes_in_cluster_to_split = spikes_in_cluster[spikes_in_cluster_to_split]
@@ -168,8 +175,6 @@ class SplitAction(Action):
         clusters_info = get_clusters_info(clusters)
         nclusters = len(clusters_info)
         
-        # colors = np.zeros(nclusters, dtype=np.int32)
-        # groups = np.zeros(nclusters, dtype=np.int32)
         for clusteridx, info in clusters_info.iteritems():
             # if the cluster has not been changed
             if clusteridx not in new_clusters:
@@ -178,7 +183,7 @@ class SplitAction(Action):
                 
         # group of new cluster = group of corresponding old cluster
         for old_clusteridx, new_clusteridx in zip(clusters_to_split, new_clusters):
-            clusters_info[new_clusteridx]['groupidx'] = self.old_clusters_info[old_clusteridx]['groupidx']
+            clusters_info[new_clusteridx]['groupidx'] = self._old_clusters_info[old_clusteridx]['groupidx']
                 
                 
         # update
@@ -186,6 +191,12 @@ class SplitAction(Action):
         self.dh.clusters = clusters
         self.dh.clusters_info['clusters_info'] = clusters_info
 
+    def unexecute(self):
+        self.sdh.invalidate(self.clusters_to_split)
+        
+    def reexecute(self):
+        self.sdh.invalidate(self.clusters_to_split)
+        
     def selected_clusters_after_undo(self):
         return self.clusters_to_split
 
@@ -201,7 +212,6 @@ class MoveToGroupAction(Action):
         self.groupidx = groupidx
         
     def execute(self):
-        self.save_state()
         for clusteridx in self.clusters:
             self.dh.clusters_info['clusters_info'][clusteridx]['groupidx'] = self.groupidx
         
@@ -218,7 +228,6 @@ class ChangeGroupColorAction(Action):
         self.color = color
         
     def execute(self):
-        self.save_state()
         for groupidx in self.groups:
             self.dh.clusters_info['groups_info'][groupidx]['color'] = self.color
         
@@ -229,7 +238,6 @@ class ChangeClusterColorAction(Action):
         self.color = color
         
     def execute(self):
-        self.save_state()
         for clusteridx in self.clusters:
             self.dh.clusters_info['clusters_info'][clusteridx]['color'] = self.color
         
@@ -247,13 +255,11 @@ class RenameGroupAction(Action):
         self.name = name
         
     def execute(self):
-        self.save_state()
         self.dh.clusters_info['groups_info'][self.groupidx]['name'] = self.name
         
         
 class AddGroupAction(Action):
     def execute(self):
-        self.save_state()
         self.groupidx = max(self.dh.clusters_info['groups_info'].keys()) + 1
         self.color = np.mod(max([self.dh.clusters_info['groups_info'][c]['color'] for c in self.dh.clusters_info['groups_info'].keys()]) + 1, len(COLORMAP))
         self.name = "Group %d" % self.groupidx
@@ -270,7 +276,6 @@ class RemoveGroupsAction(Action):
         self.groups = groups
         
     def execute(self):
-        self.save_state()
         for groupidx in self.groups:
             del self.dh.clusters_info['groups_info'][groupidx]
         
@@ -288,7 +293,9 @@ class ActionManager(object):
     def do(self, action_class, *args, **kwargs):
         action = action_class(self.dh, self.sdh)
         action.set_params(*args, **kwargs)
+        action.save_oldstate()
         action.execute()
+        action.save_newstate()
         self.stack.append(action)
         # when adding a new action, clear the unstack
         self.unstack = []
@@ -299,13 +306,15 @@ class ActionManager(object):
             action = self.stack.pop()
             self.unstack.append(action)
             action.unexecute()
+            action.restore_oldstate()
             return action
         
     def redo(self):
         if len(self.unstack) > 0:
             action = self.unstack.pop()
             self.stack.append(action)
-            action.execute()
+            action.reexecute()
+            action.restore_newstate()
             return action
             
     def undo_enabled(self):

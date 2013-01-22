@@ -14,14 +14,19 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * probe file: one probe file for many experiments
+  
+  * correlograms: normalize, in each row, by the max of the autocorrelogram
+    and add symmetric position for reverse cross CC (reverse time and normalize)
+    
   * extra features at the end of the fet file (eg time), how to handle them?
+
+  * probe file: one probe file for many experiments
+  
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
-  * width of the waveform mean = std?
+  
   
   OPTIMIZATION
-    * refactor clustercache
     * faster loadtxt?
   
   

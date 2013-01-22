@@ -1,7 +1,5 @@
 import numpy.random as rdn
 from galry import *
-# from common import *
-# from colors import COLORMAP
 from common import HighlightManager, SpikyBindings
 from widgets import VisualizationWidget
 import spiky.colors as scolors
@@ -200,7 +198,14 @@ class CorrelogramsPaintManager(PlotPaintManager):
             
 
 class CorrelogramsBindings(SpikyBindings):
-    pass
+    def set_zoombox_keyboard(self):
+        """Set zoombox bindings with the keyboard."""
+        self.set('LeftClickMove', 'ZoomBox',
+                    key_modifier='Shift',
+                    param_getter=lambda p: (p["mouse_press_position"][0],
+                                            p["mouse_press_position"][1],
+                                            p["mouse_position"][0],
+                                            p["mouse_position"][1]))
 
 
 class CorrelogramsView(GalryWidget):

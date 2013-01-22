@@ -567,6 +567,7 @@ class ClusterTreeView(QtGui.QTreeView):
         super(ClusterTreeView, self).selectionChanged(selected, deselected)
         can_signal_selection = getattr(self, 'can_signal_selection', True)
         can_signal_selection = can_signal_selection and getattr(self.model(), 'can_signal_selection', True)
+        
         if can_signal_selection:
             # emit the ClusterSelectionToChange signal
             clusters = self.selected_clusters()

@@ -1,15 +1,9 @@
 import os
 import re
 from galry import *
-# from views import *
-# from views.signals import SIGNALS
 import tools
 from collections import OrderedDict
 import numpy as np
-# from dataio import *
-# from tools import Info
-# from spiky import get_icon, SIGNALS, Info
-# from icons import get_icon
 import inspect
 import spiky.signals as ssignals
 import spiky
@@ -194,9 +188,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.quit_action.triggered.connect(self.close, QtCore.Qt.UniqueConnection)
         
         # merge action
-        self.merge_action = QtGui.QAction("&Merge", self)
+        self.merge_action = QtGui.QAction("Mer&ge", self)
         self.merge_action.setIcon(spiky.get_icon("merge"))
-        self.merge_action.setShortcut("M")
+        self.merge_action.setShortcut("G")
         self.merge_action.setEnabled(False)
         self.merge_action.triggered.connect(self.merge, QtCore.Qt.UniqueConnection)
         

@@ -1007,9 +1007,8 @@ class WaveformInteractionManager(PlotInteractionManager):
 class WaveformBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
-        # Idem but with CTRL + left button mouse 
-        self.set('RightClickMove', 'ZoomBox',
-                    key_modifier='Alt',
+        self.set('LeftClickMove', 'ZoomBox',
+                    key_modifier='Shift',
                     param_getter=lambda p: (p["mouse_press_position"][0],
                                             p["mouse_press_position"][1],
                                             p["mouse_position"][0],
@@ -1030,7 +1029,7 @@ class WaveformBindings(SpikyBindings):
         # toggle average
         self.set('KeyPress',
                  'ToggleAverage',
-                 key='A')
+                 key='M')
                  
     def set_box_scaling(self):
         # change box scale: CTRL + right mouse
