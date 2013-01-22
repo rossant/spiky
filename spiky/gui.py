@@ -39,6 +39,7 @@ class DataUpdater(QtGui.QWidget):
     def __init__(self, dh):
         super(DataUpdater, self).__init__()
         self.dh = dh
+        self.probefile = None
         self.initialize_connections()
         
     def initialize_connections(self):
@@ -176,6 +177,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.open_action.setIcon(spiky.get_icon("open"))
         self.open_action.triggered.connect(self.open_file, QtCore.Qt.UniqueConnection)
         
+        # open probe file action
+        self.open_probe_action = QtGui.QAction("&Open probe file", self)
+        self.open_probe_action.setShortcut("CTRL+SHIFT+O")
+        self.open_probe_action.setIcon(spiky.get_icon("probe"))
+        self.open_probe_action.triggered.connect(self.open_probefile, QtCore.Qt.UniqueConnection)
+        
         # save action
         self.save_action = QtGui.QAction("&Save", self)
         self.save_action.setShortcut("CTRL+S")
@@ -241,9 +248,15 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # ---------
         file_menu = self.menuBar().addMenu("&File")
         
+        file_menu.addAction(self.open_probe_action)
+        file_menu.addSeparator()
+        
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.save_action)
         file_menu.addSeparator()
+        
+        # open last probe
+        self.open_last_probefile()
         
         # open last file
         filename = SETTINGS.get('mainWindow/last_data_file', None)
@@ -314,8 +327,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.CorrelogramsUpdated.connect(self.slotCorrelogramsUpdated)
         
         
-    # Action methods
-    # --------------
+    # File methods
+    # ------------
     def open_file(self, *args):
         self.reset_action_generator()
         folder = SETTINGS.get('mainWindow/last_data_dir')
@@ -364,7 +377,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         SETTINGS.set('mainWindow/last_data_dir', folder)
         
         self.provider = sdataio.KlustersDataProvider()
-        self.dh = self.provider.load(filename, fileindex)
+        self.dh = self.provider.load(filename, fileindex=fileindex,
+            probefile=self.probefile)
         self.sdh = sdataio.SelectDataHolder(self.dh)
         self.du = DataUpdater(self.sdh)
         self.am = spiky.ActionManager(self.dh, self.sdh)
@@ -376,6 +390,23 @@ class SpikyMainWindow(QtGui.QMainWindow):
 
         self.undo_action.setEnabled(self.am.undo_enabled())
         self.redo_action.setEnabled(self.am.redo_enabled())
+    
+    def open_probefile(self):
+        self.reset_action_generator()
+        folder = SETTINGS.get('mainWindow/last_probe_dir')
+        filename = QtGui.QFileDialog.getOpenFileName(self, "Open a probe file", folder)[0]
+        if filename:
+            self.probefile = filename
+            # save probefile
+            SETTINGS.set('mainWindow/last_probe_file', filename)
+            # save probe folder
+            folder = os.path.dirname(filename)
+            SETTINGS.set('mainWindow/last_probe_dir', folder)
+        
+    def open_last_probefile(self, *args):
+        self.probefile = SETTINGS.get('mainWindow/last_probe_file', None)
+    
+    
     
     
     # Generic Do/Redo methods

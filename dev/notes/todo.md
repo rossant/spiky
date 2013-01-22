@@ -16,8 +16,6 @@ Before alpha pre-release
     
   * extra features at the end of the fet file (eg time), how to handle them?
 
-  * probe file: one probe file for many experiments
-  
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
   

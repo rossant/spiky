@@ -338,7 +338,7 @@ class KlustersDataProvider(DataProvider):
     # def load_probe(self, filename):
         # pass
         
-    def load(self, filename, fileindex=1):
+    def load(self, filename, fileindex=1, probefile=None):
         
         # load XML
         
@@ -475,18 +475,19 @@ class KlustersDataProvider(DataProvider):
             # groups=np.zeros(nclusters, dtype=np.int32),
             )
 
+        probe = None
         try:
-            probe = np.loadtxt(filename + ".probe")
+            if probefile:
+                probe = np.loadtxt(probefile)
         except Exception as e:
             print(str(e))
-            probe = None
         self.holder.probe = dict(positions=probe)
         
         # cross correlograms
         nsamples_correlograms = 20
         self.holder.correlograms_info = dict(nsamples=nsamples_correlograms)
         
-        self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
+        # self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
         
         return self.holder
         
