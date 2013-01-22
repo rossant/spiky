@@ -343,7 +343,7 @@ class KlustersDataProvider(DataProvider):
         # load XML
         
         try:
-            params = parse_xml(filename + ".xml")
+            params = parse_xml(filename + ".xml", fileindex=fileindex)
         except Exception as e:
             raise Exception(("The XML file was not found and the data cannot "
                 "be loaded."))
@@ -408,7 +408,18 @@ class KlustersDataProvider(DataProvider):
         # force symmetry
         vx = max(np.abs(m), np.abs(M))
         m, M = -vx, vx
-        features = -1+2*(features-m)/(M-m)
+        features[:,:-nextrafet] = -1+2*(features[:,:-nextrafet]-m)/(M-m)
+        
+        
+        # normalize the data here
+        m = features[:,-nextrafet:].min()
+        M = features[:,-nextrafet:].max()
+        # # force symmetry
+        # vx = max(np.abs(m), np.abs(M))
+        # m, M = -vx, vx
+        features[:,-nextrafet:] = -1+2*(features[:,-nextrafet:]-m)/(M-m)
+        
+        
         
         # first: try fmask
         try:
