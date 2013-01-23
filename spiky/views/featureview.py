@@ -773,6 +773,9 @@ class FeatureWidget(VisualizationWidget):
     def slotProjectionChanged(self, sender, coord, channel, feature):
         """Process the ProjectionChanged signal."""
         
+        if self.view.data_manager.projection is None:
+            return
+            
         # feature == -1 means that it should be automatically selected as
         # a function of the current projection
         if feature < 0:

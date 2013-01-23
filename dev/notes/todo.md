@@ -14,17 +14,15 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
+  * "loading..." when loading file, and progress bar?
+  * optimize selection of clusters
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
   * feature view and waveform view: display cluster index of the closest object
     from the mouse, when pressing a button
-  * "loading..." when loading file
   * buttons for all commands (reset view for any view)
-  
-  
-  OPTIMIZATION
-  
-    * faster loadtxt?
+  * waveform view: fix scaling when resizing boxes or probe
+  * feature view: optimize highlight
   
   
 Major features

@@ -7,6 +7,7 @@ import numpy as np
 import inspect
 import spiky.signals as ssignals
 import spiky
+from spiky.qtqueue import qtjobqueue
 import spiky.views as sviews
 import spiky.dataio as sdataio
 
@@ -23,9 +24,19 @@ QStatusBar::item
 __all__ = ['SpikyMainWindow', 'show_window']
 
 
+@qtjobqueue
+class ClusterSelectionQueue(object):
+    def __init__(self, du, dh):
+        self.du = du
+        self.dh = dh
+        
+    def select(self, clusters):
+        self.dh.select_clusters(clusters)
+        ssignals.emit(self.du, 'ClusterSelectionChanged', clusters)
+
 
 class DataUpdater(QtGui.QWidget):
-    """"Handle data updating in the data holder, responding to signals
+    """Handle data updating in the data holder, responding to signals
     emitted by widgets.
     
     When a widget wants to update the data, it raises a signal with a 
@@ -40,6 +51,7 @@ class DataUpdater(QtGui.QWidget):
         super(DataUpdater, self).__init__()
         self.dh = dh
         self.probefile = None
+        self.queue = ClusterSelectionQueue(self, dh)
         self.initialize_connections()
         
     def initialize_connections(self):
@@ -47,13 +59,18 @@ class DataUpdater(QtGui.QWidget):
         ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionToChange(self, sender, clusters):
-        self.dh.select_clusters(clusters)
-        ssignals.emit(sender, 'ClusterSelectionChanged', clusters)
+        # self.dh.select_clusters(clusters)
+        # ssignals.emit(sender, 'ClusterSelectionChanged', clusters)
+        self.queue.select(clusters)
         
     def slotProjectionToChange(self, sender, coord, channel, feature):
         ssignals.emit(sender, 'ProjectionChanged', coord, channel, feature)
         
-
+    def stop(self):
+        """Stop the cluster selection job queue."""
+        self.queue.join()
+        
+        
 class SpikyMainWindow(QtGui.QMainWindow):
     window_title = "Spiky"
     
@@ -313,6 +330,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def initialize_connections(self):
         """Initialize the signals/slots connections between widgets."""
         # ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        
+        ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
+        
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged)
         ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes)
         ssignals.SIGNALS.ClusterInfoToUpdate.connect(self.slotClusterInfoToUpdate)
@@ -376,6 +396,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
         folder = os.path.dirname(filename)
         SETTINGS.set('mainWindow/last_data_dir', folder)
         
+        # stop the cluster selection job queue when changing files
+        if hasattr(self, 'du'):
+            self.du.stop()
+        
         self.provider = sdataio.KlustersDataProvider()
         self.dh = self.provider.load(filename, fileindex=fileindex,
             probefile=self.probefile)
@@ -405,8 +429,6 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
     def open_last_probefile(self, *args):
         self.probefile = SETTINGS.get('mainWindow/last_probe_file', None)
-    
-    
     
     
     # Generic Do/Redo methods
@@ -522,7 +544,11 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.reset_action_generator()
             
             
+    def slotClusterSelectionToChange(self, sender, clusters):
+        pass
+            
     def slotClusterSelectionChanged(self, sender, clusters):
+        
         # enable/disable del/shift+del when no clusters are selected
         if len(clusters) >= 1:
             self.move_to_mua_action.setEnabled(True)
@@ -541,6 +567,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # disable split when changing selection of clusters
         self.split_action.setEnabled(False)
         self.selected_spikes = None
+        
+        
+        
     
     
     # Selection slots

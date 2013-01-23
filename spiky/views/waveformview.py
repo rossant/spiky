@@ -12,6 +12,7 @@ import spiky.tools as stools
 import spiky.colors as scolors
 import spiky.signals as ssignals
 from spiky.queue import jobqueue
+from spiky.qtqueue import qtjobqueue
 
 __all__ = ['WaveformView', 'WaveformWidget']
 
@@ -307,6 +308,11 @@ class WaveformPositionManager(Manager):
         linear_positions = np.zeros((self.nchannels, 2), dtype=np.float32)
         linear_positions[:,1] = np.linspace(1., -1., self.nchannels)
         
+        # check that the probe geometry is coherent with the number of channels
+        if geometrical_positions is not None:
+            if geometrical_positions.shape[0] != self.nchannels:
+                geometrical_positions = None
+            
         # default geometrical position
         if geometrical_positions is None:
             geometrical_positions = linear_positions.copy()
@@ -953,6 +959,15 @@ class WaveformPaintManager(PlotPaintManager):
             "channel_positions"
             )
     
+
+# @qtjobqueue
+# class HighlightJobQueue(object):
+    # def __init__(self, highlight_manager):
+        # self.highlight_manager = highlight_manager
+        
+    # def highlight(self, parameter):
+        # self.highlight_manager.highlight(parameter)
+    
     
 class WaveformInteractionManager(PlotInteractionManager):
     def select_channel(self, coord, xp, yp):
@@ -995,6 +1010,11 @@ class WaveformInteractionManager(PlotInteractionManager):
         
     def highlight_spikes(self, parameter):
         self.highlight_manager.highlight(parameter)
+        
+        # if not hasattr(self, 'highlight_jobqueue'):
+            # self.highlight_jobqueue = HighlightJobQueue(self.highlight_manager)
+        # self.highlight_jobqueue.highlight(parameter)
+        
         self.cursor = 'CrossCursor'
     
     def select_channel_callback(self, parameter):
@@ -1156,7 +1176,7 @@ class WaveformWidget(VisualizationWidget):
             subselect = 1000
         # elif len(self.dh.clusters_unique) == 1:
         elif self.dh.nclusters == 1:
-            subselect = 10000
+            subselect = 1000
         else:
             subselect = None
         # print subselect

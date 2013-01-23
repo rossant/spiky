@@ -645,6 +645,9 @@ class ClusterTreeView(QtGui.QTreeView):
 
     # Event methods
     # -------------
+    keys_accepted = [QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up,
+        QtCore.Qt.Key_Down, QtCore.Qt.Key_Home, QtCore.Qt.Key_End, 
+        QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown]
     def keyPressEvent(self, e):
         # Disable all keyboard actions with modifiers, to avoid conflicts with
         # CTRL+arrows in FeatureView
@@ -657,9 +660,10 @@ class ClusterTreeView(QtGui.QTreeView):
             # select all
             self.select_all()
             return
-        elif ctrl or shift or alt:
-            return
-        return super(ClusterTreeView, self).keyPressEvent(e)
+        # elif ctrl or shift or alt:
+            # return
+        if key in self.keys_accepted:
+            return super(ClusterTreeView, self).keyPressEvent(e)
         
 
 class ClusterWidget(QtGui.QWidget):

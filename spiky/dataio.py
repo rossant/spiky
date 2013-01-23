@@ -33,11 +33,19 @@ def load_text_fast(filename, dtype, skiprows=0, delimiter=' '):
         with open(filename, 'r') as infile:
             for _ in range(skiprows):
                 next(infile)
+            first = True
+            skip = 0
             for line in infile:
                 line = line.rstrip().split(delimiter)
                 for item in line:
-                    yield dtype(item)
-        load_text_fast.rowlength = len(line)
+                    if item:
+                        yield dtype(item)
+                    else:
+                        skip += 1
+                if first:
+                    load_text_fast.rowlength = len(line) - skip
+                    # print load_text_fast.rowlength
+                first = False
     data = np.fromiter(iter_func(), dtype=dtype)
     data = data.reshape((-1, load_text_fast.rowlength))
     return data
@@ -107,8 +115,8 @@ def brian(T1, T2, width=.02, bin=.001, T=None):
     H, _ = np.histogram(l, bins=np.arange(2 * n + 1) * bin - n * bin) #, new = True)
 
     # Divide by time to get rate
-    if T is None:
-        T = max(T1[-1], T2[-1]) - min(T1[0], T2[0])
+    # if T is None:
+        # T = max(T1[-1], T2[-1]) - min(T1[0], T2[0])
         
     return H * 1.
         
@@ -271,6 +279,7 @@ class SelectDataHolder(object):
     def invalidate(self, clusters):
         self.clustercache.invalidate(clusters)
         
+    # @profile
     def select_clusters(self, clusters):
         """Provides the data related to the specified clusters."""
         select_mask = np.in1d(self.dataholder.clusters, clusters)

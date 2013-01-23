@@ -21,7 +21,7 @@ class QtJobQueue(JobQueue):
                 self.wait()
                 
         self._thread = JobQueueThread()
-        self._thread.start()
+        self._thread.start(QtCore.QThread.LowPriority)
 
 
 def qtjobqueue(cls):
