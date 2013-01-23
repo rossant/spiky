@@ -283,7 +283,14 @@ class SelectDataHolder(object):
     def select_clusters(self, clusters):
         """Provides the data related to the specified clusters."""
         select_mask = np.in1d(self.dataholder.clusters, clusters)
+        # spike rel to spike abs
         self.spike_ids = np.nonzero(select_mask)[0]
+        # spike abs to spike rel
+        if len(self.spike_ids) > 0:
+            self.spikes_rel = np.empty(self.spike_ids.max() + 1, dtype=np.int32)
+            self.spikes_rel[self.spike_ids] = np.arange(len(self.spike_ids))
+        else:
+            self.spikes_rel = np.array([], dtype=np.int32)
         
         # nspikes is the number of True elements in select_mask
         self.nspikes = select_mask.sum()
@@ -400,13 +407,13 @@ class KlustersDataProvider(DataProvider):
         try:
             features = features.reshape((-1, fetdim * nchannels + 1))
         except:
-            log_warn("The number of columns is not fetdim (%d) x nchannels (%d) + 1." \
+            log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 1." \
                 % (fetdim, nchannels))
             try:
                 features = features.reshape((-1, fetdim * nchannels + 5))
                 
             except:
-                log_warn("The number of columns is not fetdim (%d) x nchannels (%d) + 5, so I'm confused and I can't continue. Sorry :(" \
+                log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 5, so I'm confused and I can't continue. Sorry :(" \
                     % (fetdim, nchannels))
             
         

@@ -88,7 +88,7 @@ class FeatureDataManager(Manager):
     def set_data(self, features=None, fetdim=None, clusters=None,
                 nchannels=None, nextrafet=None,
                 cluster_colors=None, clusters_unique=None,
-                 masks=None, spike_ids=None):
+                 masks=None, spike_ids=None, spikes_rel=None):
         
         assert fetdim is not None
         
@@ -99,6 +99,7 @@ class FeatureDataManager(Manager):
         self.npoints = features.shape[0]
         self.features = features
         self.spike_ids = spike_ids
+        self.spikes_rel = spikes_rel
         # self.colormap = colormap
         
         # data organizer: reorder data according to clusters
@@ -278,7 +279,9 @@ class FeatureHighlightManager(HighlightManager):
         self.highlight_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.highlighted_spikes = []
         self.spike_ids = self.data_manager.spike_ids
+        self.spikes_rel = self.data_manager.spikes_rel
         
+    # @profile
     def find_enclosed_spikes(self, enclosing_box):
         x0, y0, x1, y1 = enclosing_box
         
@@ -302,6 +305,7 @@ class FeatureHighlightManager(HighlightManager):
         return spkindices
         # return self.spike_ids[spkindices]
         
+    @profile
     def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
@@ -312,8 +316,9 @@ class FeatureHighlightManager(HighlightManager):
         else:
             do_update = True
             self.highlight_mask[:] = 0
+            spikes_rel = self.spikes_rel[spikes]
             # from absolue indices to relative indices
-            spikes_rel = np.digitize(spikes, self.spike_ids) - 1
+            # spikes_rel = np.digitize(spikes, self.spike_ids) - 1
             self.highlight_mask[spikes_rel] = 1
         
         if do_update:
@@ -332,11 +337,13 @@ class FeatureHighlightManager(HighlightManager):
         
         self.highlighted_spikes = spikes
         
+    # @profile
     def highlighted(self, box):
         spikes = self.find_enclosed_spikes(box)
         # from relative indices to absolute indices
         self.set_highlighted_spikes(self.spike_ids[spikes])
         
+    # @profile
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
@@ -718,7 +725,9 @@ class FeatureWidget(VisualizationWidget):
                       # colormap=self.dh.colormap,
                       cluster_colors=self.dh.cluster_colors,
                       masks=self.dh.masks,
-                      spike_ids=self.dh.spike_ids)
+                      spike_ids=self.dh.spike_ids,
+                      spikes_rel=self.dh.spikes_rel,
+                      )
         return self.view
         
     def update_view(self, dh=None):
@@ -732,7 +741,9 @@ class FeatureWidget(VisualizationWidget):
                       cluster_colors=self.dh.cluster_colors,
                       clusters_unique=self.dh.clusters_unique,
                       masks=self.dh.masks,
-                      spike_ids=self.dh.spike_ids)
+                      spike_ids=self.dh.spike_ids,
+                      spikes_rel=self.dh.spikes_rel,
+                      )
         self.update_nspikes_viewer(self.dh.nspikes, 0)
         self.update_feature_widget()
 

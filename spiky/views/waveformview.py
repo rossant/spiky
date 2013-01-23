@@ -107,6 +107,7 @@ class WaveformHighlightManager(HighlightManager):
         self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
         self.highlighting = False
         
+    # @profile
     def find_enclosed_spikes(self, enclosing_box):
         
         if self.nspikes == 0:
@@ -165,6 +166,7 @@ class WaveformHighlightManager(HighlightManager):
         # return self.spike_ids[spkindices]
         return spkindices
 
+    # @profile
     def find_indices_from_spikes(self, spikes):
         if spikes is None or len(spikes)==0:
             return None
@@ -180,6 +182,7 @@ class WaveformHighlightManager(HighlightManager):
                                 self.nsamples * n)
         return ind
         
+    # @profile
     def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
@@ -211,6 +214,7 @@ class WaveformHighlightManager(HighlightManager):
         
         self.highlighted_spikes = spikes
         
+    # @profile
     def highlighted(self, box):
         # get selected spikes
         spikes = self.find_enclosed_spikes(box) 
