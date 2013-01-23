@@ -27,7 +27,21 @@ __all__ = [
 
 def load_text(file, dtype, skiprows=0):
     return np.loadtxt(file, dtype=dtype, skiprows=skiprows)
- 
+
+def load_text_fast(filename, dtype, skiprows=0, delimiter=' '):
+    def iter_func():
+        with open(filename, 'r') as infile:
+            for _ in range(skiprows):
+                next(infile)
+            for line in infile:
+                line = line.rstrip().split(delimiter)
+                for item in line:
+                    yield dtype(item)
+        load_text_fast.rowlength = len(line)
+    data = np.fromiter(iter_func(), dtype=dtype)
+    data = data.reshape((-1, load_text_fast.rowlength))
+    return data
+
 def save_text(file, data):
     return np.savetxt(file, data, fmt='%d', newline='\n')
         
@@ -254,23 +268,12 @@ class SelectDataHolder(object):
             ]
         self.select_clusters([])
         
-    def _selector_ufunc(self, clusters=None):
-        """Create a custom ufunc for cluster selection."""
-        if clusters is None or len(clusters) == 0:
-            return np.frompyfunc(lambda x: False, 1, 1)
-        s = "lambda x: " + " | ".join(["(x == %d)" % c for c in clusters])
-        f = eval(s)
-        uf = np.frompyfunc(f, 1, 1)
-        return uf
-    
     def invalidate(self, clusters):
         self.clustercache.invalidate(clusters)
         
-    # @profile
     def select_clusters(self, clusters):
         """Provides the data related to the specified clusters."""
-        uf = self._selector_ufunc(clusters)
-        select_mask = np.array(uf(self.dataholder.clusters), dtype=np.bool)
+        select_mask = np.in1d(self.dataholder.clusters, clusters)
         self.spike_ids = np.nonzero(select_mask)[0]
         
         # nspikes is the number of True elements in select_mask
@@ -301,7 +304,9 @@ class SelectDataHolder(object):
         if select_mask.size > 0:
             for varname in self.spike_dependent_variables:
                 if hasattr(self.dataholder, varname):
-                    setattr(self, varname, getattr(self.dataholder, varname)[select_mask,...])
+                    # val = getattr(self.dataholder, varname)[select_mask,...]
+                    val = np.compress(select_mask, getattr(self.dataholder, varname), axis=0)
+                    setattr(self, varname, val)
     
     @property
     def cluster_colors(self):
@@ -378,7 +383,7 @@ class KlustersDataProvider(DataProvider):
         # nclusters = clusters[0]
         clusters = clusters[1:]
         
-        features = load_text(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
+        features = load_text_fast(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
         features = np.array(features, dtype=np.float32)
         
         # HACK: there are either 1 or 5 dimensions more than fetdim*nchannels

@@ -552,8 +552,8 @@ class FeatureInteractionManager(PlotInteractionManager):
 class FeatureBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
-        self.set('LeftClickMove', 'ZoomBox',
-                    key_modifier='Shift',
+        self.set('MiddleClickMove', 'ZoomBox',
+                    # key_modifier='Shift',
                     param_getter=lambda p: (p["mouse_press_position"][0],
                                             p["mouse_press_position"][1],
                                             p["mouse_position"][0],
@@ -561,12 +561,12 @@ class FeatureBindings(SpikyBindings):
                                             
     def set_highlight(self):
         # highlight
-        self.set('MiddleClickMove',
-                 'HighlightSpike',
-                 param_getter=lambda p: (p["mouse_press_position"][0],
-                                         p["mouse_press_position"][1],
-                                         p["mouse_position"][0],
-                                         p["mouse_position"][1]))
+        # self.set('MiddleClickMove',
+                 # 'HighlightSpike',
+                 # param_getter=lambda p: (p["mouse_press_position"][0],
+                                         # p["mouse_press_position"][1],
+                                         # p["mouse_position"][0],
+                                         # p["mouse_position"][1]))
         
         self.set('LeftClickMove',
                  'HighlightSpike',
@@ -584,18 +584,18 @@ class FeatureBindings(SpikyBindings):
     def set_neighbor_channel(self):
         # select previous/next channel for coordinate 0
         self.set('KeyPress', 'SelectNeighborChannel',
-                 key='Up', key_modifier='Control',
+                 key='Up', description='X-', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
         self.set('KeyPress', 'SelectNeighborChannel',
-                 key='Down', key_modifier='Control',
+                 key='Down', description='X+', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next channel for coordinate 1
         self.set('KeyPress', 'SelectNeighborChannel',
-                 key='Up', key_modifier='Shift',
+                 key='Up', description='Y-', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
         self.set('KeyPress', 'SelectNeighborChannel',
-                 key='Down', key_modifier='Shift',
+                 key='Down', description='Y+', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
                  
         # The same, but with the mosue wheel
@@ -618,18 +618,18 @@ class FeatureBindings(SpikyBindings):
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
         self.set('KeyPress', 'SelectNeighborFeature',
-                 key='Left', key_modifier='Control',
+                 key='Left', description='X-', key_modifier='Control',
                  param_getter=lambda p: (0, -1))
         self.set('KeyPress', 'SelectNeighborFeature',
-                 key='Right', key_modifier='Control',
+                 key='Right', description='X+', key_modifier='Control',
                  param_getter=lambda p: (0, 1))
                  
         # select previous/next feature for coordinate 1
         self.set('KeyPress', 'SelectNeighborFeature',
-                 key='Left', key_modifier='Shift',
+                 key='Left', description='Y-', key_modifier='Shift',
                  param_getter=lambda p: (1, -1))
         self.set('KeyPress', 'SelectNeighborFeature',
-                 key='Right', key_modifier='Shift',
+                 key='Right', description='Y+', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
     def initialize(self):

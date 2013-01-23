@@ -19,6 +19,7 @@ Before alpha pre-release
   * feature view and waveform view: display cluster index of the closest object
     from the mouse, when pressing a button
   * "loading..." when loading file
+  * buttons for all commands (reset view for any view)
   
   
   OPTIMIZATION
@@ -42,7 +43,6 @@ Minor features
     probe scaling, etc)
   * history of actions
   
-  * buttons for all commands (reset view for any view)
   * interaction mode buttons: deactivate in gray to highlight the current mode
   
   * highlighting: less transient with CTRL + click (click to deactivate)

@@ -1007,8 +1007,8 @@ class WaveformInteractionManager(PlotInteractionManager):
 class WaveformBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
-        self.set('LeftClickMove', 'ZoomBox',
-                    key_modifier='Shift',
+        self.set('MiddleClickMove', 'ZoomBox',
+                    # key_modifier='Shift',
                     param_getter=lambda p: (p["mouse_press_position"][0],
                                             p["mouse_press_position"][1],
                                             p["mouse_position"][0],
@@ -1049,12 +1049,12 @@ class WaveformBindings(SpikyBindings):
 
     def set_highlight(self):
         # highlight
-        self.set('MiddleClickMove',
-                 'HighlightSpike',
-                 param_getter=lambda p: (p["mouse_press_position"][0],
-                                         p["mouse_press_position"][1],
-                                         p["mouse_position"][0],
-                                         p["mouse_position"][1]))
+        # self.set('MiddleClickMove',
+                 # 'HighlightSpike',
+                 # param_getter=lambda p: (p["mouse_press_position"][0],
+                                         # p["mouse_press_position"][1],
+                                         # p["mouse_position"][0],
+                                         # p["mouse_position"][1]))
         
         self.set('LeftClickMove',
                  'HighlightSpike',
