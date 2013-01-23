@@ -15,14 +15,12 @@ Before alpha pre-release
 ------------------------
 
   * "loading..." when loading file, and progress bar?
-  * optimize selection of clusters
-  * make settings independent from pyqt/pyside
-    initial launch: default window geometry config
+  * waveform view: fix scaling when resizing boxes or probe
+  * buttons for all commands (reset view for any view)
   * feature view and waveform view: display cluster index of the closest object
     from the mouse, when pressing a button
-  * buttons for all commands (reset view for any view)
-  * waveform view: fix scaling when resizing boxes or probe
-  * feature view: optimize highlight
+  * make settings independent from pyqt/pyside
+    initial launch: default window geometry config
   
   
 Major features

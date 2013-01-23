@@ -305,7 +305,7 @@ class FeatureHighlightManager(HighlightManager):
         return spkindices
         # return self.spike_ids[spkindices]
         
-    @profile
+    # @profile
     def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
