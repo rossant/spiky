@@ -14,7 +14,9 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * cluster view: black background
+  * correlation matrix
+  * faster correlograms
+  * put gui styles in external file
   * show cluster index in waveform view and feature view
   * correlograms nbins
   * feature view: flip X/Y
