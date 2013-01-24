@@ -5,6 +5,7 @@ and ensure they are processed in the right order.
 from Queue import Queue
 from threading import Thread
 import time
+import inspect
 
 __all__ = ['JobQueue', 'jobqueue']
 
@@ -39,7 +40,10 @@ class JobQueue(object):
     def _start(self):
         """Worker thread main function."""
         while True:
+            # print "waiting", self.task_obj,
             r = self._queue.get()
+            # print "received", r
+            # print
             if r is not None:
                 fun, args, kwargs = r
                 self._results.append(fun(*args, **kwargs))
@@ -51,7 +55,15 @@ class JobQueue(object):
         self._queue.put((fun, arg, kwargs))
         
     def __getattr__(self, name):
-        return lambda *args, **kwargs: self._put(getattr(self.task_obj, name), *args, **kwargs)
+        if hasattr(self.task_obj, name):
+            v = getattr(self.task_obj, name)
+            # wrap the task object's method in the Job Queue so that it 
+            # is pushed in the queue instead of executed immediately
+            if inspect.ismethod(v):
+                return lambda *args, **kwargs: self._put(v, *args, **kwargs)
+            # if the attribute is a task object's property, just return it
+            else:
+                return v
 
 
 def jobqueue(cls):

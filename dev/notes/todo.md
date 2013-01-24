@@ -14,7 +14,11 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * "loading..." when loading file, and progress bar?
+  * cluster view: black background
+  * show cluster index in waveform view and feature view
+  * correlograms nbins
+  * feature view: flip X/Y
+  
   * waveform view: fix scaling when resizing boxes or probe
   * buttons for all commands (reset view for any view)
   * feature view and waveform view: display cluster index of the closest object
@@ -37,7 +41,6 @@ Minor features
 
   * store visualization-related information in the XML file (cluster colors,
     probe scaling, etc)
-  * history of actions
   
   * interaction mode buttons: deactivate in gray to highlight the current mode
   

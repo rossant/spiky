@@ -528,9 +528,16 @@ class ClusterTreeView(QtGui.QTreeView):
         self.setFocusPolicy(QtCore.Qt.NoFocus)
     
         self.setStyleSheet("""
+        QTreeView {
+            background-color: #000000;
+            color: #b1b1b1;
+        }
+        QTreeView::item {
+            color: #b1b1b1;
+        }
         QTreeView::item:selected {
-            background-color: #3399ff;
-            color: #ffffff;
+            /*background-color: #3399ff;*/
+            color: #000000;
         }
         """)
         

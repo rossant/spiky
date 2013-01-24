@@ -359,7 +359,7 @@ class KlustersDataProvider(DataProvider):
     # def load_probe(self, filename):
         # pass
         
-    def load(self, filename, fileindex=1, probefile=None):
+    def load(self, filename, fileindex=1, probefile=None, progressbar=None):
         
         # load XML
         
@@ -385,6 +385,9 @@ class KlustersDataProvider(DataProvider):
         else:
             spiky = False
         
+        
+        # CLUSTERS
+        # -------------------------------------------------
         try:
             if spiky:
                 path = filename + "_spiky.clu.%d" % fileindex
@@ -398,7 +401,13 @@ class KlustersDataProvider(DataProvider):
             clusters[0] = 1
         # nclusters = clusters[0]
         clusters = clusters[1:]
+        if progressbar:
+            progressbar.setValue(1)
         
+        
+        
+        # FEATURES
+        # -------------------------------------------------
         features = load_text_fast(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
         features = np.array(features, dtype=np.float32)
         
@@ -440,8 +449,13 @@ class KlustersDataProvider(DataProvider):
         # m, M = -vx, vx
         features[:,-nextrafet:] = -1+2*(features[:,-nextrafet:]-m)/(M-m)
         
+        if progressbar:
+            progressbar.setValue(2)
+            
+            
         
-        
+        # MASKS
+        # -------------------------------------------------
         # first: try fmask
         try:
             masks = load_text(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
@@ -456,6 +470,13 @@ class KlustersDataProvider(DataProvider):
                 log_warn("MASK file '%s' not found" % filename)
                 masks = np.ones((nspikes, nchannels))
         
+        if progressbar:
+            progressbar.setValue(3)
+        
+        
+        
+        # WAVEFORMS
+        # -------------------------------------------------
         try:
             waveforms = load_binary(filename + ".spk.%d" % fileindex)
             waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
@@ -463,6 +484,11 @@ class KlustersDataProvider(DataProvider):
             log_warn("SPK file '%s' not found" % filename)
             waveforms = np.zeros((nspikes, nsamples, nchannels))
         
+        if progressbar:
+            progressbar.setValue(4)
+            
+            
+            
         self.holder = DataHolder()
         
         self.holder.freq = freq
