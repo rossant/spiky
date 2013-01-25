@@ -922,6 +922,10 @@ class WaveformPaintManager(PlotPaintManager):
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
             "superimposed", "channel_positions",)
         
+        self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
+            posoffset=(.02, -.02), letter_spacing=200.,
+            visible=False)
+        
     # @profile
     def update(self):
         size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples, self.data_manager.npoints)
@@ -990,6 +994,7 @@ class WaveformInteractionManager(PlotInteractionManager):
         self.register('HighlightSpike', self.highlight_spikes)
         self.register('SelectChannel', self.select_channel_callback)
         self.register('ToggleAverage', self.toggle_average)
+        self.register('ShowClosestCluster', self.show_closest_cluster)
         self.register(None, self.cancel_highlight)
         self.average_toggled = False
   
@@ -1026,6 +1031,40 @@ class WaveformInteractionManager(PlotInteractionManager):
         
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
+        self.paint_manager.set_data(visible=False, visual='clusterinfo')
+        
+    def show_closest_cluster(self, parameter):
+        
+        self.cursor = None
+        
+        nav = self.get_processor('navigation')
+        # print "hey"
+        # window coordinates
+        x, y = parameter
+        # data coordinates
+        xd, yd = nav.get_data_coordinates(x, y)
+        
+        # print self.data_manager.data
+        if self.data_manager.nspikes == 0:
+            return
+        
+        channel, cluster_rel = self.position_manager.find_box(xd, yd)
+        # i = self.position_manager.nclusters * channel + cluster_rel
+        (Tx, Ty), boxsize = self.position_manager.get_transformation()
+        
+        color = self.data_manager.cluster_colors[cluster_rel]
+        x = Tx[channel, cluster_rel] - boxsize[0] * .55
+        y = Ty[channel, cluster_rel]
+        
+        r, g, b = scolors.COLORMAP[color,:]
+        color = (r, g, b, .75)
+        
+        text = str(self.data_manager.clusters_unique[cluster_rel])
+        # update clusterinfo visual
+        self.paint_manager.set_data(coordinates=(x, y), color=color,
+            text=text,
+            visible=True,
+            visual='clusterinfo')
         
     
 class WaveformBindings(SpikyBindings):
@@ -1098,6 +1137,11 @@ class WaveformBindings(SpikyBindings):
                  key_modifier='Control',
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
+    def set_clusterinfo(self):
+        self.set('Move', 'ShowClosestCluster', key_modifier='Control',
+            param_getter=lambda p:
+            (p['mouse_position'][0], p['mouse_position'][1]))
+        
     def initialize(self):
         # super(WaveformBindings, self).initialize()
         self.set_arrangement_toggling()
@@ -1106,6 +1150,7 @@ class WaveformBindings(SpikyBindings):
         self.set_probe_scaling()
         self.set_highlight()
         self.set_channel_selection()
+        self.set_clusterinfo()
     
     
 class WaveformView(GalryWidget):

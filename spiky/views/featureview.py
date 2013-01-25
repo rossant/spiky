@@ -252,7 +252,7 @@ class FeaturePaintManager(PlotPaintManager):
         
         self.add_visual(AxesVisual, name='grid')
         
-        self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=14,
+        self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             posoffset=(.02, -.02),
             visible=False)
         
@@ -500,6 +500,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
+        self.paint_manager.set_data(visible=False, visual='clusterinfo')
         
     def highlight_spike(self, parameter):
         self.highlight_manager.highlight(parameter)
@@ -689,7 +690,8 @@ class FeatureBindings(SpikyBindings):
                  param_getter=lambda p: (1, 1))
         
     def set_clusterinfo(self):
-        self.set('Move', 'ShowClosestCluster', param_getter=lambda p:
+        self.set('Move', 'ShowClosestCluster', key_modifier='Control',
+            param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
         
     def set_switch_mode(self):
