@@ -387,8 +387,8 @@ class ClusterGroupManager(TreeModel):
             return item.data(col)
         
         # all text in black
-        if role == QtCore.Qt.ForegroundRole:
-            return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
+        # if role == QtCore.Qt.ForegroundRole:
+            # return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
           
     def setData(self, index, data, role=None):
         # print index, data, role, index.isValid()

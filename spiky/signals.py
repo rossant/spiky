@@ -45,6 +45,8 @@ class SpikySignals(QtCore.QObject):
     
     FileLoaded = QtCore.pyqtSignal(object)
     
+    FileLoading = QtCore.pyqtSignal(object, float)
+    
     def reset(self):
         self.HighlightSpikes.disconnect()
         self.ProjectionToChange.disconnect()
@@ -56,6 +58,7 @@ class SpikySignals(QtCore.QObject):
         self.ClusterInfoToUpdate.disconnect()
         self.CorrelogramsUpdated.disconnect()
         self.FileLoaded.disconnect()
+        self.FileLoading.disconnect()
         
         
     

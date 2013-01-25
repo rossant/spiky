@@ -32,8 +32,8 @@ class ClusterSelectionQueue(object):
     
 @qtjobqueue    
 class KlustersLoadQueue(object):
-    def __init__(self, progressbar=None):
-        self.progressbar = progressbar
+    # def __init__(self, progressbar=None):
+        # self.progressbar = progressbar
     
     def load(self, filename, fileindex, probefile):
         
@@ -42,7 +42,7 @@ class KlustersLoadQueue(object):
         
         self.provider = sdataio.KlustersDataProvider()
         self.dh = self.provider.load(filename, fileindex=fileindex,
-            probefile=probefile, progressbar=self.progressbar)
+            probefile=probefile)#, progressbar=self.progressbar)
         # self.sdh = sdataio.SelectDataHolder(self.dh)
         # self.du = DataUpdater(self.sdh)
         # self.am = spiky.ActionManager(self.dh, self.sdh)
@@ -237,14 +237,14 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # merge action
         self.merge_action = QtGui.QAction("Mer&ge", self)
         self.merge_action.setIcon(spiky.get_icon("merge"))
-        self.merge_action.setShortcut("G")
+        self.merge_action.setShortcut("CTRL+G")
         self.merge_action.setEnabled(False)
         self.merge_action.triggered.connect(self.merge, QtCore.Qt.UniqueConnection)
         
         # split action
         self.split_action = QtGui.QAction("&Split", self)
         self.split_action.setIcon(spiky.get_icon("split"))
-        self.split_action.setShortcut("S")
+        self.split_action.setShortcut("CTRL+K")
         self.split_action.setEnabled(False)
         self.split_action.triggered.connect(self.split, QtCore.Qt.UniqueConnection)
         
@@ -369,6 +369,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.ChangeClusterColorRequested.connect(self.slotChangeClusterColorRequested)
         ssignals.SIGNALS.CorrelogramsUpdated.connect(self.slotCorrelogramsUpdated)
         ssignals.SIGNALS.FileLoaded.connect(self.slotFileLoaded)
+        ssignals.SIGNALS.FileLoading.connect(self.slotFileLoading)
         
         
     # File methods
@@ -433,7 +434,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.progressbar.setCancelButton(None)
         self.progressbar.setMinimumDuration(0)
         
-        self.loadqueue = KlustersLoadQueue(self.progressbar)
+        self.loadqueue = KlustersLoadQueue()#self.progressbar)
         self.loadqueue.load(filename, fileindex, self.probefile)
         
         
@@ -469,6 +470,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         self.loadqueue.join()
         
+    def slotFileLoading(self, sender, value):
+        self.progressbar.setValue(int(value * 5))
+    
     
     def open_probefile(self):
         self.reset_action_generator()

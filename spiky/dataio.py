@@ -288,7 +288,7 @@ class SelectDataHolder(object):
         # spike abs to spike rel
         if len(self.spike_ids) > 0:
             self.spikes_rel = np.empty(self.spike_ids.max() + 1, dtype=np.int32)
-            self.spikes_rel[self.spike_ids] = np.arange(len(self.spike_ids))
+            self.spikes_rel[self.spike_ids] = np.arange(len(self.spike_ids), dtype=np.int32)
         else:
             self.spikes_rel = np.array([], dtype=np.int32)
         
@@ -359,7 +359,7 @@ class KlustersDataProvider(DataProvider):
     # def load_probe(self, filename):
         # pass
         
-    def load(self, filename, fileindex=1, probefile=None, progressbar=None):
+    def load(self, filename, fileindex=1, probefile=None):#, progressbar=None):
         
         # load XML
         
@@ -401,9 +401,9 @@ class KlustersDataProvider(DataProvider):
             clusters[0] = 1
         # nclusters = clusters[0]
         clusters = clusters[1:]
-        if progressbar:
-            progressbar.setValue(1)
-        
+        # if progressbar:
+            # progressbar.setValue(1)
+        signals.emit(self, 'FileLoading', .2)
         
         
         # FEATURES
@@ -449,8 +449,9 @@ class KlustersDataProvider(DataProvider):
         # m, M = -vx, vx
         features[:,-nextrafet:] = -1+2*(features[:,-nextrafet:]-m)/(M-m)
         
-        if progressbar:
-            progressbar.setValue(2)
+        # if progressbar:
+            # progressbar.setValue(2)
+        signals.emit(self, 'FileLoading', .4)
             
             
         
@@ -470,8 +471,9 @@ class KlustersDataProvider(DataProvider):
                 log_warn("MASK file '%s' not found" % filename)
                 masks = np.ones((nspikes, nchannels))
         
-        if progressbar:
-            progressbar.setValue(3)
+        # if progressbar:
+            # progressbar.setValue(3)
+        signals.emit(self, 'FileLoading', .6)
         
         
         
@@ -484,8 +486,9 @@ class KlustersDataProvider(DataProvider):
             log_warn("SPK file '%s' not found" % filename)
             waveforms = np.zeros((nspikes, nsamples, nchannels))
         
-        if progressbar:
-            progressbar.setValue(4)
+        # if progressbar:
+            # progressbar.setValue(4)
+        signals.emit(self, 'FileLoading', .8)
             
             
             

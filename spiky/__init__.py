@@ -1,5 +1,5 @@
 # from galry import *
-from queue import *
+from jobqueue import *
 from qtqueue import *
 from colors import *
 from tools import *

@@ -1,5 +1,5 @@
 import time
-from spiky.queue import JobQueue
+from spiky.jobqueue import JobQueue
 from galry import QtCore
 
 
