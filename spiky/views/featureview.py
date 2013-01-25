@@ -252,6 +252,10 @@ class FeaturePaintManager(PlotPaintManager):
         
         self.add_visual(AxesVisual, name='grid')
         
+        self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=14,
+            posoffset=(.02, -.02),
+            visible=False)
+        
     def update(self):
 
         cluster = self.data_manager.clusters_rel
@@ -475,6 +479,24 @@ class FeatureSelectionManager(Manager):
 class FeatureInteractionManager(PlotInteractionManager):
     def initialize(self):
         self.constrain_navigation = False
+    
+        self.register(None, self.cancel_highlight)
+        self.register('HighlightSpike', self.highlight_spike)
+        self.register('SelectionPointPending', self.selection_point_pending)
+        
+        self.register('AddSelectionPoint', self.selection_add_point)
+        self.register('EndSelectionPoint', self.selection_end_point)
+        self.register('CancelSelectionPoint', self.selection_cancel)
+        
+        self.register('SelectProjection', self.select_projection)
+        self.register('AutomaticProjection', self.automatic_projection)
+
+        self.register('ToggleMask', self.toggle_mask)
+
+        self.register('SelectNeighborChannel', self.select_neighbor_channel)
+        self.register('SelectNeighborFeature', self.select_neighbor_feature)
+        
+        self.register('ShowClosestCluster', self.show_closest_cluster)
         
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
@@ -501,24 +523,6 @@ class FeatureInteractionManager(PlotInteractionManager):
     def toggle_mask(self, parameter):
         self.paint_manager.toggle_mask()
         
-    def initialize(self):
-    
-        self.register(None, self.cancel_highlight)
-        self.register('HighlightSpike', self.highlight_spike)
-        self.register('SelectionPointPending', self.selection_point_pending)
-        
-        self.register('AddSelectionPoint', self.selection_add_point)
-        self.register('EndSelectionPoint', self.selection_end_point)
-        self.register('CancelSelectionPoint', self.selection_cancel)
-        
-        self.register('SelectProjection', self.select_projection)
-        self.register('AutomaticProjection', self.automatic_projection)
-
-        self.register('ToggleMask', self.toggle_mask)
-
-        self.register('SelectNeighborChannel', self.select_neighbor_channel)
-        self.register('SelectNeighborFeature', self.select_neighbor_feature)
-        
     def select_neighbor_channel(self, parameter):
         # print self.data_manager.projection
         coord, channel_dir = parameter
@@ -528,7 +532,7 @@ class FeatureInteractionManager(PlotInteractionManager):
             proj = (0, coord)
         channel, feature = proj
         # next or previous channel
-        channel = np.mod(channel + channel_dir, self.data_manager.nchannels)
+        channel = np.mod(channel + channel_dir, self.data_manager.nchannels + self.data_manager.nextrafet)
         # select projection
         # self.select_projection((coord, channel, feature))
         ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, feature)
@@ -553,6 +557,51 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
 
+    def show_closest_cluster(self, parameter):
+        
+        self.cursor = None
+        
+        nav = self.get_processor('navigation')
+        # print "hey"
+        # window coordinates
+        x, y = parameter
+        # data coordinates
+        xd, yd = nav.get_data_coordinates(x, y)
+        
+        # print self.data_manager.data
+        if self.data_manager.data.size == 0:
+            return
+            
+        # find closest spike
+        dist = (self.data_manager.data[:, 0] - xd) ** 2 + \
+                (self.data_manager.data[:, 1] - yd) ** 2
+        ispk = dist.argmin()
+        cluster = self.data_manager.clusters_rel[ispk]
+        
+        # print cluster
+        # print self.data_manager.cluster_colors
+        
+        color = self.data_manager.cluster_colors[cluster]
+        x, y = self.data_manager.data[ispk, :]
+        # coordinates = nav.get_window_coordinates(*coordinates)
+        
+        # x += .05
+        # y += .05
+        
+        r, g, b = scolors.COLORMAP[color,:]
+        color = (r, g, b, .75)
+        
+        text = str(self.data_manager.clusters_unique[cluster])
+        
+        # print text, color, np.array(coordinates).reshape((1, -1))
+        # print
+        
+        # update clusterinfo visual
+        self.paint_manager.set_data(coordinates=(x, y), color=color,
+            text=text,
+            visible=True,
+            visual='clusterinfo')
+        
 
 # Bindings
 # --------
@@ -639,8 +688,11 @@ class FeatureBindings(SpikyBindings):
                  key='Right', description='Y+', key_modifier='Shift',
                  param_getter=lambda p: (1, 1))
         
-    def initialize(self):
-        super(FeatureBindings, self).initialize()
+    def set_clusterinfo(self):
+        self.set('Move', 'ShowClosestCluster', param_getter=lambda p:
+            (p['mouse_position'][0], p['mouse_position'][1]))
+        
+    def set_switch_mode(self):
         self.set('KeyPress', 'SwitchInteractionMode', key='N')
         
         
@@ -650,6 +702,8 @@ class FeatureNavigationBindings(FeatureBindings):
         self.set_toggle_mask()
         self.set_neighbor_channel()
         self.set_neighbor_feature()
+        self.set_switch_mode()
+        self.set_clusterinfo()
 
 
 class FeatureSelectionBindings(FeatureBindings):
@@ -677,6 +731,8 @@ class FeatureSelectionBindings(FeatureBindings):
         self.set_toggle_mask()
         self.set_neighbor_channel()
         self.set_neighbor_feature()
+        self.set_switch_mode()
+        self.set_clusterinfo()
         
         self.set_base_cursor('CrossCursor')
         self.set_selection()
