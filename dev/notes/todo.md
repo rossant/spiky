@@ -14,25 +14,25 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
+  * order of selected clusters for depth
+
   * correlation matrix
         pi(x) = wi * N(x | mui, Sigmai)
         a_ij = 1/Nj sum_Cj pi(x)
         c_ij = a_ij / sum_k a_kj
   
+  * select group and unselect individual clusters
   * faster correlograms
   * correlograms nbins
-  * feature view: flip X/Y
+  * correlograms: cluster labels
   
   * waveform view: fix scaling when resizing boxes or probe
   * buttons for all commands (reset view for any view)
 
+  * feature view: flip X/Y
   * make settings independent from pyqt/pyside
-    initial launch: default window geometry config
-  
-  * select group and unselect individual clusters
-  * correlograms: cluster labels
+    initial launch: default window geometry config  
   * undock maximize button
-  * order of selected clusters for depth
   
   
 Major features
