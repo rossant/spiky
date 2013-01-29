@@ -29,6 +29,11 @@ Before alpha pre-release
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config
   
+  * select group and unselect individual clusters
+  * correlograms: cluster labels
+  * undock maximize button
+  * order of selected clusters for depth
+  
   
 Major features
 --------------
