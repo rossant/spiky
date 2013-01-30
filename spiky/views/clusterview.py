@@ -579,10 +579,21 @@ class ClusterTreeView(QtGui.QTreeView):
             # emit the ClusterSelectionToChange signal
             clusters = self.selected_clusters()
             groups = self.selected_groups()
+            allclusters = []
+            # groups first
             for group in groups:
-                clusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
-            ssignals.emit(self, "ClusterSelectionToChange",
-                np.sort(np.unique(np.array(clusters, dtype=np.int32))))
+                allclusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
+            # then clusters
+            allclusters.extend(clusters)
+            
+            # remove duplicates while preserving the order
+            clusters_unique = []
+            for clu in allclusters:
+                if clu not in clusters_unique:
+                    clusters_unique.append(clu)
+            clusters_unique = np.array(clusters_unique, dtype=np.int32)
+            
+            ssignals.emit(self, "ClusterSelectionToChange", clusters_unique)
         
     def select(self, cluster):
         """Select a cluster.

@@ -282,6 +282,12 @@ class SelectDataHolder(object):
     # @profile
     def select_clusters(self, clusters):
         """Provides the data related to the specified clusters."""
+        
+        # keep the order of the selected clusters in clusters_ordered
+        clusters = np.array(clusters)
+        self.clusters_ordered = list(clusters.copy())
+        clusters.sort()
+        
         select_mask = np.in1d(self.dataholder.clusters, clusters)
         # spike rel to spike abs
         self.spike_ids = np.nonzero(select_mask)[0]
@@ -314,6 +320,15 @@ class SelectDataHolder(object):
         # self.cluster_overriden_colors[self.cluster_overriden_colors < 0] == 1
         # unique clusters
         self.clusters_unique = clusters
+        
+        # the clusters relative indices in the right order for the depth
+        if self.nclusters > 0:
+            # self.clusters_ordered = np.digitize(self.clusters_ordered, self.clusters_unique) - 1
+            # self.clusters_ordered = np.array(self.nclusters, dtype=np.int32)
+            self.clusters_ordered = np.array([self.clusters_ordered.index(cluster) for cluster in self.clusters_unique])
+        else:
+            self.clusters_ordered = np.array([])
+        
         
         # override all spike dependent variables, where the first axis
         # is the spike index

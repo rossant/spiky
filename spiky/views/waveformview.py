@@ -37,7 +37,7 @@ VERTEX_SHADER = """
     // on the foreground on a different layer for each cluster
     float depth = 0.;
     if (mask == 1.)
-        depth = -(cluster + 1) / nclusters;
+        depth = -(cluster_depth + 1) / nclusters;
     
     // move the vertex to its position0
     vec3 position = vec3(position0 * 0.5 * box_size + box_position, depth);
@@ -517,7 +517,7 @@ class WaveformDataManager(Manager):
     # ----------------------
     # @profile
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
-                 clusters_unique=None,
+                 clusters_unique=None, clusters_ordered=None,
                  masks=None, geometrical_positions=None, spike_ids=None,
                  spatial_arrangement=None, superposition=None,
                  box_size=None, probe_scale=None, subselect=None):
@@ -558,6 +558,7 @@ class WaveformDataManager(Manager):
                                                 clusters=clusters,
                                                 cluster_colors=cluster_colors,
                                                 clusters_unique=clusters_unique,
+                                                clusters_ordered=clusters_ordered,
                                                 masks=masks,
                                                 nchannels=self.nchannels,
                                                 spike_ids=spike_ids)
@@ -570,6 +571,7 @@ class WaveformDataManager(Manager):
         self.cluster_colors = self.data_organizer.cluster_colors
         self.clusters_unique = self.data_organizer.clusters_unique
         self.clusters_rel = self.data_organizer.clusters_rel
+        self.clusters_depth = self.data_organizer.clusters_depth
         self.cluster_sizes = self.data_organizer.cluster_sizes
         self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
         
@@ -579,6 +581,7 @@ class WaveformDataManager(Manager):
         # masks
         self.full_masks = np.repeat(self.masks.T.ravel(), self.nsamples)
         self.full_clusters = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
+        self.full_clusters_depth = np.tile(np.repeat(self.clusters_depth, self.nsamples), self.nchannels)
         self.full_channels = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
         
         # normalization in dataio instead
@@ -635,7 +638,7 @@ class AverageWaveformDataManager(Manager):
     # ----------------------
     # @profile
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
-                 clusters_unique=None,
+                 clusters_unique=None, clusters_ordered=None,
                  masks=None, geometrical_positions=None, spike_ids=None,
                  spatial_arrangement=None, superposition=None,
                  box_size=None, probe_scale=None, subselect=None):
@@ -739,6 +742,7 @@ class AverageWaveformDataManager(Manager):
         self.data_organizer = SpikeDataOrganizer(waveforms,
                                                 clusters=clusters,
                                                 cluster_colors=cluster_colors,
+                                                clusters_ordered=clusters_ordered,
                                                 clusters_unique=clusters_unique,
                                                 masks=masks,
                                                 nchannels=self.nchannels,
@@ -752,13 +756,15 @@ class AverageWaveformDataManager(Manager):
         self.cluster_colors = self.data_organizer.cluster_colors
         self.clusters_unique = self.data_organizer.clusters_unique
         self.clusters_rel = self.data_organizer.clusters_rel
+        self.clusters_depth = self.data_organizer.clusters_depth
         self.cluster_sizes = self.data_organizer.cluster_sizes
         self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
-        
+        # self.clusters_ordered = clusters_ordered
         
         # masks
         self.full_masks = np.repeat(self.masks.T.ravel(), self.nsamples)
         self.full_clusters = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
+        self.full_clusters_depth = np.tile(np.repeat(self.clusters_depth, self.nsamples), self.nchannels)
         self.full_channels = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
         
         # normalization in dataio instead
@@ -774,7 +780,7 @@ class WaveformVisual(Visual):
 
     def initialize(self, nclusters=None, nchannels=None, 
         nsamples=None, npoints=None, #nspikes=None,
-        position0=None, mask=None, cluster=None, 
+        position0=None, mask=None, cluster=None, cluster_depth=None,
         cluster_colors=None, channel=None, highlight=None,
         average=None):
 
@@ -792,8 +798,9 @@ class WaveformVisual(Visual):
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
         self.add_varying("vmask", vartype="float", ndim=1)
         
-        
         self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
+        self.add_attribute("cluster_depth", vartype="int", ndim=1, data=cluster_depth)
+        
         self.add_attribute("channel", vartype="int", ndim=1, data=channel)
         
         self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
@@ -899,6 +906,7 @@ class WaveformPaintManager(PlotPaintManager):
             nsamples=self.data_manager.nsamples,
             position0=self.data_manager.normalized_data,
             cluster_colors=self.data_manager.cluster_colors,
+            cluster_depth=self.data_manager.full_clusters_depth,
             mask=self.data_manager.full_masks,
             cluster=self.data_manager.full_clusters,
             channel=self.data_manager.full_channels,
@@ -913,6 +921,7 @@ class WaveformPaintManager(PlotPaintManager):
             nsamples=self.data_manager_avg.nsamples,
             position0=self.data_manager_avg.normalized_data,
             cluster_colors=self.data_manager_avg.cluster_colors,
+            cluster_depth=self.data_manager.full_clusters_depth,
             mask=self.data_manager_avg.full_masks,
             cluster=self.data_manager_avg.full_clusters,
             channel=self.data_manager_avg.full_channels,
@@ -940,6 +949,7 @@ class WaveformPaintManager(PlotPaintManager):
             position0=self.data_manager.normalized_data,
             mask=self.data_manager.full_masks,
             cluster=self.data_manager.full_clusters,
+            cluster_depth=self.data_manager.full_clusters_depth,
             cmap_index=cmap_index,
             channel=self.data_manager.full_channels,
             highlight=self.highlight_manager.highlight_mask)
@@ -958,10 +968,10 @@ class WaveformPaintManager(PlotPaintManager):
             position0=self.data_manager_avg.normalized_data,
             mask=self.data_manager_avg.full_masks,
             cluster=self.data_manager_avg.full_clusters,
+            cluster_depth=self.data_manager_avg.full_clusters_depth,
             cmap_index=cluster_colors[self.data_manager_avg.full_clusters],
             channel=self.data_manager_avg.full_channels,
             highlight=np.zeros(size, dtype=np.int32))
-        
             
         self.auto_update_uniforms('box_size', 'box_size_margin',
             "channel_positions"
@@ -1232,6 +1242,7 @@ class WaveformWidget(VisualizationWidget):
             
         self.view.set_data(self.dh.waveforms,
                       clusters=self.dh.clusters,
+                      clusters_ordered=self.dh.clusters_ordered,
                       spike_ids=self.dh.spike_ids,
                       clusters_unique=self.dh.clusters_unique,
                       cluster_colors=self.dh.cluster_colors,

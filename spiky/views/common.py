@@ -17,7 +17,7 @@ class SpikeDataOrganizer(object):
         # self.reorder()
         
     def set_data(self, data, clusters=None, cluster_colors=None, masks=None,
-                             nchannels=None, spike_ids=None,
+                             nchannels=None, spike_ids=None, clusters_ordered=None,
                              clusters_unique=None):
         """
         Arguments:
@@ -63,9 +63,12 @@ class SpikeDataOrganizer(object):
             clusters_rel = np.arange(self.clusters_unique.max() + 1)
             clusters_rel[self.clusters_unique] = np.arange(self.nclusters)
             self.clusters_rel = clusters_rel[self.clusters]
+            if clusters_ordered is not None:
+                self.clusters_depth = clusters_ordered[self.clusters_rel]
         else:
             self.clusters_rel = self.clusters
-
+            self.clusters_depth = self.clusters
+            
         # NEW: no more reordering
         self.data_reordered = self.data
         

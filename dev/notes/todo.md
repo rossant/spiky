@@ -14,7 +14,7 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * order of selected clusters for depth
+  * feature view: order of selected clusters for depth
 
   * correlation matrix
         pi(x) = wi * N(x | mui, Sigmai)
@@ -33,6 +33,7 @@ Before alpha pre-release
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config  
   * undock maximize button
+  * PCx enabled more visible
   
   
 Major features
