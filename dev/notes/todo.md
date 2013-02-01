@@ -14,7 +14,6 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * feature view: order of selected clusters for depth
   * tooltip: background using the same visual (add option in TextVisual)
   * correlation matrix
         pi(x) = wi * N(x | mui, Sigmai)

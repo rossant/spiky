@@ -22,17 +22,29 @@ __all__ = ['FeatureView', 'FeatureNavigationBindings',
 
 VERTEX_SHADER = """
     // move the vertex to its position
-    vec2 position = position0;
+    vec3 position = vec3(0, 0, 0);
+    position.xy = position0;
     
     vhighlight = highlight;
     cmap_vindex = cmap_index;
     vmask = mask;
     vselection = selection;
         
+        
+    // compute the depth: put masked spikes on the background, unmasked ones
+    // on the foreground on a different layer for each cluster
+    float depth = 0.;
+    //if (mask == 1.)
+    depth = -(cluster_depth + 1) / nclusters;
+    position.z = depth;
+        
     if ((highlight > 0) || (selection > 0))
         gl_PointSize = 5.;
     else
         gl_PointSize = 3.;
+        
+    // DEBUG
+    //gl_PointSize = 20;
 """
      
      
@@ -86,7 +98,7 @@ class FeatureDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self, features=None, fetdim=None, clusters=None,
-                nchannels=None, nextrafet=None,
+                nchannels=None, nextrafet=None, clusters_ordered=None,
                 cluster_colors=None, clusters_unique=None,
                  masks=None, spike_ids=None, spikes_rel=None):
         
@@ -107,6 +119,7 @@ class FeatureDataManager(Manager):
                                                 clusters=clusters,
                                                 cluster_colors=cluster_colors,
                                                 clusters_unique=clusters_unique,
+                                                clusters_ordered=clusters_ordered,
                                                 masks=masks,
                                                 nchannels=self.nchannels,
                                                 spike_ids=spike_ids)
@@ -119,6 +132,8 @@ class FeatureDataManager(Manager):
         self.masks = self.data_organizer.masks
         self.cluster_colors = self.data_organizer.cluster_colors
         self.clusters_unique = self.data_organizer.clusters_unique
+        self.clusters_depth = self.data_organizer.clusters_depth
+        self.full_clusters_depth = self.data_organizer.clusters_depth
         self.clusters_rel = self.data_organizer.clusters_rel
         self.cluster_sizes = self.data_organizer.cluster_sizes
         # self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
@@ -171,7 +186,8 @@ class FeatureDataManager(Manager):
         
         
 class FeatureVisual(Visual):
-    def initialize(self, npoints=None, #nclusters=None, 
+    def initialize(self, npoints=None, 
+                    nclusters=None, cluster_depth=None,
                     position0=None,
                     mask=None,
                     cluster=None,
@@ -200,6 +216,10 @@ class FeatureVisual(Visual):
         self.add_attribute("selection", vartype="int", ndim=1, data=selection)
         self.add_varying("vselection", vartype="int", ndim=1)
         
+        self.add_uniform("nclusters", vartype="int", ndim=1, data=nclusters)
+        
+        self.add_attribute("cluster_depth", vartype="int", ndim=1, data=cluster_depth)
+        
         # color map for cluster colors, each spike has an index of the color
         # in the color map
         ncolors = scolors.COLORMAP.shape[0]
@@ -227,6 +247,11 @@ class FeatureVisual(Visual):
         
         # self.add_fragment_header(FSH)
 
+        
+        # necessary so that the navigation shader code is updated
+        self.is_position_3D = True
+        
+        
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
         
@@ -247,6 +272,8 @@ class FeaturePaintManager(PlotPaintManager):
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
             cluster_colors=self.data_manager.cluster_colors,
+            nclusters=self.data_manager.nclusters,
+            cluster_depth=self.data_manager.full_clusters_depth,
             # colormap=self.data_manager.colormap,
             )
         
@@ -262,6 +289,8 @@ class FeaturePaintManager(PlotPaintManager):
         cluster_colors = self.data_manager.cluster_colors
         cmap_index = cluster_colors[cluster]
     
+        # print self.data_manager.full_clusters_depth
+    
         self.set_data(visual='features', 
             size=self.data_manager.npoints,
             position0=self.data_manager.normalized_data,
@@ -269,6 +298,8 @@ class FeaturePaintManager(PlotPaintManager):
             # cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
+            nclusters=self.data_manager.nclusters,
+            cluster_depth=self.data_manager.full_clusters_depth,
             cmap_index=cmap_index
             )
 
@@ -742,6 +773,7 @@ class FeatureSelectionBindings(FeatureBindings):
      
 class FeatureView(GalryWidget):
     def initialize(self):
+        self.activate3D = True
         self.set_bindings(FeatureNavigationBindings, FeatureSelectionBindings)
         self.set_companion_classes(
                 paint_manager=FeaturePaintManager,
@@ -778,6 +810,7 @@ class FeatureWidget(VisualizationWidget):
         self.view.set_data(fetdim=self.dh.fetdim,
                       features=self.dh.features,
                       clusters=self.dh.clusters,
+                      clusters_ordered=self.dh.clusters_ordered,
                       nchannels=self.dh.nchannels,
                       nextrafet=self.dh.nextrafet,
                       # colormap=self.dh.colormap,
@@ -798,6 +831,7 @@ class FeatureWidget(VisualizationWidget):
                       nextrafet=self.dh.nextrafet,
                       cluster_colors=self.dh.cluster_colors,
                       clusters_unique=self.dh.clusters_unique,
+                      clusters_ordered=self.dh.clusters_ordered,
                       masks=self.dh.masks,
                       spike_ids=self.dh.spike_ids,
                       spikes_rel=self.dh.spikes_rel,
