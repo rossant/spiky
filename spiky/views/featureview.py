@@ -35,7 +35,7 @@ VERTEX_SHADER = """
     // on the foreground on a different layer for each cluster
     float depth = 0.;
     //if (mask == 1.)
-    depth = -(cluster_depth + 1) / nclusters;
+    depth = -(cluster_depth + 1) / (nclusters + 10);
     position.z = depth;
         
     if ((highlight > 0) || (selection > 0))
@@ -279,8 +279,15 @@ class FeaturePaintManager(PlotPaintManager):
         
         self.add_visual(AxesVisual, name='grid')
         
+        self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
+            color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
+            depth=-.99, is_static=True)
+        
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            posoffset=(.02, -.02),
+            # background=(0., 0., 0., 1.),
+            posoffset=(.05, -.05),
+            letter_spacing=180.,
+            depth=-1,
             visible=False)
         
     def update(self):
@@ -532,6 +539,7 @@ class FeatureInteractionManager(PlotInteractionManager):
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
+        self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
         
     def highlight_spike(self, parameter):
         self.highlight_manager.highlight(parameter)
@@ -614,7 +622,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         # print self.data_manager.cluster_colors
         
         color = self.data_manager.cluster_colors[cluster]
-        x, y = self.data_manager.data[ispk, :]
+        # x, y = self.data_manager.data[ispk, :]
         # coordinates = nav.get_window_coordinates(*coordinates)
         
         # x += .05
@@ -629,7 +637,12 @@ class FeatureInteractionManager(PlotInteractionManager):
         # print
         
         # update clusterinfo visual
-        self.paint_manager.set_data(coordinates=(x, y), color=color,
+        rect = (x+.00, y-.02, x+.07, y-.08)
+        self.paint_manager.set_data(coordinates=rect, 
+            visible=True,
+            visual='clusterinfo_bg')
+            
+        self.paint_manager.set_data(coordinates=(xd, yd), color=color,
             text=text,
             visible=True,
             visual='clusterinfo')

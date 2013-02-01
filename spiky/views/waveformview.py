@@ -37,7 +37,7 @@ VERTEX_SHADER = """
     // on the foreground on a different layer for each cluster
     float depth = 0.;
     if (mask == 1.)
-        depth = -(cluster_depth + 1) / nclusters;
+        depth = -(cluster_depth + 1) / (nclusters + 10);
     
     // move the vertex to its position0
     vec3 position = vec3(position0 * 0.5 * box_size + box_position, depth);
@@ -931,8 +931,15 @@ class WaveformPaintManager(PlotPaintManager):
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
             "superimposed", "channel_positions",)
         
+        self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
+            color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
+            depth=-.99, is_static=True)
+            
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            posoffset=(.02, -.02), letter_spacing=200.,
+            posoffset=(.08, -.08),
+            letter_spacing=180.,
+            # background=(0., 0., 0., 1.),
+            depth=-1,
             visible=False)
         
     # @profile
@@ -1042,6 +1049,7 @@ class WaveformInteractionManager(PlotInteractionManager):
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
+        self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
         
     def show_closest_cluster(self, parameter):
         
@@ -1060,18 +1068,24 @@ class WaveformInteractionManager(PlotInteractionManager):
         
         channel, cluster_rel = self.position_manager.find_box(xd, yd)
         # i = self.position_manager.nclusters * channel + cluster_rel
-        (Tx, Ty), boxsize = self.position_manager.get_transformation()
-        
         color = self.data_manager.cluster_colors[cluster_rel]
-        x = Tx[channel, cluster_rel] - boxsize[0] * .55
-        y = Ty[channel, cluster_rel]
+        
+        # (Tx, Ty), boxsize = self.position_manager.get_transformation()
+        # x = Tx[channel, cluster_rel]# - boxsize[0] * .55
+        # y = Ty[channel, cluster_rel]
         
         r, g, b = scolors.COLORMAP[color,:]
         color = (r, g, b, .75)
         
         text = str(self.data_manager.clusters_unique[cluster_rel])
+        
         # update clusterinfo visual
-        self.paint_manager.set_data(coordinates=(x, y), color=color,
+        rect = (x+.01, y-.04, x+.11, y-.13)
+        self.paint_manager.set_data(coordinates=rect, 
+            visible=True,
+            visual='clusterinfo_bg')
+            
+        self.paint_manager.set_data(coordinates=(xd, yd), color=color,
             text=text,
             visible=True,
             visual='clusterinfo')
