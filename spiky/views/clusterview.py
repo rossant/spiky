@@ -583,8 +583,16 @@ class ClusterTreeView(QtGui.QTreeView):
             # groups first
             for group in groups:
                 allclusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
-            # then clusters
-            allclusters.extend(clusters)
+                
+            # add clusters that are not in the selected groups, and
+            # remove the others
+            clusters_to_add = []
+            for cluster in clusters:
+                if cluster not in allclusters:
+                    clusters_to_add.append(cluster)
+                else:
+                    allclusters.remove(cluster)
+            allclusters.extend(clusters_to_add)
             
             # remove duplicates while preserving the order
             clusters_unique = []
