@@ -58,10 +58,13 @@ def get_histogram_points(hist):
 
 
 class CorrelogramsDataManager(Manager):
-    def set_data(self, histograms=None, cluster_colors=None, baselines=None):
+    def set_data(self, histograms=None, cluster_colors=None, baselines=None,
+        clusters_unique=None):
         
         self.histograms = histograms
         self.nhistograms, self.nbins = histograms.shape
+        
+        self.clusters_unique = clusters_unique
         
         # HACK: if histograms is empty, nhistograms == 1 here!
         if histograms.size == 0:
@@ -197,6 +200,17 @@ class CorrelogramsPaintManager(PlotPaintManager):
             color_array_index=self.data_manager.color_array_index,
             clusters=self.data_manager.clusters,
             name='correlograms')
+            
+        self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
+            color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
+            depth=-.99, is_static=True)
+        
+        self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
+            # background=(0., 0., 0., 1.),
+            posoffset=(.12, -.12),
+            letter_spacing=200.,
+            depth=-1,
+            visible=False)
         
     def update(self):
         self.reinitialize_visual(
@@ -211,6 +225,67 @@ class CorrelogramsPaintManager(PlotPaintManager):
             visual='correlograms')
             
 
+class CorrelogramsInteractionManager(PlotInteractionManager):
+    def initialize(self):
+        self.register('ShowClosestCluster', self.show_closest_cluster)
+        self.register(None, self.hide_closest_cluster)
+            
+    def hide_closest_cluster(self, parameter):
+        self.paint_manager.set_data(visible=False, visual='clusterinfo')
+        self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
+        
+    def show_closest_cluster(self, parameter):
+        
+        if self.data_manager.nclusters == 0:
+            return
+            
+        self.cursor = None
+        
+        nav = self.get_processor('navigation')
+        
+        # window coordinates
+        x, y = parameter
+        # data coordinates
+        xd, yd = nav.get_data_coordinates(x, y)
+        
+        
+
+        margin = 0.05
+        a = 1.0 / (self.data_manager.nclusters * (1 + 2 * margin))
+        
+        cx = int(((xd + 1) / (a * (1 + 2 * margin)) - 1) / 2 + .5)
+        cy = int(((yd + 1) / (a * (1 + 2 * margin)) - 1) / 2 + .5)
+        
+        cx_rel = np.clip(cx, 0, self.data_manager.nclusters - 1)
+        cy_rel = np.clip(cy, 0, self.data_manager.nclusters - 1)
+        
+        
+        # color0 = self.data_manager.cluster_colors[cx_rel]
+        # r, g, b = scolors.COLORMAP[color0,:]
+        # color0 = (r, g, b, .75)
+        
+        color1 = self.data_manager.cluster_colors[cy_rel]
+        r, g, b = scolors.COLORMAP[color1,:]
+        color1 = (r, g, b, .75)
+        
+        cx = self.data_manager.clusters_unique[cx_rel]
+        cy = self.data_manager.clusters_unique[cy_rel]
+        
+        
+        text = "%d / %d" % (cx, cy)
+        
+        # update clusterinfo visual
+        rect = (x-.06, y-.05, x+.24, y-.2)
+        self.paint_manager.set_data(coordinates=rect, 
+            visible=True,
+            visual='clusterinfo_bg')
+            
+        self.paint_manager.set_data(coordinates=(xd, yd), color=color1,
+            text=text,
+            visible=True,
+            visual='clusterinfo')
+        
+            
 class CorrelogramsBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
@@ -221,14 +296,23 @@ class CorrelogramsBindings(SpikyBindings):
                                             p["mouse_position"][0],
                                             p["mouse_position"][1]))
 
-
+    def set_clusterinfo(self):
+        self.set('Move', 'ShowClosestCluster', key_modifier='Control',
+            param_getter=lambda p:
+            (p['mouse_position'][0], p['mouse_position'][1]))
+    
+    def initialize(self):
+        super(CorrelogramsBindings, self).initialize()
+        self.set_clusterinfo()
+    
+    
 class CorrelogramsView(GalryWidget):
     def initialize(self):
         # self.constrain_ratio = True
         # self.constrain_navigation = True
         self.set_bindings(CorrelogramsBindings)
         self.set_companion_classes(paint_manager=CorrelogramsPaintManager,
-            interaction_manager=PlotInteractionManager,
+            interaction_manager=CorrelogramsInteractionManager,
             data_manager=CorrelogramsDataManager,)
     
     def set_data(self, *args, **kwargs):
@@ -247,6 +331,7 @@ class CorrelogramsWidget(VisualizationWidget):
         self.dh = dh
         view = CorrelogramsView(getfocus=False)
         view.set_data(histograms=dh.correlograms,
+                      clusters_unique=self.dh.clusters_unique,
                       baselines=dh.baselines,
                       cluster_colors=dh.cluster_colors)
         return view
@@ -255,6 +340,7 @@ class CorrelogramsWidget(VisualizationWidget):
         if dh is not None:
             self.dh = dh
         self.view.set_data(histograms=self.dh.correlograms,
+                      clusters_unique=self.dh.clusters_unique,
                       baselines=self.dh.baselines,
                       cluster_colors=self.dh.cluster_colors)
 

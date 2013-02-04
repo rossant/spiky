@@ -648,8 +648,6 @@ class FeatureInteractionManager(PlotInteractionManager):
             visual='clusterinfo')
         
 
-# Bindings
-# --------
 class FeatureBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
@@ -966,8 +964,6 @@ class FeatureWidget(VisualizationWidget):
             channel += self.dh.nchannels #* self.dh.fetdim
         ssignals.emit(self, "ProjectionToChange", coord, channel,
                  self.projection[coord][1])
-        # except:
-            # log_warn("'%s' is not a valid channel." % channel)
         
     def _select_feature_getter(self, coord, fet):
         """Return the callback function for the feature selection."""

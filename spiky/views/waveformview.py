@@ -45,7 +45,6 @@ VERTEX_SHADER = """
     cmap_vindex = cmap_index;
     vhighlight = highlight;
     vmask = mask;
-    
 """
         
 FRAGMENT_SHADER = """
@@ -420,7 +419,7 @@ class WaveformPositionManager(Manager):
             arrangement = self.spatial_arrangement
         self.box_sizes[arrangement] = (w, h)
 
-    def load_box_size(self, arrangement=None):
+    def load_box_size(self, arrangement=None, effective=True):
         if arrangement is None:
             arrangement = self.spatial_arrangement
         size = self.box_sizes[arrangement]
@@ -428,7 +427,7 @@ class WaveformPositionManager(Manager):
             return size
         w, h = size
         # effective box width
-        if self.superposition == 'Separated' and self.nclusters >= 1:
+        if effective and self.superposition == 'Separated' and self.nclusters >= 1:
             w = w / self.nclusters
         return w, h
     
@@ -436,14 +435,8 @@ class WaveformPositionManager(Manager):
         if self.nclusters == 0:
             return 0., 0.
         
-        w = .5# / self.nclusters
+        w = .5
         h = .1
-        # cursize = self.load_box_size()
-        
-        # if cursize is None:
-            # h = .1
-        # else:
-            # _, h = cursize
         
         self.save_box_size(w, h)
         
@@ -453,8 +446,10 @@ class WaveformPositionManager(Manager):
     # Interactive update methods
     # --------------------------
     def change_box_scale(self, dsx, dsy):
-        w, h = self.load_box_size()
-        w *= self.nclusters
+        w, h = self.load_box_size(effective=False)
+        # the w in box size has been divided by the number of clusters, so we
+        # remultiply it to have the normalized value
+        # w *= self.nclusters
         w = max(self.box_size_min, w + dsx)
         h = max(self.box_size_min, h + dsy)
         self.update_arrangement(box_size=(w,h))
@@ -1019,15 +1014,6 @@ class WaveformPaintManager(PlotPaintManager):
             )
     
 
-# @qtjobqueue
-# class HighlightJobQueue(object):
-    # def __init__(self, highlight_manager):
-        # self.highlight_manager = highlight_manager
-        
-    # def highlight(self, parameter):
-        # self.highlight_manager.highlight(parameter)
-    
-    
 class WaveformInteractionManager(PlotInteractionManager):
     def select_channel(self, coord, xp, yp):
         # normalized coordinates
@@ -1344,7 +1330,7 @@ class WaveformWidget(VisualizationWidget):
         geometry_preferences = {
             'spatial_arrangement': self.view.position_manager.spatial_arrangement,
             'superposition': self.view.position_manager.superposition,
-            'box_size': self.view.position_manager.load_box_size(),
+            'box_size': self.view.position_manager.load_box_size(effective=False),
             'probe_scale': self.view.position_manager.probe_scale,
         }
         stools.SETTINGS.set("waveformWidget/geometry", geometry_preferences)
