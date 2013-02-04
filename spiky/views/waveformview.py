@@ -261,17 +261,34 @@ class WaveformPositionManager(Manager):
         ymin = channel_positions[:,1].min()
         ymax = channel_positions[:,1].max()
         
-        w, h = self.find_box_size(spatial_arrangement=spatial_arrangement)
+        # w, h = self.find_box_size(spatial_arrangement=spatial_arrangement)
+    
+        # w = .5
+        h = .1
+        
+        size = self.load_box_size()
+        if size is None:
+            w = h = 0.
+        else:
+            w, _ = size
+        
+        # # effective box width
+        # if self.superposition == 'Separated' and self.nclusters >= 1:
+            # w = w / self.nclusters
+    
+        # print w
     
         # HACK: if the normalization depends on the number of clusters,
         # the positions will change whenever the cluster selection changes
-        # k = self.nclusters
-        k = 3
+        k = self.nclusters
+        # k = 3
         
         if xmin == xmax:
             ax = 0.
         else:
-            ax = (2 - k * w * (1 + 2 * self.alpha)) / (xmax - xmin)
+            # ax = (2 - k * w * (1 + 2 * self.alpha)) / (xmax - xmin)
+            ax = (2 - w * (1 + 2 * self.alpha)) / (xmax - xmin)
+            
         if ymin == ymax:
             ay = 0.
         else:
@@ -364,6 +381,12 @@ class WaveformPositionManager(Manager):
             w = h = 0.
         else:
             w, h = size
+            
+        # # effective box width
+        # if self.superposition == 'Separated' and self.nclusters >= 1:
+            # w = w / self.nclusters
+        # # else:
+            # # w2 = w
         
         # update translation vector
         # order: cluster, channel
@@ -400,20 +423,30 @@ class WaveformPositionManager(Manager):
     def load_box_size(self, arrangement=None):
         if arrangement is None:
             arrangement = self.spatial_arrangement
-        if self.box_sizes[arrangement] is None:
-            self.find_box_size()
-        return self.box_sizes[arrangement]
+        size = self.box_sizes[arrangement]
+        if size is None:
+            return size
+        w, h = size
+        # effective box width
+        if self.superposition == 'Separated' and self.nclusters >= 1:
+            w = w / self.nclusters
+        return w, h
     
     def find_box_size(self, spatial_arrangement=None, superposition=None):
         if self.nclusters == 0:
             return 0., 0.
-        do_save = (spatial_arrangement is None) and (superposition is None)
         
-        w = .5
+        w = .5# / self.nclusters
         h = .1
+        # cursize = self.load_box_size()
         
-        if do_save:
-            self.save_box_size(w, h)
+        # if cursize is None:
+            # h = .1
+        # else:
+            # _, h = cursize
+        
+        self.save_box_size(w, h)
+        
         return w, h
         
         
@@ -421,6 +454,7 @@ class WaveformPositionManager(Manager):
     # --------------------------
     def change_box_scale(self, dsx, dsy):
         w, h = self.load_box_size()
+        w *= self.nclusters
         w = max(self.box_size_min, w + dsx)
         h = max(self.box_size_min, h + dsy)
         self.update_arrangement(box_size=(w,h))
@@ -937,7 +971,7 @@ class WaveformPaintManager(PlotPaintManager):
             
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             posoffset=(.08, -.08),
-            letter_spacing=180.,
+            letter_spacing=200.,
             # background=(0., 0., 0., 1.),
             depth=-1,
             visible=False)
@@ -1120,19 +1154,37 @@ class WaveformBindings(SpikyBindings):
                  
     def set_box_scaling(self):
         # change box scale: CTRL + right mouse
-        self.set('RightClickMove',
+        # self.set('RightClickMove',
+                 # 'ChangeBoxScale',
+                 # key_modifier='Control',
+                 # param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
+                                         # p["mouse_position_diff"][1]*.2))
+        self.set('Wheel',
                  'ChangeBoxScale',
+                 description='vertical',
                  key_modifier='Control',
-                 param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
-                                         p["mouse_position_diff"][1]*.2))
+                 param_getter=lambda p: (0, p["wheel"]*.0005))
+        self.set('Wheel',
+                 'ChangeBoxScale',
+                 description='horizontal',
+                 key_modifier='Shift',
+                 param_getter=lambda p: (p["wheel"]*.0005, 0))
+                                         
 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
         self.set('RightClickMove',
                  'ChangeProbeScale',
-                 key_modifier='Shift',
-                 param_getter=lambda p: (p["mouse_position_diff"][0] * 3,
+                 description='vertical',
+                 key_modifier='Control',
+                 param_getter=lambda p: (0,
                                          p["mouse_position_diff"][1] * .5))
+        self.set('RightClickMove',
+                 'ChangeProbeScale',
+                 description='horizontal',
+                 key_modifier='Shift',
+                 param_getter=lambda p: (p["mouse_position_diff"][0] * 1,
+                                         0))
 
     def set_highlight(self):
         # highlight

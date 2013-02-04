@@ -286,7 +286,7 @@ class FeaturePaintManager(PlotPaintManager):
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             # background=(0., 0., 0., 1.),
             posoffset=(.05, -.05),
-            letter_spacing=180.,
+            letter_spacing=200.,
             depth=-1,
             visible=False)
         
@@ -896,7 +896,11 @@ class FeatureWidget(VisualizationWidget):
         # a function of the current projection
         if feature < 0:
             # current channel and feature in the other coordinate
-            other_channel, other_feature = self.view.data_manager.projection[1 - coord]
+            ch_fet = self.view.data_manager.projection[1 - coord]
+            if ch_fet is not None:
+                other_channel, other_feature = ch_fet
+            else:
+                other_channel, other_feature = 0, 1
             fetdim = self.dh.fetdim
             # first dimension: we force to 0
             if coord == 0:

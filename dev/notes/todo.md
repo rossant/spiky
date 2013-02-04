@@ -23,13 +23,13 @@ Before alpha pre-release
   * correlograms nbins
   * correlograms: cluster labels
   
-  * waveform view: fix scaling when resizing boxes or probe
+  * cluster tooltip in correlograms view
   * buttons for all commands (reset view for any view)
   * feature view: flip X/Y
+  
   * make settings independent from pyqt/pyside
     initial launch: default window geometry config  
   * undock maximize button
-  * PCx enabled more visible
   
   
 Major features
