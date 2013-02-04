@@ -21,9 +21,7 @@ Before alpha pre-release
   
   * faster correlograms
   * correlograms nbins
-  * correlograms: cluster labels
   
-  * cluster tooltip in correlograms view
   * buttons for all commands (reset view for any view)
   * feature view: flip X/Y
   
