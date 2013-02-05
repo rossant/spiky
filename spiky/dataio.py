@@ -9,6 +9,7 @@ from colors import COLORMAP
 import signals
 from xmltools import parse_xml
 from spiky.qtqueue import qtjobqueue
+from collections import Counter
 # from tools import Info
 
 __all__ = [
@@ -134,6 +135,71 @@ def get_correlogram(x, y, width=.021, bin=.001, duration=None):
         return np.zeros(2*int(np.ceil(width / bin)))
     corr[len(corr)/2] = 0
     return corr
+  
+  
+  
+  
+  
+  
+
+
+def MGProbs(Fet1, Fet2, spikes_in_clusters):#Clu2):
+
+    nPoints = Fet1.shape[0] #size(Fet1, 1)
+    nDims = Fet1.shape[1] #size(Fet1, 2)
+    # nClusters = Clu2.max() #max(Clu2)
+    nClusters = len(spikes_in_clusters)
+
+    LogP = np.zeros((nPoints, nClusters))
+    for c in xrange(nClusters):
+        # MyPoints = np.nonzero(Clu2==c)[0]
+        MyPoints = spikes_in_clusters[c]
+        MyFet2 = Fet2[MyPoints, :]
+        if len(MyPoints) > nDims:
+            LogProp = np.log(len(MyPoints) / float(nPoints)) # log of the proportion in cluster c
+            Mean = np.mean(MyFet2, axis=0).reshape((1, -1))  #
+            CovMat = np.cov(MyFet2, rowvar=0) # stats for cluster c
+            LogDet = np.log(np.linalg.det(CovMat))   #
+
+            dx = Fet1 - Mean #repmat(Mean, nPoints, 1) # distance of each point from cluster
+            # y = dx / CovMat
+            # print Fet1.shape, Mean.shape, dx.shape, CovMat.shape
+            y = np.linalg.solve(CovMat.T, dx.T).T
+            LogP[:,c] = np.sum(y*dx, axis=1)/2. + LogDet/2. - LogProp + np.log(2*np.pi)*nDims/2. # -Log Likelihood
+                # -log of joint probability that the point lies in cluster c and has given coords.
+        else:
+            LogP[:,c] = np.inf
+
+    JointProb = np.exp(-LogP)
+
+    # # if any points have all probs zero, set them to cluster 1
+    JointProb[np.sum(JointProb, axis=1) == 0, 0] = 1e-9 #eps
+
+    # #probability that point belongs to cluster, given coords
+    # p = JointProb / repmat(sum(JointProb,2), 1, nClusters) 
+    p = JointProb / np.sum(JointProb, axis=1).reshape((-1, 1))
+    
+    return p
+
+def correlation_matrix(features, clusters):
+    
+    c = Counter(clusters)
+    spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
+    nClusters = len(spikes_in_clusters)
+    
+    P = MGProbs(features, features, spikes_in_clusters)
+    ErrorMat = np.zeros((nClusters, nClusters))
+    for c in xrange(nClusters):
+        # MyPoints = np.nonzero(Clu2==c)[0]
+        MyPoints = spikes_in_clusters[c]
+        ErrorMat[c,:] = np.mean(P[MyPoints, :], axis=0)
+
+    return ErrorMat
+    
+
+  
+  
+  
   
   
 
@@ -565,7 +631,11 @@ class KlustersDataProvider(DataProvider):
         nsamples_correlograms = 20
         self.holder.correlograms_info = dict(nsamples=nsamples_correlograms)
         
-        # self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
+        # self.holder.correlation_matrix = rdn.rand(nclusters, nclusters)
+        # self.holder.correlation_matrix = np.array([[]])
+        # features = 
+        self.holder.correlation_matrix = correlation_matrix(features, clusters)
+        
         
         return self.holder
         
@@ -665,7 +735,7 @@ class MockDataProvider(DataProvider):
         nsamples_correlograms = 20
         self.holder.correlograms_info = dict(nsamples=nsamples_correlograms)
         
-        self.holder.correlationmatrix = rdn.rand(nclusters, nclusters) ** 10
+        self.holder.correlation_matrix = np.zeros((nclusters, nclusters))
         
         
         return self.holder

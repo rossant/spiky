@@ -49,6 +49,11 @@ def correlation_matrix(features, spikes_in_clusters):
     # P = np.exp(-.5 * P)
     # P = coeff * P
     
+    # print C
+    print np.log(D)
+    
+    return
+    
     P = np.zeros((nspikes, nclusters))
     
     # compute the pdf
@@ -64,10 +69,12 @@ def correlation_matrix(features, spikes_in_clusters):
     P2 = np.exp(-.5 * P)
     P3 = coeff * P2
     
+    return P
+    
     # A: nclusters x nclusters: like P, but averaged cluster-wise vertically
     A = np.zeros((nclusters, nclusters))
     for cluster in xrange(nclusters):
-        A[cluster, :] = np.take(P, spikes_in_clusters[cluster], axis=0).mean(axis=0)
+        A[cluster, :] = np.take(P3, spikes_in_clusters[cluster], axis=0).mean(axis=0)
     
     # C: like A, but divided by the sum on each row
     N = A.sum(axis=1).reshape((-1, 1))
@@ -80,13 +87,15 @@ if __name__ == '__main__':
     
     import matplotlib.pyplot as plt
     
-    features = np.loadtxt("../_test/data/test.fet.1", np.int32, skiprows=1)
+    # features = np.loadtxt("../_test/data/test.fet.1", np.int32, skiprows=1)
+    features = np.loadtxt("../_test/data/subset41test.fet.1", np.int32, skiprows=1)
     features = features[:, :-1]
     
     features = np.array(features, dtype=np.float32)
     features /= features.max()
     
-    clusters = np.loadtxt("../_test/data/test.clu.1", np.int32, skiprows=1)
+    # clusters = np.loadtxt("../_test/data/test.clu.1", np.int32, skiprows=1)
+    clusters = np.loadtxt("../_test/data/subset41test.clu.1", np.int32, skiprows=1)
     
     c = Counter(clusters)
     spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
@@ -95,13 +104,17 @@ if __name__ == '__main__':
     # print spikes_in_clusters 
     # print sorted(c)
     
+    # print features
+    
     C = correlation_matrix(features, spikes_in_clusters)
     
     # print C
     
-    plt.imshow(C, interpolation='none')
+    # print C.min(), C.max()
     
-    plt.show()
+    # plt.imshow(C, interpolation='none')
+    
+    # plt.show()
     
     
     

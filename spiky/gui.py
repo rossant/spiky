@@ -188,7 +188,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.waveform_widget, self.waveform_dock_widget = self.add_dock(sviews.WaveformWidget, QtCore.Qt.RightDockWidgetArea)        
         self.correlograms_widget, self.correlograms_dock_widget = self.add_dock(sviews.CorrelogramsWidget, QtCore.Qt.RightDockWidgetArea)
         
-        # self.correlationmatrix_widget = self.add_dock(CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
+        self.correlationmatrix_widget, self.correlationmatrix_dock_widget = self.add_dock(sviews.CorrelationMatrixWidget, QtCore.Qt.RightDockWidgetArea)
         
         # widget actions
         self.cluster_action = self.cluster_dock_widget.toggleViewAction()
@@ -461,6 +461,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.feature_widget.update_view(self.sdh)
         self.waveform_widget.update_view(self.sdh)
         self.correlograms_widget.update_view(self.sdh)
+        self.correlationmatrix_widget.update_view(self.sdh)
 
         # update undo and redo
         self.undo_action.setEnabled(self.am.undo_enabled())

@@ -5,6 +5,10 @@ from matplotlib.colors import hsv_to_rgb
 from widgets import VisualizationWidget
 
 
+
+
+
+
 def colormap(x, col0=None, col1=None):
     """Colorize a 2D grayscale array.
     
@@ -38,36 +42,72 @@ def colormap(x, col0=None, col1=None):
     return hsv_to_rgb(col0 + (col1 - col0) * x)
     
     
-class CorrelationMatrixPaintManager(PaintManager):
-    def load_data(self, data):
-        self.texture = colormap(data)
+class CorrelationMatrixDataManager(Manager):
+    def set_data(self, matrix=None):
+        if matrix.size == 0:
+            matrix = np.zeros((2, 2))
+        elif matrix.shape[0] == 1:
+            matrix = np.zeros((2, 2))
+        self.texture = colormap(matrix)
+        
     
+    
+class CorrelationMatrixPaintManager(PaintManager):
     def initialize(self):
-        self.add_visual(TextureVisual, texture=self.texture, name='correlationmatrix')
+        self.add_visual(TextureVisual,
+            texture=self.data_manager.texture, name='correlation_matrix')
 
+    def update(self):
+        self.set_data(
+            texture=self.data_manager.texture, visual='correlation_matrix')
+        
         
 class CorrelationMatrixBindings(SpikyBindings):
+    pass
+    
+        
+class CorrelationMatrixInteractionManager(PlotInteractionManager):
     pass
         
         
 class CorrelationMatrixView(GalryWidget):
-    def initialize(self, **kwargs):
+    def initialize(self):
+        self.set_bindings(CorrelationMatrixBindings)
         self.constrain_ratio = True
         self.constrain_navigation = True
-        self.set_bindings(CorrelationMatrixBindings)
-        self.set_companion_classes(paint_manager=CorrelationMatrixPaintManager,
-            )
+        self.set_companion_classes(
+            paint_manager=CorrelationMatrixPaintManager,
+            interaction_manager=CorrelationMatrixInteractionManager,
+            data_manager=CorrelationMatrixDataManager,)
     
-    def set_data(self, data):
-        self.paint_manager.load_data(data)
-
-        
-        
-        
-
+    def set_data(self, *args, **kwargs):
+        self.data_manager.set_data(*args, **kwargs)
+    
+        if self.initialized:
+            log_debug("Updating data for correlograms")
+            self.paint_manager.update()
+            self.updateGL()
+        else:
+            log_debug("Initializing data for correlograms")
+    
+    
 class CorrelationMatrixWidget(VisualizationWidget):
     def create_view(self, dh):
-        view = CorrelationMatrixView()
-        view.set_data(dh.correlationmatrix)
+        self.dh = dh
+        view = CorrelationMatrixView(getfocus=False)
+        view.set_data(
+                      matrix=dh.correlation_matrix,
+                      # clusters_unique=self.dh.clusters_unique,
+                      # cluster_colors=dh.cluster_colors
+                      )
         return view
+        
+    def update_view(self, dh=None):
+        if dh is not None:
+            self.dh = dh
+        self.view.set_data(
+                      matrix=dh.correlation_matrix,
+                      # clusters_unique=self.dh.clusters_unique,
+                      # cluster_colors=dh.cluster_colors
+                      )
 
