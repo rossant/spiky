@@ -1145,6 +1145,19 @@ class WaveformBindings(SpikyBindings):
                  key_modifier='Shift',
                  param_getter=lambda p: (p["wheel"]*.0005, 0))
                  
+                 
+        self.set('KeyPress',
+                 'ChangeBoxScale',
+                 description='vertical',
+                 key='I',
+                 param_getter=lambda p: (0, .02))
+        self.set('KeyPress',
+                 'ChangeBoxScale',
+                 description='vertical',
+                 key='D',
+                 param_getter=lambda p: (0, -.02))
+                 
+                 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
         self.set('RightClickMove',

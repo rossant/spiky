@@ -83,12 +83,12 @@ QMenu::item:selected
     color: #000000;
 }
 
-/*
+
 QWidget:disabled
 {
     color: #404040;
-    background-color: #606060;
-}*/
+    /*background-color: #606060;*/
+}
 
 QAbstractItemView
 {

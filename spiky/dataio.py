@@ -635,6 +635,11 @@ class KlustersDataProvider(DataProvider):
             # groups=np.zeros(nclusters, dtype=np.int32),
             )
 
+            
+        # c = Counter(clusters)
+        # self.holder.clusters_counter = c
+        
+            
         probe = None
         try:
             if probefile:

@@ -721,6 +721,30 @@ class ClusterWidget(QtGui.QWidget):
         # set the VBox as layout of the widget
         self.setLayout(vbox)
         
+        self.initialize_connections()
+        
+    def initialize_connections(self):
+        
+        ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
+        
+    def slotClusterSelectionToChange(self, sender, clusters):
+        # mark the clusters as selected without sending signals
+        if sender != self.view:
+            # HACK: loop to select multiple clusters without sending signals
+            self.view.can_signal_selection = False
+            sel_model = self.view.selectionModel()
+            for i, cluster in enumerate(clusters):
+                if i == 0:
+                    mod = sel_model.Clear | sel_model.Select | sel_model.Rows
+                else:
+                    mod = sel_model.Select | sel_model.Rows
+                cl = self.view.get_cluster(cluster)
+                if cl:
+                    cl = cl.index
+                    sel_model.select(cl, mod)
+            self.view.can_signal_selection = True
+            self.view.scrollTo(cl, QtGui.QAbstractItemView.EnsureVisible)
+                
     def add_menu(self):
         
         self.create_color_dialog()
