@@ -289,6 +289,19 @@ class ClusterCache(object):
         needs to be updated."""
         signals.emit(self, 'CorrelogramsUpdated')
         
+       
+@qtjobqueue
+class CorrelationMatrixQueue(object):
+    def __init__(self, dh):
+        self.dh = dh
+        
+    def process(self):
+        self.dh.correlation_matrix = correlation_matrix(
+            self.dh.features, self.dh.clusters)
+        # import time
+        # time.sleep(5)
+        signals.emit(self, 'CorrelationMatrixUpdated')
+        
         
     
     
@@ -323,6 +336,9 @@ class DataHolder(object):
         filtered_trace: like raw trace, but with the filtered trace
         filter_info: a FilterInfo dic
     """
+    def __init__(self):
+        self.correlation_matrix = np.zeros((2, 2))
+    
     def new_cluster(self):
         ids = self.clusters_info['clusters_info'].keys()
         return max(ids) + 1
@@ -634,8 +650,9 @@ class KlustersDataProvider(DataProvider):
         # self.holder.correlation_matrix = rdn.rand(nclusters, nclusters)
         # self.holder.correlation_matrix = np.array([[]])
         # features = 
-        self.holder.correlation_matrix = correlation_matrix(features, clusters)
-        
+        # self.holder.correlation_matrix = correlation_matrix(features, clusters)
+        self.holder.correlation_matrix_queue = CorrelationMatrixQueue(self.holder)
+        self.holder.correlation_matrix_queue.process()
         
         return self.holder
         

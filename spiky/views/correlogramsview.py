@@ -297,7 +297,7 @@ class CorrelogramsBindings(SpikyBindings):
                                             p["mouse_position"][1]))
 
     def set_clusterinfo(self):
-        self.set('Move', 'ShowClosestCluster', key_modifier='Control',
+        self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
             param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
     

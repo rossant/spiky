@@ -424,24 +424,13 @@ class WaveformPositionManager(Manager):
             arrangement = self.spatial_arrangement
         size = self.box_sizes[arrangement]
         if size is None:
-            return size
+            size = .5, .1
         w, h = size
         # effective box width
         if effective and self.superposition == 'Separated' and self.nclusters >= 1:
             w = w / self.nclusters
         return w, h
     
-    def find_box_size(self, spatial_arrangement=None, superposition=None):
-        if self.nclusters == 0:
-            return 0., 0.
-        
-        w = .5
-        h = .1
-        
-        self.save_box_size(w, h)
-        
-        return w, h
-        
         
     # Interactive update methods
     # --------------------------
@@ -1155,8 +1144,7 @@ class WaveformBindings(SpikyBindings):
                  description='horizontal',
                  key_modifier='Shift',
                  param_getter=lambda p: (p["wheel"]*.0005, 0))
-                                         
-
+                 
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
         self.set('RightClickMove',
@@ -1200,7 +1188,7 @@ class WaveformBindings(SpikyBindings):
                  param_getter=lambda p: (1, p["mouse_position"][0], p["mouse_position"][1]))
         
     def set_clusterinfo(self):
-        self.set('Move', 'ShowClosestCluster', key_modifier='Control',
+        self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
             param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
         

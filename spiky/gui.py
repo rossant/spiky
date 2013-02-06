@@ -194,6 +194,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.cluster_action = self.cluster_dock_widget.toggleViewAction()
         self.waveform_action = self.waveform_dock_widget.toggleViewAction()
         self.correlograms_action = self.correlograms_dock_widget.toggleViewAction()
+        self.correlationmatrix_action = self.correlationmatrix_dock_widget.toggleViewAction()
         
     def initialize_data(self):
         # load mock data
@@ -316,6 +317,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         views_menu.addAction(self.cluster_action)
         views_menu.addAction(self.waveform_action)
         views_menu.addAction(self.correlograms_action)
+        views_menu.addAction(self.correlationmatrix_action)
         views_menu.addSeparator()
         views_menu.addAction(self.override_color_action)
         
@@ -368,6 +370,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         ssignals.SIGNALS.ChangeGroupColorRequested.connect(self.slotChangeGroupColorRequested)
         ssignals.SIGNALS.ChangeClusterColorRequested.connect(self.slotChangeClusterColorRequested)
         ssignals.SIGNALS.CorrelogramsUpdated.connect(self.slotCorrelogramsUpdated)
+        ssignals.SIGNALS.CorrelationMatrixUpdated.connect(self.slotCorrelationMatrixUpdated)
         ssignals.SIGNALS.FileLoaded.connect(self.slotFileLoaded)
         ssignals.SIGNALS.FileLoading.connect(self.slotFileLoading)
         
@@ -571,6 +574,10 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def slotCorrelogramsUpdated(self, sender):
         # print self.sdh.
         self.correlograms_widget.update_view(self.sdh)
+        
+    def slotCorrelationMatrixUpdated(self, sender):
+        # print self.sdh.
+        self.correlationmatrix_widget.update_view(self.sdh)
         
         
     # Event methods

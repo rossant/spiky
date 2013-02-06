@@ -702,17 +702,11 @@ class FeatureBindings(SpikyBindings):
         self.set('Wheel', 'SelectNeighborChannel',
                  key_modifier='Control',
                  param_getter=lambda p: (0, -int(np.sign(p['wheel']))))
-        # self.set('Wheel', 'SelectNeighborChannel',
-                 # key_modifier='Control',
-                 # param_getter=lambda p: (0, 1))
                  
         # select previous/next channel for coordinate 1
         self.set('Wheel', 'SelectNeighborChannel',
                  key_modifier='Shift',
                  param_getter=lambda p: (1, -int(np.sign(p['wheel']))))
-        # self.set('Wheel', 'SelectNeighborChannel',
-                 # key_modifier='Shift',
-                 # param_getter=lambda p: (1, 1))
         
     def set_neighbor_feature(self):
         # select previous/next feature for coordinate 0
@@ -732,7 +726,7 @@ class FeatureBindings(SpikyBindings):
                  param_getter=lambda p: (1, 1))
         
     def set_clusterinfo(self):
-        self.set('Move', 'ShowClosestCluster', key_modifier='Control',
+        self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
             param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
         
@@ -875,11 +869,15 @@ class FeatureWidget(VisualizationWidget):
         ssignals.SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
         ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
+        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes, QtCore.Qt.UniqueConnection)
         
     def slotHighlightSpikes(self, sender, spikes):
         self.update_nspikes_viewer(self.dh.nspikes, len(spikes))
         if sender != self.view:
             self.view.highlight_spikes(spikes)
+        
+    def slotSelectSpikes(self, sender, spikes):
+        self.update_nspikes_viewer(self.dh.nspikes, len(spikes))
         
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()

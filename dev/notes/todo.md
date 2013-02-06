@@ -14,11 +14,6 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * correlation matrix
-        pi(x) = wi * N(x | mui, Sigmai)
-        a_ij = 1/Nj sum_Cj pi(x)
-        c_ij = a_ij / sum_k a_kj
-  
   * faster correlograms
   * correlograms nbins
   
