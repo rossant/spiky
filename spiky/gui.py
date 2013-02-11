@@ -180,6 +180,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         # change data in the DataHolder.
         self.du = DataUpdater(self.sdh)
         self.am = spiky.ActionManager(self.dh, self.sdh)
+        self.robot = spiky.Robot(self.dh)
         
         # central window, the dockable widgets are arranged around it
         self.cluster_widget, self.cluster_dock_widget = self.add_dock(sviews.ClusterWidget, QtCore.Qt.RightDockWidgetArea)

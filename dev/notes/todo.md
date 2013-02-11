@@ -78,6 +78,7 @@ Refactoring
 
   * in gui.py, put all actions in a separate class, and avoid communicating 
     directly from mainwindow to widgets, rather, use signals
+  * use pandas for keeping track of spike and cluster absolute indices
   * refactor interactions in waveformview/featureview with different
     processors...
   * refactoring correlograms: put the actual computations outside dataio

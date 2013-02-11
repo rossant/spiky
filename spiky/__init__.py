@@ -2,6 +2,7 @@
 from jobqueue import *
 from qtqueue import *
 from colors import *
+from robot import *
 from tools import *
 from dataio import *
 from icons import *

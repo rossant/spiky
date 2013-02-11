@@ -10,6 +10,7 @@ import signals
 from xmltools import parse_xml
 from spiky.qtqueue import qtjobqueue
 from collections import Counter
+import pandas as pd
 # from tools import Info
 
 __all__ = [
@@ -51,6 +52,14 @@ def load_text_fast(filename, dtype, skiprows=0, delimiter=' '):
     data = data.reshape((-1, load_text_fast.rowlength))
     return data
 
+def load_text_pandas(filename, dtype, skiprows=0, delimiter=' '):
+    with open(filename, 'r') as f:
+        for _ in xrange(skiprows):
+            f.readline()
+        x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
+    # return pd.read_csv(filename, skiprows=skiprows, sep=delimiter).values.astype(dtype)
+    return x
+    
 def save_text(file, data):
     return np.savetxt(file, data, fmt='%d', newline='\n')
         
@@ -289,7 +298,7 @@ class ClusterCache(object):
         needs to be updated."""
         signals.emit(self, 'CorrelogramsUpdated')
         
-       
+        
 @qtjobqueue
 class CorrelationMatrixQueue(object):
     def __init__(self, dh):
@@ -337,7 +346,7 @@ class DataHolder(object):
         filter_info: a FilterInfo dic
     """
     def __init__(self):
-        self.correlation_matrix = np.zeros((2, 2))
+        self.correlation_matrix = -np.ones((2, 2))
     
     def new_cluster(self):
         ids = self.clusters_info['clusters_info'].keys()
@@ -490,7 +499,8 @@ class KlustersDataProvider(DataProvider):
                 path = filename + "_spiky.clu.%d" % fileindex
             else:
                 path = filename + ".clu.%d" % fileindex
-            clusters = load_text(path, np.int32)
+            # clusters = load_text(path, np.int32)
+            clusters = load_text_pandas(path, np.int32)
             nspikes = len(clusters) - 1
         except Exception as e:
             log_warn("CLU file '%s' not found" % filename)
@@ -505,7 +515,8 @@ class KlustersDataProvider(DataProvider):
         
         # FEATURES
         # -------------------------------------------------
-        features = load_text_fast(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
+        # features = load_text_fast(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
+        features = load_text_pandas(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
         features = np.array(features, dtype=np.float32)
         
         # HACK: there are either 1 or 5 dimensions more than fetdim*nchannels
@@ -556,12 +567,14 @@ class KlustersDataProvider(DataProvider):
         # -------------------------------------------------
         # first: try fmask
         try:
-            masks = load_text(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
+            # masks = load_text(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
+            masks = load_text_pandas(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
             masks = masks[:,:-1:3]
         except Exception as e:
             try:
                 # otherwise, try mask
                 masks = load_text(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
+                masks = load_text_pandas(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
                 masks = masks[:,:-1:3]
             except:
                 # finally, warning and default masks (everything to 1)
@@ -601,7 +614,6 @@ class KlustersDataProvider(DataProvider):
         # construct spike times from random interspike interval
         self.holder.spiketimes = spiketimes
         
-        # TODO
         self.holder.duration = spiketimes[-1] / float(self.holder.freq)
     
         # normalize waveforms at once
@@ -757,7 +769,7 @@ class MockDataProvider(DataProvider):
         nsamples_correlograms = 20
         self.holder.correlograms_info = dict(nsamples=nsamples_correlograms)
         
-        self.holder.correlation_matrix = np.zeros((nclusters, nclusters))
+        self.holder.correlation_matrix = -np.ones((nclusters, nclusters))
         
         
         return self.holder

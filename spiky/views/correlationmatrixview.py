@@ -20,6 +20,9 @@ def colormap(x, col0=None, col1=None):
       * y: an NxMx3 array with a rainbow color palette.
     
     """
+    # record values to be removed
+    removed = x == -1
+    
     x[np.isnan(x)] = 0.
     x = np.clip(x, 0., 1.)
     
@@ -38,7 +41,12 @@ def colormap(x, col0=None, col1=None):
     
     x = np.tile(x.reshape(shape + (1,)), (1, 1, 3))
     
-    return hsv_to_rgb(col0 + (col1 - col0) * x)
+    y = hsv_to_rgb(col0 + (col1 - col0) * x)
+    
+    # value of -1 = black
+    y[removed,:] = 0
+    
+    return y
     
     
 class CorrelationMatrixDataManager(Manager):
@@ -47,9 +55,13 @@ class CorrelationMatrixDataManager(Manager):
         clusters_info=None,
         ):
         if matrix.size == 0:
-            matrix = np.zeros((2, 2))
+            matrix = -np.ones((2, 2))
         elif matrix.shape[0] == 1:
-            matrix = np.zeros((2, 2))
+            matrix = -np.ones((2, 2))
+        n = matrix.shape[0]
+        # remove diagonal
+        matrix[range(n), range(n)] = -1
+        
         self.texture = colormap(matrix)[::-1, :, :]
         self.matrix = matrix
         
