@@ -18,6 +18,9 @@ class JobQueue(object):
     def __init__(self, cls, *initargs, **initkwargs):
         self._queue = Queue()
         self._results = []
+        # If impatient, the queue will always process only the last tasks
+        # and not the intermediary ones.
+        self.impatient = initkwargs.pop('impatient', None)
         # arguments of the task class constructor
         self.initargs, self.initkwargs = initargs, initkwargs
         # create the underlying task object
@@ -36,14 +39,15 @@ class JobQueue(object):
         """Order to stop the queue as soon as all tasks have finished."""
         self._queue.put(None)
         self._thread.join()
-        
+    
     def _start(self):
         """Worker thread main function."""
         while True:
             # print "waiting", self.task_obj,
             r = self._queue.get()
-            # print "received", r
-            # print
+            # only process the last item
+            if self.impatient and not self._queue.empty():
+                continue
             if r is not None:
                 fun, args, kwargs = r
                 self._results.append(fun(*args, **kwargs))

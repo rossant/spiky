@@ -31,7 +31,7 @@ Gallery
 Installation
 ------------
 
-The software is still in developement, but you can download an experimental
+The software is still in developpement, but you can download an experimental
 version here.
 
 ### Packages

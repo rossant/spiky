@@ -292,8 +292,8 @@ class ClusterCache(object):
                 # correlograms.append(corr)
                
         # NEW, OPTIMIZED VERSION 
-        bin = .001
-        width = .02
+        bin = self.bin
+        width = self.width
         n = int(np.ceil(width / bin))
         bins = np.arange(2 * n + 1) * bin - n * bin
         
@@ -323,7 +323,7 @@ class ClusterCache(object):
             if cl0 not in clusters_to_update1:
                 continue
             # go forward in time up to the correlogram half-width
-            for j in xrange(i, nspikes):
+            for j in xrange(i+1, nspikes):
                 # next spike and cluster
                 t1 = fulltrain[j]
                 cl1 = clusters[j]
@@ -333,8 +333,8 @@ class ClusterCache(object):
                 # and avoid computing symmetric pairs twice
                 # add the delay
                 if t1 <= t0 + width:
-                    if t1 != t0:
-                        corr[(cl0, cl1)].append(t1 - t0)
+                    # if t1 != t0:
+                    corr[(cl0, cl1)].append(t1 - t0)
                 else:
                     break
             # go backward in time up to the correlogram half-width
@@ -346,10 +346,12 @@ class ClusterCache(object):
                 # compute only correlograms if necessary
                 # and avoid computing symmetric pairs twice
                 if t1 >= t0 - width:
-                    if t1 != t0:
-                        corr[(cl0,cl1)].append(t1 - t0)
+                    # if t1 != t0:
+                    corr[(cl0,cl1)].append(t1 - t0)
                 else:
                     break
+        # compute the histograms of all delays, for each pair of clusters
+        # print bins
         for (cl0, cl1) in requested_pairs:
             if (cl0, cl1) not in self.correlograms:
                 self.correlograms[(cl0,cl1)], _ = np.histogram(corr[(cl0,cl1)], bins=bins)
@@ -425,7 +427,7 @@ class SelectDataHolder(object):
     def __init__(self, dataholder):
         self.dataholder = dataholder
         self.override_color = False
-        self.clustercache = ClusterCache(dataholder, self)
+        self.clustercache = ClusterCache(dataholder, self, impatient=True)
         self.spike_dependent_variables = [
             'spiketimes',
             'waveforms',
@@ -444,7 +446,7 @@ class SelectDataHolder(object):
         
         # keep the order of the selected clusters in clusters_ordered
         clusters = np.array(clusters)
-        self.clusters_ordered = list(clusters.copy())
+        clusters_ordered = list(clusters.copy())
         clusters.sort()
         
         select_mask = np.in1d(self.dataholder.clusters, clusters)
@@ -484,7 +486,7 @@ class SelectDataHolder(object):
         if self.nclusters > 0:
             # self.clusters_ordered = np.digitize(self.clusters_ordered, self.clusters_unique) - 1
             # self.clusters_ordered = np.array(self.nclusters, dtype=np.int32)
-            self.clusters_ordered = np.array([self.clusters_ordered.index(cluster) for cluster in self.clusters_unique])
+            self.clusters_ordered = np.array([clusters_ordered.index(cluster) for cluster in self.clusters_unique])
         else:
             self.clusters_ordered = np.array([])
         

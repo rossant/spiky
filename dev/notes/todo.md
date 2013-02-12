@@ -14,7 +14,6 @@ Message for alpha pre-release version:
 Before alpha pre-release
 ------------------------
 
-  * faster correlograms
   * correlograms nbins
   
   * buttons for all commands (reset view for any view)
