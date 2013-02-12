@@ -206,7 +206,6 @@ class CorrelogramsPaintManager(PlotPaintManager):
             depth=-.99, is_static=True)
         
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            # background=(0., 0., 0., 1.),
             posoffset=(.12, -.12),
             letter_spacing=200.,
             depth=-1,
@@ -280,7 +279,7 @@ class CorrelogramsInteractionManager(PlotInteractionManager):
             visible=True,
             visual='clusterinfo_bg')
             
-        self.paint_manager.set_data(coordinates=(xd, yd), color=color1,
+        self.paint_manager.set_data(coordinates=(xd, yd), #color=color1,
             text=text,
             visible=True,
             visual='clusterinfo')
