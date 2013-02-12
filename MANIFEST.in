@@ -2,7 +2,7 @@ include *.md *.py
 recursive-exclude dev *
 recursive-include docs *.md *.py
 recursive-exclude experimental *
-recursive-include spiky *.md *.py *.png
+recursive-include spiky *.md *.py *.png *.css
 recursive-include spiky/views *.md *.py
 recursive-include spiky/scripts *.md *.py
 

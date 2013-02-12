@@ -32,7 +32,7 @@ if __name__ == '__main__':
             'console_scripts': [ 'spiky = spiky.scripts.runspiky:main' ]
         },
         package_data={
-            'spiky': ['icons/*.png'],
+            'spiky': ['icons/*.png', '*.css'],
             
             # INCLUDE GALRY
             'galry': ['cursors/*.png', 'icons/*.png'],
