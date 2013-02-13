@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Spiky by rossant</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Spiky</h1>
+        <p></p>
+
+        <p class="view"><a href="https://github.com/rossant/spiky">View the Project on GitHub <small>rossant/spiky</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/rossant/spiky/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/rossant/spiky/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/rossant/spiky">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>Spiky</h1>
+
+<p><em>Spiky</em> is the code name for the next-generation spike-sorting software 
+adapted to high-channel count silicon probes. Written in Python, it aims at 
+being flexible and extendable by the user.</p>
+
+<p>The first step is to create a new semi-automatic graphical interface
+(code name: <em>KlustaViewa</em>) for
+the manual stage that comes after the automatic clustering algorithms.
+This interface automatically guides the user through similar clusters,
+showing the most relevant feature projections, and asks him to make merge or
+split decisions. The goal is to make the manual stage more reliable, less
+error-prone and quicker than what it currently is.</p>
+
+<p>This interface is directly inspired from the current software suite 
+<a href="http://klusters.sourceforge.net">Klusters</a>,
+<a href="http://neuroscope.sourceforge.net/">Neuroscope</a>
+and
+<a href="http://ndmanager.sourceforge.net/">NDManager</a>,
+developed in 
+<a href="http://www.buzsakilab.com/">György Buzsaki's laboratory</a>.</p>
+
+<h2>Gallery</h2>
+
+<p><a href="images/img0.png"><img src="images/thumbnails/img0.png" alt="Screenshot 1"></a>
+<a href="images/img1.png"><img src="images/thumbnails/img1.png" alt="Screenshot 2"></a>
+<a href="images/img2.png"><img src="images/thumbnails/img2.png" alt="Screenshot 3"></a></p>
+
+<h2>Installation</h2>
+
+<p>The software is still in developpement, but you can download an experimental
+version here.</p>
+
+<h3>Packages</h3>
+
+<ul>
+<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe">Windows 64 bits installer</a></li>
+<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz">ZIP</a></li>
+<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.zip">TGZ</a></li>
+</ul><p>To launch the software:</p>
+
+<pre><code>python spiky/scripts/runspiky.py
+</code></pre>
+
+<h3>Dependencies</h3>
+
+<ul>
+<li>Python 2.7</li>
+<li>Numpy</li>
+<li>pandas &gt;= 0.10</li>
+<li>Matplotlib &gt;= 1.1.1</li>
+<li>PyOpenGL &gt;= 3.0.1</li>
+<li>either PyQt4 or PySide</li>
+<li>h5py</li>
+<li>galry (included in the package for now)</li>
+</ul><p>All dependencies are included in the 
+<a href="http://www.enthought.com/products/epd.php">Enthought Python Distribution</a> (EPD),
+which is free for academics.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/rossant">rossant</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-6774000-4");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
