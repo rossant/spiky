@@ -408,6 +408,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
             self.provider.save(filename)
         
     def load_file(self, filename):
+        # template: FILENAME.xxx.0  => FILENAME (can contain points), 0 (index)
         r = re.search(r"([^\n]+)\.[^\.]+\.([0-9]+)$", filename)
         if r:
             # save last opened file

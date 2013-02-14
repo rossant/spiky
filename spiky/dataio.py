@@ -1,5 +1,6 @@
 import collections
 import threading
+import os.path
 import numpy as np
 import numpy.random as rdn
 from copy import deepcopy as dcopy
@@ -530,6 +531,32 @@ class DataProvider(object):
         pass
 
 
+        
+def get_actual_filename(filename, extension, fileindex=1):
+    """Search the most plausible existing filename corresponding to the
+    requested approximate filename, which has the required file index and
+    extension."""
+    dir = os.path.dirname(filename)
+    filename = os.path.basename(filename)
+    files = os.listdir(dir)
+    prefix = filename
+    if fileindex is None:
+        suffix = '.{0:s}'.format(extension)
+    else:
+        suffix = '.{0:s}.{1:d}'.format(extension, fileindex)
+    filtered = []
+    # find the real filename with the longest path that fits the requested
+    # filename
+    while prefix and not filtered:
+        filtered = filter(lambda file: (file.startswith(prefix) and 
+            file.endswith(suffix)), files)
+        prefix = prefix[:-1]
+    # order by increasing length and return the shortest
+    filtered = sorted(filtered, cmp=lambda k, v: len(k) - len(v))
+    return os.path.join(dir, filtered[0])
+    # print os.path.commonprefix(files + [filename])
+        
+        
 class KlustersDataProvider(DataProvider):
     """Legacy Klusters data provider with the old format."""
     # def load_probe(self, filename):
@@ -540,7 +567,8 @@ class KlustersDataProvider(DataProvider):
         # load XML
         
         try:
-            params = parse_xml(filename + ".xml", fileindex=fileindex)
+            path = get_actual_filename(filename, 'xml', None)
+            params = parse_xml(path, fileindex=fileindex)
         except Exception as e:
             raise Exception(("The XML file was not found and the data cannot "
                 "be loaded."))
@@ -555,20 +583,21 @@ class KlustersDataProvider(DataProvider):
         self.filename = filename
         self.fileindex = fileindex
         
-        if filename.endswith('_spiky'):
-            filename = filename.replace('_spiky', '')
-            spiky = True
-        else:
-            spiky = False
+        # if filename.endswith('_spiky'):
+            # filename = filename.replace('_spiky', '')
+            # spiky = True
+        # else:
+            # spiky = False
         
         
         # CLUSTERS
         # -------------------------------------------------
         try:
-            if spiky:
-                path = filename + "_spiky.clu.%d" % fileindex
-            else:
-                path = filename + ".clu.%d" % fileindex
+            # if spiky:
+                # path = filename + "_spiky.clu.%d" % fileindex
+            # else:
+                # path = filename + ".clu.%d" % fileindex
+            path = get_actual_filename(filename, 'clu', fileindex)
             # clusters = load_text(path, np.int32)
             clusters = load_text_pandas(path, np.int32)
             nspikes = len(clusters) - 1
@@ -586,7 +615,8 @@ class KlustersDataProvider(DataProvider):
         # FEATURES
         # -------------------------------------------------
         # features = load_text_fast(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
-        features = load_text_pandas(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
+        path = get_actual_filename(filename, 'fet', fileindex)
+        features = load_text_pandas(path, np.int32, skiprows=1)
         features = np.array(features, dtype=np.float32)
         
         # HACK: there are either 1 or 5 dimensions more than fetdim*nchannels
@@ -638,13 +668,15 @@ class KlustersDataProvider(DataProvider):
         # first: try fmask
         try:
             # masks = load_text(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
-            masks = load_text_pandas(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
+            path = get_actual_filename(filename, 'fmask', fileindex)
+            masks = load_text_pandas(path, np.float32, skiprows=1)
             masks = masks[:,:-1:3]
         except Exception as e:
             try:
                 # otherwise, try mask
-                masks = load_text(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
-                masks = load_text_pandas(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
+                # masks = load_text(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
+                path = get_actual_filename(filename, 'mask', fileindex)
+                masks = load_text_pandas(path, np.float32, skiprows=1)
                 masks = masks[:,:-1:3]
             except:
                 # finally, warning and default masks (everything to 1)
@@ -660,7 +692,8 @@ class KlustersDataProvider(DataProvider):
         # WAVEFORMS
         # -------------------------------------------------
         try:
-            waveforms = load_binary(filename + ".spk.%d" % fileindex)
+            path = get_actual_filename(filename, 'spk', fileindex)
+            waveforms = load_binary(path)
             waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
         except IOError as e:
             log_warn("SPK file '%s' not found" % filename)
@@ -849,10 +882,11 @@ class MockDataProvider(DataProvider):
 
 
 if __name__ == '__main__':
-    provider = MockDataProvider()
-    dataholder = provider.load()
+    # provider = MockDataProvider()
+    # dataholder = provider.load()
     
+    filename = r"D:\Git\spiky\_test\data\subset41test"
     
-    
+    print get_actual_filename(filename, 'clu')
     
     
