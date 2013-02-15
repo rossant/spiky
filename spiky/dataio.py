@@ -26,7 +26,8 @@ __all__ = [
 
 
 
-
+# Text loading
+# ------------
 def load_text(file, dtype, skiprows=0):
     return np.loadtxt(file, dtype=dtype, skiprows=skiprows)
 
@@ -55,7 +56,8 @@ def load_text_fast(filename, dtype, skiprows=0, delimiter=' '):
 
 try:
     import pandas as pd
-    assert pd.version.version >= '0.10'
+    # make sure that read_csv is available
+    assert hasattr(pd, 'read_csv')
     
     def load_text_pandas(filename, dtype, skiprows=0, delimiter=' '):
         with open(filename, 'r') as f:
@@ -82,8 +84,6 @@ def load_binary(file, dtype=None, count=None):
         X = np.fromfile(file, dtype=dtype, count=count)
     return X
 
-
-
 def get_clusters_info(clusters, groupidx=0):
     spkcounts = collections.Counter(clusters)
     cluster_keys = sorted(spkcounts.keys())
@@ -100,128 +100,8 @@ def get_clusters_info(clusters, groupidx=0):
     return clusters_info
 
     
-# # Correlograms
-# # ------------
-# def brian(T1, T2, width=.02, bin=.001, T=None):
-    # '''
-    # Returns a cross-correlogram with lag in [-width,width] and given bin size.
-    # T is the total duration (optional) and should be greater than the duration of T1 and T2.
-    # The result is in Hz (rate of coincidences in each bin).
-
-    # N.B.: units are discarded.
-    # TODO: optimise?
-    # '''
-    
-    # n = int(np.ceil(width / bin)) # Histogram length
-    
-    # # print T1, T2, width, bin
-    # if (len(T1) == 0) or (len(T2) == 0): # empty spike train
-        # # return np.zeros(2 * n)
-        # return None
-    # # Remove units
-    # # width = float(width)
-    # # T1 = np.array(T1)
-    # # T2 = np.array(T2)
-    # i = 0
-    # j = 0
-    # # n = int(np.ceil(width / bin)) # Histogram length
-    # l = []
-    # for t in T1:
-        # while i < len(T2) and T2[i] < t - width: # other possibility use searchsorted
-            # i += 1
-        # while j < len(T2) and T2[j] < t + width:
-            # j += 1
-        # l.extend(T2[i:j] - t)
-    # H, _ = np.histogram(l, bins=np.arange(2 * n + 1) * bin - n * bin) #, new = True)
-
-    # # Divide by time to get rate
-    # # if T is None:
-        # # T = max(T1[-1], T2[-1]) - min(T1[0], T2[0])
-        
-    # return H * 1.
-        
-    # # # Windowing function (triangle)
-    # # W = np.zeros(2 * n)
-    # # W[:n] = T - bin * np.arange(n - 1, -1, -1)
-    # # W[n:] = T - bin * np.arange(n)
-
-    # # return H / W
-
-# def get_correlogram(x, y, width=.021, bin=.001, duration=None):
-    # # TODO: this is highly unoptimized, optimize that
-    # corr = brian(x, y, width=width, bin=bin, T=duration)
-    # if corr is None:
-        # return np.zeros(2*int(np.ceil(width / bin)))
-    # corr[len(corr)/2] = 0
-    # return corr
-  
-  
-  
-  
-  
-  
-
-
-def MGProbs(Fet1, Fet2, spikes_in_clusters):#Clu2):
-
-    nPoints = Fet1.shape[0] #size(Fet1, 1)
-    nDims = Fet1.shape[1] #size(Fet1, 2)
-    # nClusters = Clu2.max() #max(Clu2)
-    nClusters = len(spikes_in_clusters)
-
-    LogP = np.zeros((nPoints, nClusters))
-    for c in xrange(nClusters):
-        # MyPoints = np.nonzero(Clu2==c)[0]
-        MyPoints = spikes_in_clusters[c]
-        MyFet2 = Fet2[MyPoints, :]
-        if len(MyPoints) > nDims:
-            LogProp = np.log(len(MyPoints) / float(nPoints)) # log of the proportion in cluster c
-            Mean = np.mean(MyFet2, axis=0).reshape((1, -1))  #
-            CovMat = np.cov(MyFet2, rowvar=0) # stats for cluster c
-            LogDet = np.log(np.linalg.det(CovMat))   #
-
-            dx = Fet1 - Mean #repmat(Mean, nPoints, 1) # distance of each point from cluster
-            # y = dx / CovMat
-            # print Fet1.shape, Mean.shape, dx.shape, CovMat.shape
-            y = np.linalg.solve(CovMat.T, dx.T).T
-            LogP[:,c] = np.sum(y*dx, axis=1)/2. + LogDet/2. - LogProp + np.log(2*np.pi)*nDims/2. # -Log Likelihood
-                # -log of joint probability that the point lies in cluster c and has given coords.
-        else:
-            LogP[:,c] = np.inf
-
-    JointProb = np.exp(-LogP)
-
-    # # if any points have all probs zero, set them to cluster 1
-    JointProb[np.sum(JointProb, axis=1) == 0, 0] = 1e-9 #eps
-
-    # #probability that point belongs to cluster, given coords
-    # p = JointProb / repmat(sum(JointProb,2), 1, nClusters) 
-    p = JointProb / np.sum(JointProb, axis=1).reshape((-1, 1))
-    
-    return p
-
-def correlation_matrix(features, clusters):
-    
-    c = Counter(clusters)
-    spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
-    nClusters = len(spikes_in_clusters)
-    
-    P = MGProbs(features, features, spikes_in_clusters)
-    ErrorMat = np.zeros((nClusters, nClusters))
-    for c in xrange(nClusters):
-        # MyPoints = np.nonzero(Clu2==c)[0]
-        MyPoints = spikes_in_clusters[c]
-        ErrorMat[c,:] = np.mean(P[MyPoints, :], axis=0)
-
-    return ErrorMat
-    
-
-  
-  
-  
-  
-  
-
+# Correlograms
+# ------------
 @qtjobqueue
 class ClusterCache(object):
     def __init__(self, dh, sdh, width=None, bin=None):
@@ -229,7 +109,7 @@ class ClusterCache(object):
         self.sdh = sdh
         
         if width is None:
-            width = .02
+            width = .2
         if bin is None:
             bin = .001
         
@@ -364,7 +244,9 @@ class ClusterCache(object):
         # print bins
         for (cl0, cl1) in requested_pairs:
             if (cl0, cl1) not in self.correlograms:
-                self.correlograms[(cl0,cl1)], _ = np.histogram(corr[(cl0,cl1)], bins=bins)
+                h, _ = np.histogram(corr[(cl0,cl1)], bins=bins)
+                h[len(h)/2] = 0
+                self.correlograms[(cl0,cl1)] = h
             correlograms.append(self.correlograms[(cl0,cl1)])
                 
         # populate SDH
@@ -377,8 +259,173 @@ class ClusterCache(object):
         """Raise the update signal, specifying that the correlogram view
         needs to be updated."""
         signals.emit(self, 'CorrelogramsUpdated')
-        
-        
+      
+
+# Correlation matrix
+# ------------------
+def MGProbsOLD(Fet1, Fet2, spikes_in_clusters, masks):#Clu2):
+
+    nPoints = Fet1.shape[0] #size(Fet1, 1)
+    nDims = Fet1.shape[1] #size(Fet1, 2)
+    # nClusters = Clu2.max() #max(Clu2)
+    nClusters = len(spikes_in_clusters)
+
+    LogP = np.zeros((nPoints, nClusters))
+    for c in xrange(nClusters):
+        # MyPoints = np.nonzero(Clu2==c)[0]
+        MyPoints = spikes_in_clusters[c]
+        MyFet2 = Fet2[MyPoints, :]
+        if len(MyPoints) > nDims:
+            LogProp = np.log(len(MyPoints) / float(nPoints)) # log of the proportion in cluster c
+            Mean = np.mean(MyFet2, axis=0).reshape((1, -1))  #
+            CovMat = np.cov(MyFet2, rowvar=0) # stats for cluster c
+            
+            # HACK: avoid instability issues, kind of works
+            CovMat += np.diag(1e-3 * np.ones(nDims))
+            
+            
+            LogDet = np.log(np.linalg.det(CovMat))   #
+
+                
+            # print c
+            # print LogDet
+            
+            
+            dx = Fet1 - Mean #repmat(Mean, nPoints, 1) # distance of each point from cluster
+            # y = dx / CovMat
+            # print Fet1.shape, Mean.shape, dx.shape, CovMat.shape
+            y = np.linalg.solve(CovMat.T, dx.T).T
+            LogP[:,c] = np.sum(y*dx, axis=1)/2. + LogDet/2. - LogProp + np.log(2*np.pi)*nDims/2. # -Log Likelihood
+                # -log of joint probability that the point lies in cluster c and has given coords.
+            
+            # print LogP[:,c]
+            # print
+                
+        else:
+            LogP[:,c] = np.inf
+
+    JointProb = np.exp(-LogP)
+
+    # # if any points have all probs zero, set them to cluster 1
+    JointProb[np.sum(JointProb, axis=1) == 0, 0] = 1e-9 #eps
+
+    # #probability that point belongs to cluster, given coords
+    # p = JointProb / repmat(sum(JointProb,2), 1, nClusters) 
+    p = JointProb / np.sum(JointProb, axis=1).reshape((-1, 1))
+    
+    # print p
+    # print
+    
+    return p
+
+    
+# take masks into account now
+def MGProbs(Fet1, Fet2, spikes_in_clusters, masks):
+
+    nPoints = Fet1.shape[0] #size(Fet1, 1)
+    nDims = Fet1.shape[1] #size(Fet1, 2)
+    # nClusters = Clu2.max() #max(Clu2)
+    nClusters = len(spikes_in_clusters)
+    
+    # precompute the mean and variances of the masked points for each feature
+    # contains 1 when the corresponding point is masked
+    masked = np.zeros_like(masks)
+    masked[masks == 0] = 1
+    nmasked = np.sum(masked, axis=0)
+    nu = np.sum(Fet2 * masked, axis=0) / nmasked
+    nu = nu.reshape((1, -1))
+    sigma2 = np.sum(((Fet2 - nu) * masked) ** 2, axis=0) / nmasked
+    sigma2 = sigma2.reshape((1, -1))
+    # expected features
+    y = Fet1 * masks + (1 - masks) * nu
+    z = masks * Fet1**2 + (1 - masks) * (nu ** 2 + sigma2)
+    eta = z - y ** 2
+    
+    LogP = np.zeros((nPoints, nClusters))
+    for c in xrange(nClusters):
+        # MyPoints = np.nonzero(Clu2==c)[0]
+        MyPoints = spikes_in_clusters[c]
+        # MyFet2 = Fet2[MyPoints, :]
+        # now, take the modified features here
+        # MyFet2 = y[MyPoints, :]
+        MyFet2 = np.take(y, MyPoints, axis=0)
+        if len(MyPoints) > nDims:
+            LogProp = np.log(len(MyPoints) / float(nPoints)) # log of the proportion in cluster c
+            Mean = np.mean(MyFet2, axis=0).reshape((1, -1))
+            CovMat = np.cov(MyFet2, rowvar=0) # stats for cluster c
+            
+            
+            
+            # HACK: avoid instability issues, kind of works
+            CovMat += np.diag(1e-3 * np.ones(nDims))
+            
+            
+            
+            # now, add the diagonal modification to the covariance matrix
+            # the eta just for the current cluster
+            etac = np.take(eta, MyPoints, axis=0)
+            d = np.sum(etac, axis=0) / nmasked
+            # add diagonal
+            CovMat += np.diag(d)
+            
+            
+            
+            # add diagonal terms to avoid singular matrices
+            # CovMat += np.diag(sigma2.flatten())
+            
+            # need to compute the inverse to have the diagonal coefficients
+            # TODO: optimize?
+            CovMatinv = np.linalg.inv(CovMat)
+            
+            
+            
+            LogDet = np.log(np.linalg.det(CovMat))   #
+
+            # dx = Fet1 - Mean #repmat(Mean, nPoints, 1) # distance of each point from cluster
+            # we take the expected features
+            dx = y - Mean #repmat(Mean, nPoints, 1) # distance of each point from cluster
+            # y = dx / CovMat
+            # print Fet1.shape, Mean.shape, dx.shape, CovMat.shape
+            # TODO: we don't need that anymore if we compute the inverse of the cov matrix
+            y2 = np.linalg.solve(CovMat.T, dx.T).T
+            correction = np.sum(eta * np.diag(CovMatinv).reshape((1, -1)), axis=1)
+            LogP[:,c] = (np.sum(y2*dx, axis=1)/2. + correction / 2.) + LogDet/2. - LogProp + np.log(2*np.pi)*nDims/2. # -Log Likelihood
+                # -log of joint probability that the point lies in cluster c and has given coords.
+                
+            # print c
+            # print LogP[:,c]
+            # print
+                
+        else:
+            LogP[:,c] = np.inf
+
+    JointProb = np.exp(-LogP)
+
+    # # if any points have all probs zero, set them to cluster 1
+    JointProb[np.sum(JointProb, axis=1) == 0, 0] = 1e-9 #eps
+
+    # #probability that point belongs to cluster, given coords
+    # p = JointProb / repmat(sum(JointProb,2), 1, nClusters) 
+    p = JointProb / np.sum(JointProb, axis=1).reshape((-1, 1))
+    
+    return p
+
+def correlation_matrix(features, clusters, masks):
+    # print masks.shape
+    c = Counter(clusters)
+    spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
+    nClusters = len(spikes_in_clusters)
+    
+    P = MGProbs(features, features, spikes_in_clusters, masks)
+    ErrorMat = np.zeros((nClusters, nClusters))
+    for c in xrange(nClusters):
+        # MyPoints = np.nonzero(Clu2==c)[0]
+        MyPoints = spikes_in_clusters[c]
+        ErrorMat[c,:] = np.mean(P[MyPoints, :], axis=0)
+
+    return ErrorMat
+    
+
 @qtjobqueue
 class CorrelationMatrixQueue(object):
     def __init__(self, dh):
@@ -386,14 +433,12 @@ class CorrelationMatrixQueue(object):
         
     def process(self):
         self.dh.correlation_matrix = correlation_matrix(
-            self.dh.features, self.dh.clusters)
+            self.dh.features, self.dh.clusters, self.dh.masks_complete)
         # import time
         # time.sleep(5)
         signals.emit(self, 'CorrelationMatrixUpdated')
         
         
-    
-    
 # Data holder
 # -----------
 class DataHolder(object):
@@ -574,6 +619,7 @@ class KlustersDataProvider(DataProvider):
     def load(self, filename, fileindex=1, probefile=None):#, progressbar=None):
         
         # load XML
+        self.holder = DataHolder()
         
         try:
             path = get_actual_filename(filename, 'xml', None)
@@ -679,18 +725,24 @@ class KlustersDataProvider(DataProvider):
             # masks = load_text(filename + ".fmask.%d" % fileindex, np.float32, skiprows=1)
             path = get_actual_filename(filename, 'fmask', fileindex)
             masks = load_text_pandas(path, np.float32, skiprows=1)
-            masks = masks[:,:-1:3]
+            self.holder.masks_complete = masks
+            masks = masks[:,:-1:fetdim]
+            # masks = masks[::fetdim]
         except Exception as e:
             try:
                 # otherwise, try mask
                 # masks = load_text(filename + ".mask.%d" % fileindex, np.float32, skiprows=1)
                 path = get_actual_filename(filename, 'mask', fileindex)
                 masks = load_text_pandas(path, np.float32, skiprows=1)
-                masks = masks[:,:-1:3]
+                # masks = masks[:,:-1:fetdim]
+                self.holder.masks_complete = masks
+                masks = masks[:,:-1:fetdim]
+                # masks = masks[::fetdim]
             except:
                 # finally, warning and default masks (everything to 1)
                 log_warn("MASK file '%s' not found" % filename)
                 masks = np.ones((nspikes, nchannels))
+                self.holder.masks_complete = np.ones(features.shape)
         
         # if progressbar:
             # progressbar.setValue(3)
@@ -714,7 +766,6 @@ class KlustersDataProvider(DataProvider):
             
             
             
-        self.holder = DataHolder()
         
         self.holder.freq = freq
         
