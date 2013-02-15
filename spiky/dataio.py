@@ -11,7 +11,6 @@ import signals
 from xmltools import parse_xml
 from spiky.qtqueue import qtjobqueue
 from collections import Counter
-import pandas as pd
 # from tools import Info
 
 __all__ = [
@@ -51,15 +50,25 @@ def load_text_fast(filename, dtype, skiprows=0, delimiter=' '):
                 first = False
     data = np.fromiter(iter_func(), dtype=dtype)
     data = data.reshape((-1, load_text_fast.rowlength))
+    # print data.shape
     return data
 
-def load_text_pandas(filename, dtype, skiprows=0, delimiter=' '):
-    with open(filename, 'r') as f:
-        for _ in xrange(skiprows):
-            f.readline()
-        x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
-    # return pd.read_csv(filename, skiprows=skiprows, sep=delimiter).values.astype(dtype)
-    return x
+try:
+    import pandas as pd
+    assert pd.version.version >= '0.10'
+    
+    def load_text_pandas(filename, dtype, skiprows=0, delimiter=' '):
+        with open(filename, 'r') as f:
+            for _ in xrange(skiprows):
+                f.readline()
+            x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
+        # return pd.read_csv(filename, skiprows=skiprows, sep=delimiter).values.astype(dtype)
+        # print x.shape
+        return x
+    
+except (ImportError, AssertionError):
+    log_warn("You'd better have Pandas v>=0.10")
+    load_text_pandas = load_text
     
 def save_text(file, data):
     return np.savetxt(file, data, fmt='%d', newline='\n')
