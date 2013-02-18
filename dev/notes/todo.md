@@ -23,6 +23,11 @@ Major features
 Minor features
 --------------
   
+  * use multiprocessing, QProcess, shared Numpy arrays and cPickle
+      * a QThread handles IO with an external process that is created on demand
+      * shared arrays are passed and computations happen on the external process
+      * the external process returns information to the QThread
+  
   * option to toggle normalization in correlograms view
   * when selecting a group, only show the corresponding clusters in the
     correlation matrix
