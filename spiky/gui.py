@@ -231,6 +231,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.save_action.setIcon(spiky.get_icon("save"))
         self.save_action.triggered.connect(self.save_file, QtCore.Qt.UniqueConnection)
         
+        # save action
+        self.saveas_action = QtGui.QAction("Save &as", self)
+        self.saveas_action.setShortcut("CTRL+SHIFT+S")
+        self.saveas_action.setIcon(spiky.get_icon("saveas"))
+        self.saveas_action.triggered.connect(self.saveas_file, QtCore.Qt.UniqueConnection)
+        
         # exit action
         self.quit_action = QtGui.QAction("E&xit", self)
         self.quit_action.setShortcut("CTRL+Q")
@@ -295,6 +301,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.save_action)
+        file_menu.addAction(self.saveas_action)
         file_menu.addSeparator()
         
         # open last probe
@@ -341,6 +348,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.toolbar.setObjectName("SpikyToolbar")
         self.toolbar.addAction(self.open_action)
         self.toolbar.addAction(self.save_action)
+        self.toolbar.addAction(self.saveas_action)
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.merge_action)
         self.toolbar.addAction(self.split_action)
@@ -391,20 +399,30 @@ class SpikyMainWindow(QtGui.QMainWindow):
         
     def save_file(self, *args):
         self.reset_action_generator()
+        # if a filename has not been set, save as
+        if not hasattr(self, 'save_filename'):
+            self.saveas_file()
+        else:
+            # save with the last used filename
+            self.provider.save(self.save_filename)
+            
+    def saveas_file(self, *args):
+        self.reset_action_generator()
         folder = SETTINGS.get('mainWindow/last_data_dir')
         
+        # default filename
+        if not hasattr(self, 'filename'):
+            return
         default_filename = self.filename
         default_filename += "_spiky.clu.%d" % self.fileindex
         
-        filename = None
-        if not hasattr(self, 'save_filename'):
-            filename = QtGui.QFileDialog.getSaveFileName(self, "Save a CLU file",
-                os.path.join(folder, default_filename))[0]
-            if filename:
-                self.save_filename = filename
-        else:
-            filename = self.save_filename
+        # ask a new file name
+        filename = QtGui.QFileDialog.getSaveFileName(self, "Save a CLU file",
+            os.path.join(folder, default_filename))[0]
         if filename:
+            # save the new file name
+            self.save_filename = filename
+            # save
             self.provider.save(filename)
         
     def load_file(self, filename):

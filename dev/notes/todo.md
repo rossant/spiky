@@ -10,20 +10,8 @@ Message for alpha pre-release version:
     Make sure you backup your data before loading it (although the software
     won't modify any of your files by default, proposing you to save in 
     a different CLU file).
-    
-Before alpha pre-release
-------------------------
-
-  * correlograms nbins
-  
-  * buttons for all commands (reset view for any view)
-  * feature view: flip X/Y
-  
-  * make settings independent from pyqt/pyside
-    initial launch: default window geometry config  
-  * undock maximize button
-  
-  
+   
+   
 Major features
 --------------
 
@@ -34,6 +22,16 @@ Major features
   
 Minor features
 --------------
+  
+
+  * correlograms nbins
+  
+  * buttons for all commands (reset view for any view)
+  * feature view: flip X/Y
+  
+  * make settings independent from pyqt/pyside
+    initial launch: default window geometry config  
+  * undock maximize button
   
   * store visualization-related information in the XML file (cluster colors,
     probe scaling, etc)
