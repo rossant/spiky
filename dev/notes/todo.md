@@ -23,6 +23,10 @@ Major features
 Minor features
 --------------
   
+  * option to toggle normalization in correlograms view
+  * when selecting a group, only show the corresponding clusters in the
+    correlation matrix
+  * merge: use the smallest cluster index instead of creating a new one
 
   * correlograms nbins
   

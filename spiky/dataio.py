@@ -11,6 +11,7 @@ import signals
 from xmltools import parse_xml
 from spiky.qtqueue import qtjobqueue
 from collections import Counter
+import cPickle
 # from tools import Info
 
 __all__ = [
@@ -99,6 +100,16 @@ def get_clusters_info(clusters, groupidx=0):
             }
     return clusters_info
 
+    
+def save_pickle(file, obj):
+    with open(file, 'wb') as f:
+        cPickle.dump(obj, f)
+
+def load_pickle(file):
+    with open(file, 'rb') as f:
+        obj = cPickle.load(f)
+    return obj
+    
     
 # Correlograms
 # ------------
@@ -795,21 +806,36 @@ class KlustersDataProvider(DataProvider):
         
         # create the groups info object
         # Default groups
-        groups_info = {
-            0: dict(groupidx=0, name='Noise', color=0, spkcount=0),
-            1: dict(groupidx=1, name='Multi-unit', color=1, spkcount=0),
-            2: dict(groupidx=2, name='Good', color=2, spkcount=nspikes),
-        }
-        clusters_info = get_clusters_info(clusters, groupidx=2)
+        
+        # GROUPS
+        # --------------------------------------
+        try:
+            path = get_actual_filename(filename, 'groups', fileindex)
+        
+            info = load_pickle(path)
+            clusters_info = info['clusters_info']
+            groups_info = info['groups_info']
+            
+        except:
+        
+            groups_info = {
+                0: dict(groupidx=0, name='Noise', color=0, spkcount=0),
+                1: dict(groupidx=1, name='Multi-unit', color=1, spkcount=0),
+                2: dict(groupidx=2, name='Good', color=2, spkcount=nspikes),
+            }
+            clusters_info = get_clusters_info(clusters, groupidx=2)
+            
+            
         nclusters = len(clusters_info)
         self.holder.nclusters = nclusters
         
         self.holder.clusters_info = dict(
             clusters_info=clusters_info,
             groups_info=groups_info,
-            # groups=np.zeros(nclusters, dtype=np.int32),
             )
 
+            
+            
             
         # c = Counter(clusters)
         # self.holder.clusters_counter = c
@@ -837,13 +863,18 @@ class KlustersDataProvider(DataProvider):
         return self.holder
         
     def save(self, filename=None):
-        if filename is None:
-            self.filename + "_spiky.clu.%d" % self.fileindex
+        # if filename is None:
+            # self.filename + "_spiky.clu.%d" % self.fileindex
+            
         # add nclusters at the top of the clu file
         data = self.holder.clusters
         data = np.hstack((data.max(), data))
         # save the CLU file
         save_text(filename, data)
+        
+        # HACK: save the groups
+        filename_groups = filename.replace('.clu.', '.groups.')
+        save_pickle(filename_groups, self.holder.clusters_info)
         
 
 class SpikeDetektH5DataProvider(DataProvider):
