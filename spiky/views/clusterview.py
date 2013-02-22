@@ -686,8 +686,8 @@ class ClusterTreeView(QtGui.QTreeView):
             # select all
             self.select_all()
             return
-        # elif ctrl or shift or alt:
-            # return
+        elif ctrl or shift or alt:
+            return
         if key in self.keys_accepted:
             return super(ClusterTreeView, self).keyPressEvent(e)
         
