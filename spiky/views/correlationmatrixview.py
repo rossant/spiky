@@ -79,16 +79,16 @@ class CorrelationMatrixPaintManager(PaintManager):
         self.add_visual(TextureVisual,
             texture=self.data_manager.texture, name='correlation_matrix')
 
-        self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
-            color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
-            depth=-.99,
-            is_static=True
-            )
+        # self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
+            # color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
+            # depth=-.99,
+            # is_static=True
+            # )
         
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             # background=(0., 0., 0., 1.),
             # color
-            posoffset=(.12, -.12),
+            posoffset=(.12, -.28),
             letter_spacing=250.,
             depth=-1,
             visible=False)
@@ -124,7 +124,7 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
             
     def hide_closest_cluster(self, parameter):
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
-        self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
+        # self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
         self.cursor = None
         
     def select_pair(self, parameter):
@@ -183,10 +183,10 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         # text = "%d / %d" % (cx, cy)
         
         # update clusterinfo visual
-        rect = (x-.24, y-.04, x+.44, y-.21)
-        self.paint_manager.set_data(coordinates=rect, 
-            visible=True,
-            visual='clusterinfo_bg')
+        # rect = (x-.24, y-.04, x+.44, y-.21)
+        # self.paint_manager.set_data(coordinates=rect, 
+            # visible=True,
+            # visual='clusterinfo_bg')
             
         self.paint_manager.set_data(coordinates=(xd, yd), #color=color1,
             text=text,
