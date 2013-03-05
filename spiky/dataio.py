@@ -390,7 +390,7 @@ class KlustersDataProvider(DataProvider):
         # features = features[:,:nchannels * fetdim]
         nextrafet = features.shape[1] - nchannels * fetdim
         
-        # normalize the data here
+        # normalize normal features
         m = features[:,:-nextrafet].min()
         M = features[:,:-nextrafet].max()
         # force symmetry
@@ -399,7 +399,7 @@ class KlustersDataProvider(DataProvider):
         features[:,:-nextrafet] = -1+2*(features[:,:-nextrafet]-m)/(M-m)
         
         
-        # normalize the data here
+        # normalize extra features
         m = features[:,-nextrafet:].min()
         M = features[:,-nextrafet:].max()
         # # force symmetry
