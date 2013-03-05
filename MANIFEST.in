@@ -6,6 +6,8 @@ recursive-include spiky *.md *.py *.png *.css
 recursive-include spiky/views *.md *.py
 recursive-include spiky/scripts *.md *.py
 
+recursive-include qtools *.md *.py *.png
+
 recursive-include galry *.md *.py *.png
 recursive-include galry/test *.md *.py
 recursive-exclude galry/test/autosave *.png

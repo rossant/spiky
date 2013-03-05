@@ -11,8 +11,6 @@ from widgets import VisualizationWidget
 import spiky.tools as stools
 import spiky.colors as scolors
 import spiky.signals as ssignals
-from spiky.jobqueue import jobqueue
-from spiky.qtqueue import qtjobqueue
 
 __all__ = ['WaveformView', 'WaveformWidget']
 

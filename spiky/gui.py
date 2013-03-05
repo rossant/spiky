@@ -4,14 +4,19 @@ from galry import *
 import tools
 from collections import OrderedDict
 import numpy as np
+from colors import COLORMAP
+from collections import Counter
+from copy import deepcopy as dcopy
+import numpy.random as rdn
 import inspect
 import spiky.signals as ssignals
 import spiky
-from spiky.qtqueue import qtjobqueue
+from qtools import inqthread
 import spiky.views as sviews
 import spiky.dataio as sdataio
 import rcicons
 
+import spiky.tasks as tasks
 
 SETTINGS = tools.get_settings()
 
@@ -19,38 +24,7 @@ SETTINGS = tools.get_settings()
 __all__ = ['SpikyMainWindow', 'show_window']
 
 
-@qtjobqueue
-class ClusterSelectionQueue(object):
-    def __init__(self, du, dh):
-        self.du = du
-        self.dh = dh
         
-    def select(self, clusters):
-        self.dh.select_clusters(clusters)
-        ssignals.emit(self.du, 'ClusterSelectionChanged', clusters)
-
-    
-@qtjobqueue    
-class KlustersLoadQueue(object):
-    # def __init__(self, progressbar=None):
-        # self.progressbar = progressbar
-    
-    def load(self, filename, fileindex, probefile):
-        
-        # if hasattr(self, 'du'):
-            # self.du.stop()
-        
-        self.provider = sdataio.KlustersDataProvider()
-        self.dh = self.provider.load(filename, fileindex=fileindex,
-            probefile=probefile)#, progressbar=self.progressbar)
-        # self.sdh = sdataio.SelectDataHolder(self.dh)
-        # self.du = DataUpdater(self.sdh)
-        # self.am = spiky.ActionManager(self.dh, self.sdh)
-        ssignals.emit(self, 'FileLoaded')
-        
-        
-        
-
 class DataUpdater(QtGui.QWidget):
     """Handle data updating in the data holder, responding to signals
     emitted by widgets.
@@ -67,7 +41,8 @@ class DataUpdater(QtGui.QWidget):
         super(DataUpdater, self).__init__()
         self.dh = dh
         self.probefile = None
-        self.queue = ClusterSelectionQueue(self, dh)
+        # self.queue = ClusterSelectionQueue(self, dh)
+        tasks.TASKS.cluster_selection_queue = tasks.ClusterSelectionQueue(self, dh)
         self.initialize_connections()
         
     def initialize_connections(self):
@@ -75,14 +50,15 @@ class DataUpdater(QtGui.QWidget):
         ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionToChange(self, sender, clusters):
-        self.queue.select(clusters)
+        tasks.TASKS.cluster_selection_queue.select(clusters)
         
     def slotProjectionToChange(self, sender, coord, channel, feature):
         ssignals.emit(sender, 'ProjectionChanged', coord, channel, feature)
         
     def stop(self):
         """Stop the cluster selection job queue."""
-        self.queue.join()
+        tasks.TASKS.cluster_selection_queue.join()
+        # print "STOP"
         
         
 class SpikyMainWindow(QtGui.QMainWindow):
@@ -457,7 +433,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.progressbar.setCancelButton(None)
         self.progressbar.setMinimumDuration(0)
         
-        self.loadqueue = KlustersLoadQueue()#self.progressbar)
+        # self.loadqueue = KlustersLoadQueue()#self.progressbar)
+        # self.loadqueue.load(filename, fileindex, self.probefile)
+        self.loadqueue = sdataio.KlustersLoadQueue()#self.progressbar)
         self.loadqueue.load(filename, fileindex, self.probefile)
         
         
@@ -726,6 +704,12 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def closeEvent(self, e):
         """Automatically save the arrangement of the window when closing
         the window."""
+        
+        tasks.TASKS.join()
+        
+        if hasattr(self, 'du'):
+            self.du.stop()
+            
         # reset all signals so that they are not bound several times to 
         # the same slots in an interactive session
         ssignals.SIGNALS.reset()

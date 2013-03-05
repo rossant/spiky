@@ -17,12 +17,15 @@ if __name__ == '__main__':
         packages=['spiky',
                   'spiky.scripts',
                   'spiky.views',
+
+                  # INCLUDE QTOOLS
+                  'qtools.qtpy',
+                  'qtools.tests',
                   
                   # INCLUDE GALRY
                   'galry',
                   'galry.managers',
                   'galry.processors',
-                  'galry.python_qt_binding',
                   'galry.test',
                   'galry.visuals',
                   'galry.visuals.fontmaps',
