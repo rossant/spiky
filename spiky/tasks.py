@@ -12,7 +12,7 @@ import inspect
 import spiky.signals as ssignals
 import spiky
 import qtools
-from qtools import inqthread
+from qtools import inthread#, TasksInProcess
 # import spiky.views as sviews
 # import spiky.dataio as sdataio
 import rcicons
@@ -30,7 +30,7 @@ class Tasks(object):
         
     def __setattr__(self, name, value):
         super(Tasks, self).__setattr__(name, value)
-        if isinstance(value, qtools.TasksInQThread):
+        if isinstance(value, qtools.TasksInThread):
             self.tasks.append(value)
         
         
@@ -38,7 +38,7 @@ TASKS = Tasks()
     
 
 
-@inqthread
+@inthread
 class ClusterSelectionQueue(object):
     def __init__(self, du, dh):
         self.du = du
@@ -52,7 +52,7 @@ class ClusterSelectionQueue(object):
         
 # Correlograms
 # ------------
-@inqthread
+@inthread
 class ClusterCache(object):
     def __init__(self, dh, sdh, width=None, bin=None):
         self.dh = dh
@@ -469,7 +469,7 @@ def correlation_matrix_KL(features, clusters, masks):
     return matrix_KL
     
     
-@inqthread
+# @inprocess
 class CorrelationMatrixQueue(object):
     def __init__(self, dh):
         self.dh = dh
@@ -479,9 +479,11 @@ class CorrelationMatrixQueue(object):
             self.dh.features, self.dh.clusters, self.dh.masks_complete)
         # import time
         # time.sleep(5)
-        ssignals.emit(self, 'CorrelationMatrixUpdated')
+        # ssignals.emit(self, 'CorrelationMatrixUpdated')
         
-        
+    @staticmethod
+    def process_done(_result=None):
+        ssignals.emit(None, 'CorrelationMatrixUpdated')
         
         
         

@@ -11,7 +11,7 @@ import numpy.random as rdn
 import inspect
 import spiky.signals as ssignals
 import spiky
-from qtools import inqthread
+from qtools import inthread
 import spiky.views as sviews
 import spiky.dataio as sdataio
 import rcicons

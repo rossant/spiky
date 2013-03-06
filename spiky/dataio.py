@@ -9,7 +9,7 @@ from galry import *
 from colors import COLORMAP
 import spiky.signals as ssignals
 from xmltools import parse_xml
-from qtools import inqthread
+from qtools import inthread, TasksInProcess
 from collections import Counter
 import spiky.tasks as tasks
 import cPickle
@@ -28,7 +28,7 @@ __all__ = [
 
     
     
-@inqthread    
+@inthread    
 class KlustersLoadQueue(object):
     # def __init__(self, progressbar=None):
         # self.progressbar = progressbar
@@ -546,7 +546,7 @@ class KlustersDataProvider(DataProvider):
         
         
         # TASKS.add('correlation_matrix_queue', CorrelationMatrixQueue, self.holder)
-        tasks.TASKS.correlation_matrix_queue = tasks.CorrelationMatrixQueue(self.holder)
+        tasks.TASKS.correlation_matrix_queue = inthread(tasks.CorrelationMatrixQueue)(self.holder)
         tasks.TASKS.correlation_matrix_queue.process()
         
         return self.holder
