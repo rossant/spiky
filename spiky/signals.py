@@ -50,10 +50,19 @@ class SpikySignals(QtCore.QObject):
     
     def reset(self):
         self.HighlightSpikes.disconnect()
-        self.ProjectionToChange.disconnect()
+        
+        try:
+            self.ProjectionToChange.disconnect()
+        except TypeError:
+            pass
+            
+        try:
+            self.ClusterSelectionToChange.disconnect()
+        except TypeError:
+            pass
+        
         self.ProjectionChanged.disconnect()
         self.AutomaticProjection.disconnect()
-        self.ClusterSelectionToChange.disconnect()
         self.ClusterSelectionChanged.disconnect()
         self.SelectSpikes.disconnect()
         self.ClusterInfoToUpdate.disconnect()

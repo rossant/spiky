@@ -57,6 +57,8 @@ class DataUpdater(QtGui.QWidget):
         
     def stop(self):
         """Stop the cluster selection job queue."""
+        ssignals.SIGNALS.ProjectionToChange.disconnect()
+        ssignals.SIGNALS.ClusterSelectionToChange.disconnect()
         tasks.TASKS.cluster_selection_queue.join()
         # print "STOP"
         
