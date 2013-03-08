@@ -37,7 +37,6 @@ class KlustersLoadQueue(object):
         
         # if hasattr(self, 'du'):
             # self.du.stop()
-        
         self.provider = KlustersDataProvider()
         self.dh = self.provider.load(filename, fileindex=fileindex,
             probefile=probefile)#, progressbar=self.progressbar)
@@ -302,7 +301,10 @@ def get_actual_filename(filename, extension, fileindex=1):
         prefix = prefix[:-1]
     # order by increasing length and return the shortest
     filtered = sorted(filtered, cmp=lambda k, v: len(k) - len(v))
-    return os.path.join(dir, filtered[0])
+    if filtered:
+        return os.path.join(dir, filtered[0])
+    else:
+        return None
     # print os.path.commonprefix(files + [filename])
         
         
