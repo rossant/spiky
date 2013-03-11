@@ -577,9 +577,13 @@ class SpikyMainWindow(QtGui.QMainWindow):
     def slotChangeClusterColorRequested(self, sender, clusters, color):
         self.do(spiky.ChangeClusterColorAction, clusters, color)
         
-    def slotCorrelogramsUpdated(self, sender):
+    def slotCorrelogramsUpdated(self, sender, correlograms):
         # print self.sdh.
-        self.correlograms_widget.update_view(self.sdh)
+        # print correlograms.shape
+        # for (cl0, cl1), corr in zip(pairs, correlograms):
+            # self.correlograms[(cl0, cl1)] = corr
+        self.dh.correlograms = correlograms
+        # self.correlograms_widget.update_view(self.sdh)
         
     def slotCorrelationMatrixUpdated(self, sender, matrix):
         # print self.sdh.

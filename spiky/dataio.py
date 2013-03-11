@@ -176,7 +176,8 @@ class SelectDataHolder(object):
         self.override_color = False
         # self.cluster_cache = ClusterCache(dataholder, self, impatient=True)
         # TASKS.add('cluster_cache', ClusterCache, dataholder, self, impatient=True)
-        tasks.TASKS.cluster_cache = inthread(tasks.ClusterCache)(dataholder, self, impatient=True)
+        # tasks.TASKS.cluster_cache = inthread(tasks.ClusterCache)(dataholder, self, impatient=True)
+        tasks.TASKS.cluster_cache = tasks.CorrelogramsManager(dataholder, self)
         self.spike_dependent_variables = [
             'spiketimes',
             'waveforms',

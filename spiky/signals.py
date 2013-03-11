@@ -41,7 +41,8 @@ class SpikySignals(QtCore.QObject):
     # Select spikes for splitting
     SelectSpikes = QtCore.pyqtSignal(object, np.ndarray)
     
-    CorrelogramsUpdated = QtCore.pyqtSignal(object)
+    CorrelogramsUpdated = QtCore.pyqtSignal(object, np.ndarray)
+    # CorrelogramsComputed = QtCore.pyqtSignal(object, list, np.ndarray)
     CorrelationMatrixUpdated = QtCore.pyqtSignal(object, np.ndarray)
     
     FileLoaded = QtCore.pyqtSignal(object)
@@ -66,6 +67,7 @@ class SpikySignals(QtCore.QObject):
         self.ClusterSelectionChanged.disconnect()
         self.SelectSpikes.disconnect()
         self.ClusterInfoToUpdate.disconnect()
+        # self.CorrelogramsComputed.disconnect()
         self.CorrelogramsUpdated.disconnect()
         self.FileLoaded.disconnect()
         self.FileLoading.disconnect()
