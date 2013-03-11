@@ -29,8 +29,10 @@ class Tasks(object):
             task.join()
         
     def __setattr__(self, name, value):
+        from threading import current_thread
+        # print "adding", name, current_thread().ident
         super(Tasks, self).__setattr__(name, value)
-        if isinstance(value, qtools.TasksInThread):
+        if isinstance(value, qtools.TasksBase):
             self.tasks.append(value)
         
         
@@ -52,7 +54,8 @@ class ClusterSelectionQueue(object):
         
 # Correlograms
 # ------------
-@inthread
+# @inthread
+# TODO: compute all correlograms in one pass
 class ClusterCache(object):
     def __init__(self, dh, sdh, width=None, bin=None):
         self.dh = dh
@@ -475,15 +478,20 @@ class CorrelationMatrixQueue(object):
         self.dh = dh
         
     def process(self):
-        self.dh.correlation_matrix = correlation_matrix_KL(
+        # print "processing...",
+        correlation_matrix = correlation_matrix_KL(
             self.dh.features, self.dh.clusters, self.dh.masks_complete)
         # import time
         # time.sleep(5)
         # ssignals.emit(self, 'CorrelationMatrixUpdated')
+        # print "ok"
+        return correlation_matrix
         
     @staticmethod
     def process_done(_result=None):
-        ssignals.emit(None, 'CorrelationMatrixUpdated')
+        # print "processing done, emitting signal...",
+        ssignals.emit(None, 'CorrelationMatrixUpdated', _result)
+        # print "ok"
         
         
         

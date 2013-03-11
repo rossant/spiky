@@ -42,7 +42,7 @@ class SpikySignals(QtCore.QObject):
     SelectSpikes = QtCore.pyqtSignal(object, np.ndarray)
     
     CorrelogramsUpdated = QtCore.pyqtSignal(object)
-    CorrelationMatrixUpdated = QtCore.pyqtSignal(object)
+    CorrelationMatrixUpdated = QtCore.pyqtSignal(object, np.ndarray)
     
     FileLoaded = QtCore.pyqtSignal(object)
     

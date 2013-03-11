@@ -9,7 +9,7 @@ from galry import *
 from colors import COLORMAP
 import spiky.signals as ssignals
 from xmltools import parse_xml
-from qtools import inthread, TasksInProcess
+from qtools import inthread, inprocess
 from collections import Counter
 import spiky.tasks as tasks
 import cPickle
@@ -176,7 +176,7 @@ class SelectDataHolder(object):
         self.override_color = False
         # self.cluster_cache = ClusterCache(dataholder, self, impatient=True)
         # TASKS.add('cluster_cache', ClusterCache, dataholder, self, impatient=True)
-        tasks.TASKS.cluster_cache = tasks.ClusterCache(dataholder, self, impatient=True)
+        tasks.TASKS.cluster_cache = inthread(tasks.ClusterCache)(dataholder, self, impatient=True)
         self.spike_dependent_variables = [
             'spiketimes',
             'waveforms',
@@ -548,7 +548,7 @@ class KlustersDataProvider(DataProvider):
         
         
         # TASKS.add('correlation_matrix_queue', CorrelationMatrixQueue, self.holder)
-        tasks.TASKS.correlation_matrix_queue = inthread(tasks.CorrelationMatrixQueue)(self.holder)
+        tasks.TASKS.correlation_matrix_queue = inprocess(tasks.CorrelationMatrixQueue)(self.holder)
         tasks.TASKS.correlation_matrix_queue.process()
         
         return self.holder
