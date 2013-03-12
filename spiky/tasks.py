@@ -6,6 +6,7 @@ from collections import OrderedDict
 import numpy as np
 from colors import COLORMAP
 from collections import Counter
+from itertools import product
 from copy import deepcopy as dcopy
 import numpy.random as rdn
 import inspect
@@ -50,6 +51,65 @@ class ClusterSelectionQueue(object):
         self.dh.select_clusters(clusters)
         ssignals.emit(self.du, 'ClusterSelectionChanged', clusters)
 
+        
+def compute_correlograms(spiketimes, clusters, clusters_to_update=None, freq=None, bin=.001, width=.02):
+
+    # half-size of the histograms
+    n = int(np.ceil(width / bin))
+    
+    # size of the histograms
+    nspikes = len(spiketimes)
+    
+    # convert in seconds
+    if freq:
+        spiketimes = spiketimes / float(freq)
+
+    # delays will contain all delays for each pair of clusters
+    delays = {}
+
+    # unique clusters
+    counter = Counter(clusters)
+    clusters_unique = sorted(counter.keys())
+    nclusters = len(clusters_unique)
+    cluster_max = clusters_unique[-1]
+    
+    # clusters to update
+    if clusters_to_update is None:
+        clusters_to_update = clusters_unique
+    clusters_mask = np.zeros(cluster_max + 1, dtype=np.bool)
+    clusters_mask[clusters_to_update] = True
+    
+    # initialize the correlograms
+    for (cl0, cl1) in product(clusters_to_update, clusters_to_update):
+        delays[(cl0, cl1)] = []
+
+    # loop through all spikes, across all neurons, all sorted
+    for i in range(nspikes):
+        t0, cl0 = spiketimes[i], clusters[i]
+        # pass clusters that do not need to be processed
+        if clusters_mask[cl0]:
+            # i, t0, c0: current spike index, spike time, and cluster
+            # boundaries of the second loop
+            t0min, t0max = t0 - width, t0 + width
+            j = i + 1
+            # go forward in time up to the correlogram half-width
+            # for j in range(i + 1, nspikes):
+            while j < nspikes:
+                t1, cl1 = spiketimes[j], clusters[j]
+                # pass clusters that do not need to be processed
+                if clusters_mask[cl1]:
+                    # compute only correlograms if necessary
+                    # and avoid computing symmetric pairs twice
+                    # add the delay
+                    if t0min <= t1 <= t0max:
+                        d = t1 - t0
+                        delays[(cl0, cl1)].append(d)
+                        delays[(cl1, cl0)].append(-d)
+                    else:
+                        break
+                j += 1
+    
+    return delays
     
         
 # Correlograms
@@ -72,16 +132,9 @@ class ClusterCache(object):
         
         # cache correlograms, spike trains
         self.correlograms = {}
-        self.spiketimes = {}
     
     # @profile
     def invalidate(self, clusters):
-        # invalidate spike times
-        keys = dcopy(self.spiketimes.keys())
-        for cl in keys:
-            if cl in clusters:
-                del self.spiketimes[cl]
-                
         # invalidate correlograms
         keys = dcopy(self.correlograms.keys())
         for cl0, cl1 in keys:
@@ -98,112 +151,27 @@ class ClusterCache(object):
             return
         
         # SDH spiketimes and correlograms
-        spiketimes = []
         correlograms = []
         
-        # process spiketimes
-        for cluster in clusters:
-            # retrieve or compute spiketimes
-            if cluster not in self.spiketimes:
-                spikes = self.dh.spiketimes[self.dh.clusters == cluster]
-                self.spiketimes[cluster] = spikes
-            else:
-                spikes = self.spiketimes[cluster]
-            spiketimes.append(spikes)
-            
-        # print "hey"
-            
-        # OLD, SLOW VERSION
-        # # process correlograms
-        # for i in xrange(len(clusters)):
-            # # first spike train
-            # spk0 = spiketimes[i] / float(self.dh.freq)
-            # for j in xrange(i, len(clusters)):
-                # # second spike train
-                # spk1 = spiketimes[j] / float(self.dh.freq)
-                
-                # cl0 = clusters[i]
-                # cl1 = clusters[j]
-                
-                # # compute correlogram
-                # if (cl0, cl1) not in self.correlograms:
-                    # corr = get_correlogram(spk0, spk1, width=self.width, bin=self.bin,
-                        # duration=self.dh.duration)
-                    # self.correlograms[(cl0, cl1)] = corr
-                # else:
-                    # corr = self.correlograms[(cl0, cl1)]
-                # correlograms.append(corr)
-               
-        # NEW, OPTIMIZED VERSION 
         bin = self.bin
         width = self.width
         n = int(np.ceil(width / bin))
         bins = np.arange(2 * n + 1) * bin - n * bin
         
-        clusters_unique = clusters
-        fulltrain = self.dh.spiketimes / float(self.dh.freq)
-        clusters = self.dh.clusters
-        nspikes = self.dh.nspikes
+        delays = compute_correlograms(self.dh.spiketimes,
+            self.dh.clusters, clusters, freq=self.dh.freq,
+            bin=bin, width=width)
         
-        # cluster pairs that are requested
-        requested_pairs = [(clusters_unique[i], clusters_unique[j]) for i in xrange(nclusters) for j in xrange(i, nclusters)]
-        # cluster pairs which do not need to be computed again
-        existing_pairs = self.correlograms.keys()
-        updating_pairs = set(requested_pairs) - set(existing_pairs)
-        # list of clusters to explore for cl0
-        clusters_to_update1 = [cl0 for (cl0, _) in updating_pairs]
-        
-        # corr will contain all delays for each pair of clusters
-        corr = {}
-        # initialize the correlograms
-        for (cl0, cl1) in requested_pairs:
-            corr[(cl0, cl1)] = []
-        # loop through all spikes, across all neurons, all sorted
-        for i in xrange(nspikes):
-            # current spike and cluster
-            t0 = fulltrain[i]
-            cl0 = clusters[i]
-            if cl0 not in clusters_to_update1:
-                continue
-            # go forward in time up to the correlogram half-width
-            for j in xrange(i+1, nspikes):
-                # next spike and cluster
-                t1 = fulltrain[j]
-                cl1 = clusters[j]
-                if (cl0, cl1) not in updating_pairs:
-                    continue
-                # compute only correlograms if necessary
-                # and avoid computing symmetric pairs twice
-                # add the delay
-                if t1 <= t0 + width:
-                    # if t1 != t0:
-                    corr[(cl0, cl1)].append(t1 - t0)
-                else:
-                    break
-            # go backward in time up to the correlogram half-width
-            for j in xrange(i-1, -1, -1):
-                t1 = fulltrain[j]
-                cl1 = clusters[j]
-                if (cl0, cl1) not in updating_pairs:
-                    continue
-                # compute only correlograms if necessary
-                # and avoid computing symmetric pairs twice
-                if t1 >= t0 - width:
-                    # if t1 != t0:
-                    corr[(cl0,cl1)].append(t1 - t0)
-                else:
-                    break
-        # compute the histograms of all delays, for each pair of clusters
-        # print bins
-        for (cl0, cl1) in requested_pairs:
-            if (cl0, cl1) not in self.correlograms:
-                h, _ = np.histogram(corr[(cl0,cl1)], bins=bins)
-                h[len(h)/2] = 0
-                self.correlograms[(cl0,cl1)] = h
-            correlograms.append(self.correlograms[(cl0,cl1)])
+        for (cl0, cl1) in product(clusters, clusters):
+            if cl1 >= cl0:
+                if (cl0, cl1) not in self.correlograms:
+                    h, _ = np.histogram(delays[(cl0,cl1)], bins=bins)
+                    h[len(h)/2] = 0
+                    self.correlograms[(cl0,cl1)] = h
+                correlograms.append(self.correlograms[(cl0,cl1)])
                 
         # populate SDH
-        self.sdh.spiketimes = spiketimes
+        # self.sdh.spiketimes = spiketimes
         self.sdh.correlograms = np.vstack(correlograms) * 1.
         
         self.update_signal()
