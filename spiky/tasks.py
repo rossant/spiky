@@ -23,18 +23,26 @@ class Tasks(object):
     """Singleton class storing all tasks, so that they can be all joined
     upon GUI closing."""
     def __init__(self):
-        self.tasks = []
+        self.tasks = {}
         
     def join(self):
-        for task in self.tasks:
+        for name, task in self.tasks.iteritems():
+            # print "join", name
             task.join()
+    
+    def add(self, name, value):
+        self.tasks[name] = value
         
     def __setattr__(self, name, value):
-        from threading import current_thread
+        # from threading import current_thread
         # print "adding", name, current_thread().ident
         super(Tasks, self).__setattr__(name, value)
         if isinstance(value, qtools.TasksBase):
-            self.tasks.append(value)
+            # print name
+            self.add(name, value)
+    
+    def __getattr__(self, name):
+        return self.tasks.get(name)
         
         
 TASKS = Tasks()
@@ -188,8 +196,9 @@ class CorrelogramsManager(object):
     def invalidate(self, clusters):
         pass
 
-    # def process(self, clusters):
-        
+    def process(self, clusters):
+        if hasattr(self.dh, 'correlograms'):
+            print self.dh.correlograms.shape
         # k = len(clusters)
         # pairs = [(clusters[i], clusters[j]) for i in xrange(k) for j in xrange(i+1,k)]
         # pairs = list(set(pairs) - set(self.correlograms.keys()))
@@ -200,7 +209,10 @@ class CorrelogramsManager(object):
             # pairs=pairs,
             # freq=self.freq, bin=self.bin, width=self.width)
         
-      
+    def join(self):
+        # print "join"
+        self.task.join()
+    
 
 # Correlation matrix
 # ------------------

@@ -177,7 +177,8 @@ class SelectDataHolder(object):
         # self.cluster_cache = ClusterCache(dataholder, self, impatient=True)
         # TASKS.add('cluster_cache', ClusterCache, dataholder, self, impatient=True)
         # tasks.TASKS.cluster_cache = inthread(tasks.ClusterCache)(dataholder, self, impatient=True)
-        tasks.TASKS.cluster_cache = tasks.CorrelogramsManager(dataholder, self)
+        cluster_cache = tasks.CorrelogramsManager(dataholder, self)
+        tasks.TASKS.add('cluster_cache', cluster_cache)
         self.spike_dependent_variables = [
             'spiketimes',
             'waveforms',
