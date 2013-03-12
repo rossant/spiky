@@ -23,11 +23,6 @@ Major features
 Minor features
 --------------
   
-  * use multiprocessing, QProcess, shared Numpy arrays and cPickle
-      * a QThread handles IO with an external process that is created on demand
-      * shared arrays are passed and computations happen on the external process
-      * the external process returns information to the QThread
-  
   * option to change width/bin of correlograms
   * option to toggle normalization in correlograms view
   * when selecting a group, only show the corresponding clusters in the
@@ -35,17 +30,17 @@ Minor features
   * merge: use the smallest cluster index instead of creating a new one
   * buttons for all commands (reset view for any view)
   * make settings independent from pyqt/pyside
-  * initial launch: default window geometry config  
-  * undock maximize button
   * store visualization-related information in the XML file (cluster colors,
     probe scaling, etc)
-  * interaction mode buttons: deactivate in gray to highlight the current mode
   * feature view: flip X/Y
   * highlighting: less transient with CTRL + click (click to deactivate)
   * option to toggle showing masks as gray waveforms in waveform view
   * feature view gray points transparency depth
   * function for automatic zoom in waveformview as a function of
     channels and clusters
+  * initial launch: default window geometry config  
+  * undock maximize button
+  * interaction mode buttons: deactivate in gray to highlight the current mode
   * small widget with text information (number of spikes, highlighted spikes...)
 
   

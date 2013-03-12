@@ -158,8 +158,20 @@ class ClusterCache(object):
         n = int(np.ceil(width / bin))
         bins = np.arange(2 * n + 1) * bin - n * bin
         
+        # find clusters to update
+        
+        clusters_to_update = []
+        # all requested clusters
+        for (cl0, cl1) in product(clusters, clusters):
+            if cl1 >= cl0:
+                # only those clusters which are not already in the cache
+                if (cl0, cl1) not in self.correlograms:
+                    clusters_to_update.append(cl0)
+                    clusters_to_update.append(cl1)
+        clusters_to_update = list(set(clusters_to_update))
+                    
         delays = compute_correlograms(self.dh.spiketimes,
-            self.dh.clusters, clusters, freq=self.dh.freq,
+            self.dh.clusters, clusters_to_update, freq=self.dh.freq,
             bin=bin, width=width)
         
         for (cl0, cl1) in product(clusters, clusters):
@@ -469,7 +481,7 @@ def correlation_matrix2(features, clusters, masks):
             p = np.log(2*np.pi)*(-nDims/2.)+(-.5*np.log(np.linalg.det(Ci+Cj)))+(-.5)*np.dot(np.dot(dmu.T, np.linalg.inv(Ci+Cj)), dmu)
             alpha = float(npointsi) / nPoints
             # print ci, cj, p
-            matrix[i, j] = p# + np.log(alpha)
+            matrix[i, j] = p + np.log(alpha)
     
     matrix[range(nClusters), range(nClusters)] = 0
     matrix[matrix==0] = matrix[matrix!=0].min()
