@@ -24,6 +24,9 @@ def colormap(x, col0=None, col1=None):
     removed = x == -1
     
     x[np.isnan(x)] = 0.
+    # TODO: proper scaling
+    x -= x.min()
+    x *= (1. / x.max())
     x = np.clip(x, 0., 1.)
     
     shape = x.shape
@@ -60,7 +63,7 @@ class CorrelationMatrixDataManager(Manager):
             matrix = -np.ones((2, 2))
         n = matrix.shape[0]
         # remove diagonal
-        matrix[range(n), range(n)] = -1
+        # matrix[range(n), range(n)] = -1
         
         self.texture = colormap(matrix)[::-1, :, :]
         self.matrix = matrix

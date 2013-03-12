@@ -415,7 +415,7 @@ def get_stats(Fet1, Fet2, spikes_in_clusters, masks):
             CovMatinv = np.linalg.inv(CovMat)
             LogDet = np.log(np.linalg.det(CovMat))
             
-            stats[c] = (Mean, CovMat, CovMatinv, LogDet)
+            stats[c] = (Mean, CovMat, CovMatinv, LogDet, len(MyPoints))
 
     return stats
     
@@ -457,8 +457,8 @@ def correlation_matrix_KL(features, clusters, masks):
 
     for ci in clusterslist:
         for cj in clusterslist:
-            mui, Ci, Ciinv, logdeti = stats[ci]
-            muj, Cj, Cjinv, logdetj = stats[cj]
+            mui, Ci, Ciinv, logdeti, _ = stats[ci]
+            muj, Cj, Cjinv, logdetj, _ = stats[cj]
             dmu = (muj - mui).reshape((-1, 1))
             
             # KL divergence
@@ -471,28 +471,57 @@ def correlation_matrix_KL(features, clusters, masks):
     matrix_KL[matrix_KL == 1] = 0
     return matrix_KL
     
+     
+def correlation_matrix2(features, clusters, masks):
+    # print features
+    # print clusters
+    # print masks
     
-# @inprocess
+    nPoints = features.shape[0] #size(Fet1, 1)
+    nDims = features.shape[1] #size(Fet1, 2)
+    # nClusters = Clu2.max() #max(Clu2)
+    # nClusters = len(spikes_in_clusters)
+    
+    # print masks.shape
+    c = Counter(clusters)
+    spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
+    nClusters = len(spikes_in_clusters)
+    
+    stats = get_stats(features, features, spikes_in_clusters, masks)
+    
+    clusterslist = sorted(stats.keys())
+    matrix = np.zeros((nClusters, nClusters))
+
+    for i, ci in enumerate(clusterslist):
+        mui, Ci, Ciinv, logdeti, npointsi = stats[ci]
+        for j, cj in enumerate(clusterslist):
+            muj, Cj, Cjinv, logdetj, npointsj = stats[cj]
+            dmu = (muj - mui).reshape((-1, 1))
+            
+            p = np.log(2*np.pi)*(-nDims/2.)+(-.5*np.log(np.linalg.det(Ci+Cj)))+(-.5)*np.dot(np.dot(dmu.T, np.linalg.inv(Ci+Cj)), dmu)
+            alpha = float(npointsi) / nPoints
+            # print ci, cj, p
+            matrix[i, j] = p# + np.log(alpha)
+    
+    matrix[range(nClusters), range(nClusters)] = 0
+    matrix[matrix==0] = matrix[matrix!=0].min()
+    
+    return np.exp(matrix)
+    
+    
 class CorrelationMatrixQueue(object):
     def __init__(self, dh):
         self.dh = dh
         
     def process(self):
-        # print "processing...",
-        correlation_matrix = correlation_matrix_KL(
-            self.dh.features, self.dh.clusters, self.dh.masks_complete)
-        # import time
-        # time.sleep(5)
-        # ssignals.emit(self, 'CorrelationMatrixUpdated')
-        # print "ok"
+        correlation_matrix = correlation_matrix2(
+            self.dh.features[:,:-self.dh.nextrafet], self.dh.clusters,
+            self.dh.masks_complete[:,:-self.dh.nextrafet])
         return correlation_matrix
         
     @staticmethod
     def process_done(_result=None):
-        # print "processing done, emitting signal...",
         ssignals.emit(None, 'CorrelationMatrixUpdated', _result)
-        # print "ok"
-        
         
         
         
