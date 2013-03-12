@@ -67,6 +67,7 @@ class SpikySignals(QtCore.QObject):
         self.SelectSpikes.disconnect()
         self.ClusterInfoToUpdate.disconnect()
         self.CorrelogramsUpdated.disconnect()
+        self.CorrelationMatrixUpdated.disconnect()
         self.FileLoaded.disconnect()
         self.FileLoading.disconnect()
         
