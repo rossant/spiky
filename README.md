@@ -34,16 +34,6 @@ Installation
 The software is still in developpement, but you can download an experimental
 version here.
 
-### Packages
-
-  * [Windows 64 bits installer](http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe)
-  * [ZIP](http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz)
-  * [TGZ](http://spiky.rossant.net/spiky-0.1.0.dev.zip)
-
-To launch the software:
-
-    python spiky/scripts/runspiky.py
-
 ### Dependencies
   
   * Python 2.7
@@ -60,3 +50,35 @@ All dependencies are included in the
 which is free for academics.
 
 
+### Packages
+
+Here are the packages:
+
+  * [ZIP](http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz)
+  * [TGZ](http://spiky.rossant.net/spiky-0.1.0.dev.zip)
+
+To install Spiky:
+
+  * Make sure you've installed all dependencies.
+  * Download one of the packages above.
+  * Extract the package and do `python setup.py install`.
+
+### Development version
+
+  * Clone the repository:
+  
+        git clone https://github.com/rossant/spiky.git
+  
+  * Install Spiky with `pip` so that external packages are automatically
+    updated (like `qtools` which contains some Qt-related utility functions):
+  
+        pip install -r requirements.txt
+
+  
+### Test that Spiky is well installed
+  
+To test that the installation went fine, open a Python or IPython prompt and type:
+    
+    python spiky/scripts/runspiky.py
+
+    
