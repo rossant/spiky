@@ -18,17 +18,18 @@ if __name__ == '__main__':
                   'spiky.scripts',
                   'spiky.views',
 
-                  # INCLUDE QTOOLS
-                  'qtools.qtpy',
-                  'qtools.tests',
+                  #<
+                  # 'qtools',
+                  # 'qtools.qtpy',
+                  # 'qtools.tests',
                   
-                  # INCLUDE GALRY
-                  'galry',
-                  'galry.managers',
-                  'galry.processors',
-                  'galry.test',
-                  'galry.visuals',
-                  'galry.visuals.fontmaps',
+                  # 'galry',
+                  # 'galry.managers',
+                  # 'galry.processors',
+                  # 'galry.test',
+                  # 'galry.visuals',
+                  # 'galry.visuals.fontmaps',
+                  #>
                   
                   ],
         entry_points = {
