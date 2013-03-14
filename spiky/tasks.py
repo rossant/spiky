@@ -481,7 +481,7 @@ def correlation_matrix2(features, clusters, masks):
             p = np.log(2*np.pi)*(-nDims/2.)+(-.5*np.log(np.linalg.det(Ci+Cj)))+(-.5)*np.dot(np.dot(dmu.T, np.linalg.inv(Ci+Cj)), dmu)
             alpha = float(npointsi) / nPoints
             # print ci, cj, p
-            matrix[i, j] = p + np.log(alpha)
+            matrix[i, j] = p# + np.log(alpha)
     
     matrix[range(nClusters), range(nClusters)] = 0
     matrix[matrix==0] = matrix[matrix!=0].min()
