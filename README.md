@@ -9,17 +9,47 @@ The first step is to create a new semi-automatic graphical interface
 (code name: *KlustaViewa*) for
 the manual stage that comes after the automatic clustering algorithms.
 This interface automatically guides the user through similar clusters,
-showing the most relevant feature projections, and asks him to make merge or
+showing the most relevant feature projections, and asks him or her to make merge or
 split decisions. The goal is to make the manual stage more reliable, less
 error-prone and quicker than what it currently is.
 
-This interface is directly inspired from the current software suite 
-[Klusters](http://klusters.sourceforge.net),
-[Neuroscope](http://neuroscope.sourceforge.net/)
-and
-[NDManager](http://ndmanager.sourceforge.net/),
-developed in 
-[György Buzsaki's laboratory](http://www.buzsakilab.com/).
+This software was developed by Cyrille Rossant in the [Cortical Processing Laboratory](http://www.ucl.ac.uk/cortexlab) at UCL.
+
+Installation
+------------
+
+The software is still in developpement, but you can download an experimental
+version here.
+
+### Step 1
+
+If you don't already have a Python distribution, install [Enthought Python Distribution](http://www.enthought.com/products/epd.php) (EPD), which is free for academics.
+
+
+### Step 2
+
+[Download Spiky](http://spiky.rossant.net/spiky-0.1.0.dev.zip)
+
+
+### Step 3
+
+Unextract this ZIP file in a temporary folder.
+
+
+### Step 4
+
+  * On Windows, double-click on `windows_install.bat`.
+  * On other systems, open a system shell in the temporary directory where
+    you extracted the package, and execute the following command:
+    `python setup.py install`.
+
+### Step 5
+
+To run the software, execute `spiky` in a system shell.
+
+On Windows, you may need to add `C:\Python27\Scripts` in the PATH variable,
+as [described here](http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-windows-path-in-windows-7.aspx).
+
 
 Gallery
 -------
@@ -28,13 +58,9 @@ Gallery
 [![Screenshot 2](images/thumbnails/img1.png)](images/img1.png)
 [![Screenshot 3](images/thumbnails/img2.png)](images/img2.png)
 
-Installation
-------------
 
-The software is still in developpement, but you can download an experimental
-version here. The first step is to install the dependencies, the second
-step is to install the software itself.
-
+Installation for advanced users
+-------------------------------
 
 ### Dependencies
   
@@ -66,19 +92,11 @@ only a few packages are missing.
   * On Ubuntu, use `apt-get install` with the appropriate package name, which you can find [here](http://packages.ubuntu.com/).
 
 
-### Packages
+### Installer
 
-Here are the packages:
+[Download Spiky](http://spiky.rossant.net/spiky-0.1.0.dev.zip), extract that package
+and execute `python setup.py install`.
 
-  * [TGZ](http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz)
-  * [ZIP](http://spiky.rossant.net/spiky-0.1.0.dev.zip)
-  * [Windows 64 bits](http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe)
-
-To install Spiky:
-
-  * Make sure you've installed all dependencies.
-  * Download one of the packages above.
-  * Extract the package and do `python setup.py install`.
 
 ### Development version
 
@@ -94,13 +112,4 @@ Use this if you want to be able to update with `git pull` (you need git).
         pip install -r requirements.txt
 
   
-### Test that Spiky is well installed
-  
-To test that the installation went fine, type in a shell the following command:
-    
-    $ spiky
-    
-On Windows, you may need to add `C:\Python27\Scripts` in the PATH variable,
-as [described here](http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-windows-path-in-windows-7.aspx).
-
     

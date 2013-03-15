@@ -14,3 +14,4 @@ recursive-exclude galry/test/autosave *.png
 recursive-include galry/test/autosave *REF.png
 
 exclude setup_dev.py
+include windows_install.bat
