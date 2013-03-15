@@ -36,17 +36,42 @@ being flexible and extendable by the user.</p>
 (code name: <em>KlustaViewa</em>) for
 the manual stage that comes after the automatic clustering algorithms.
 This interface automatically guides the user through similar clusters,
-showing the most relevant feature projections, and asks him to make merge or
+showing the most relevant feature projections, and asks him or her to make merge or
 split decisions. The goal is to make the manual stage more reliable, less
 error-prone and quicker than what it currently is.</p>
 
-<p>This interface is directly inspired from the current software suite 
-<a href="http://klusters.sourceforge.net">Klusters</a>,
-<a href="http://neuroscope.sourceforge.net/">Neuroscope</a>
-and
-<a href="http://ndmanager.sourceforge.net/">NDManager</a>,
-developed in 
-<a href="http://www.buzsakilab.com/">György Buzsaki's laboratory</a>.</p>
+<p>This software was developed by Cyrille Rossant in the <a href="http://www.ucl.ac.uk/cortexlab">Cortical Processing Laboratory</a> at UCL.</p>
+
+<h2>Installation</h2>
+
+<p>The software is still in developpement, but you can download an experimental
+version here.</p>
+
+<h3>Step 1</h3>
+
+<p>If you don't already have a Python distribution, install <a href="http://www.enthought.com/products/epd.php">Enthought Python Distribution</a> (EPD), which is free for academics.</p>
+
+<h3>Step 2</h3>
+
+<p><a href="http://spiky.rossant.net/spiky-0.1.0.dev.zip">Download Spiky</a></p>
+
+<h3>Step 3</h3>
+
+<p>Unextract this ZIP file in a temporary folder.</p>
+
+<h3>Step 4</h3>
+
+<ul>
+<li>On Windows, double-click on <code>windows_install.bat</code>.</li>
+<li>On other systems, open a system shell in the temporary directory where
+you extracted the package, and execute the following command:
+<code>python setup.py install</code>.</li>
+</ul><h3>Step 5</h3>
+
+<p>To run the software, execute <code>spiky</code> in a system shell.</p>
+
+<p>On Windows, you may need to add <code>C:\Python27\Scripts</code> in the PATH variable,
+as <a href="http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-windows-path-in-windows-7.aspx">described here</a>.</p>
 
 <h2>Gallery</h2>
 
@@ -54,11 +79,7 @@ developed in
 <a href="images/img1.png"><img src="images/thumbnails/img1.png" alt="Screenshot 2"></a>
 <a href="images/img2.png"><img src="images/thumbnails/img2.png" alt="Screenshot 3"></a></p>
 
-<h2>Installation</h2>
-
-<p>The software is still in developpement, but you can download an experimental
-version here. The first step is to install the dependencies, the second
-step is to install the software itself.</p>
+<h2>Installation for advanced users</h2>
 
 <h3>Dependencies</h3>
 
@@ -89,21 +110,12 @@ only a few packages are missing.</p>
 <li>On OS X, find them on <a href="http://mxcl.github.com/homebrew/">Homebrew</a> or <a href="http://www.macports.org/">Macports</a>
 </li>
 <li>On Ubuntu, use <code>apt-get install</code> with the appropriate package name, which you can find <a href="http://packages.ubuntu.com/">here</a>.</li>
-</ul><h3>Packages</h3>
+</ul><h3>Installer</h3>
 
-<p>Here are the packages:</p>
+<p><a href="http://spiky.rossant.net/spiky-0.1.0.dev.zip">Download Spiky</a>, extract that package
+and execute <code>python setup.py install</code>.</p>
 
-<ul>
-<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz">TGZ</a></li>
-<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.zip">ZIP</a></li>
-<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe">Windows 64 bits</a></li>
-</ul><p>To install Spiky:</p>
-
-<ul>
-<li>Make sure you've installed all dependencies.</li>
-<li>Download one of the packages above.</li>
-<li>Extract the package and do <code>python setup.py install</code>.</li>
-</ul><h3>Development version</h3>
+<h3>Development version</h3>
 
 <p>Use this if you want to be able to update with <code>git pull</code> (you need git).</p>
 
@@ -121,15 +133,7 @@ updated (like <code>qtools</code> which contains some Qt-related utility functio
 <pre><code>pip install -r requirements.txt
 </code></pre>
 </li>
-</ul><h3>Test that Spiky is well installed</h3>
-
-<p>To test that the installation went fine, type in a shell the following command:</p>
-
-<pre><code>$ spiky
-</code></pre>
-
-<p>On Windows, you may need to add <code>C:\Python27\Scripts</code> in the PATH variable,
-as <a href="http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-windows-path-in-windows-7.aspx">described here</a>.</p>
+</ul>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/rossant">rossant</a></p>
@@ -148,25 +152,5 @@ as <a href="http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-wi
             } catch(err) {}
           </script>
 
-          
-<!-- Start of StatCounter Code for Default Guide -->
-<script type="text/javascript">
-var sc_project=8790036; 
-var sc_invisible=1; 
-var sc_security="30d701b7"; 
-var scJsHost = (("https:" == document.location.protocol) ?
-"https://secure." : "http://www.");
-document.write("<sc"+"ript type='text/javascript' src='" +
-scJsHost+
-"statcounter.com/counter/counter.js'></"+"script>");
-</script>
-<noscript><div class="statcounter"><a title="free hit
-counters" href="http://statcounter.com/free-hit-counter/"
-target="_blank"><img class="statcounter"
-src="http://c.statcounter.com/8790036/0/30d701b7/1/"
-alt="free hit counters"></a></div></noscript>
-<!-- End of StatCounter Code for Default Guide -->
-          
-          
   </body>
 </html>
