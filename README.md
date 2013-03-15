@@ -70,8 +70,9 @@ only a few packages are missing.
 
 Here are the packages:
 
-  * [ZIP](http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz)
-  * [TGZ](http://spiky.rossant.net/spiky-0.1.0.dev.zip)
+  * [TGZ](http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz)
+  * [ZIP](http://spiky.rossant.net/spiky-0.1.0.dev.zip)
+  * [Windows 64 bits](http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe)
 
 To install Spiky:
 
