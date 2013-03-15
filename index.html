@@ -28,9 +28,7 @@
         </ul>
       </header>
       <section>
-        <h1>Spiky</h1>
-
-<p><em>Spiky</em> is the code name for the next-generation spike-sorting software 
+        <p><em>Spiky</em> is the code name for the next-generation spike-sorting software 
 adapted to high-channel count silicon probes. Written in Python, it aims at 
 being flexible and extendable by the user.</p>
 
@@ -59,33 +57,79 @@ developed in
 <h2>Installation</h2>
 
 <p>The software is still in developpement, but you can download an experimental
-version here.</p>
-
-<h3>Packages</h3>
-
-<ul>
-<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe">Windows 64 bits installer</a></li>
-<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz">ZIP</a></li>
-<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.zip">TGZ</a></li>
-</ul><p>To launch the software:</p>
-
-<pre><code>python spiky/scripts/runspiky.py
-</code></pre>
+version here. The first step is to install the dependencies, the second
+step is to install the software itself.</p>
 
 <h3>Dependencies</h3>
+
+<p>The following libraries are required:</p>
 
 <ul>
 <li>Python 2.7</li>
 <li>Numpy</li>
-<li>pandas &gt;= 0.10</li>
+<li>Pandas &gt;= 0.10</li>
 <li>Matplotlib &gt;= 1.1.1</li>
 <li>PyOpenGL &gt;= 3.0.1</li>
 <li>either PyQt4 or PySide</li>
-<li>h5py</li>
-<li>galry (included in the package for now)</li>
-</ul><p>All dependencies are included in the 
+</ul><p>There are two possibilities to install these dependencies.</p>
+
+<h4>Use an all-in-one Python distribution</h4>
+
+<p>All these dependencies are included in the 
 <a href="http://www.enthought.com/products/epd.php">Enthought Python Distribution</a> (EPD),
 which is free for academics.</p>
+
+<h4>Install all packages one by one</h4>
+
+<p>This solution can be useful if you already have a Python installation and 
+only a few packages are missing.</p>
+
+<ul>
+<li>On Windows, <a href="http://www.lfd.uci.edu/%7Egohlke/pythonlibs/">find the packages on this webpage</a>.</li>
+<li>On OS X, find them on <a href="http://mxcl.github.com/homebrew/">Homebrew</a> or <a href="http://www.macports.org/">Macports</a>
+</li>
+<li>On Ubuntu, use <code>apt-get install</code> with the appropriate package name, which you can find <a href="http://packages.ubuntu.com/">here</a>.</li>
+</ul><h3>Packages</h3>
+
+<p>Here are the packages:</p>
+
+<ul>
+<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.tar.gz">TGZ</a></li>
+<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.zip">ZIP</a></li>
+<li><a href="http://spiky.rossant.net/spiky-0.1.0.dev.win-amd64.exe">Windows 64 bits</a></li>
+</ul><p>To install Spiky:</p>
+
+<ul>
+<li>Make sure you've installed all dependencies.</li>
+<li>Download one of the packages above.</li>
+<li>Extract the package and do <code>python setup.py install</code>.</li>
+</ul><h3>Development version</h3>
+
+<p>Use this if you want to be able to update with <code>git pull</code> (you need git).</p>
+
+<ul>
+<li>
+<p>Clone the repository:</p>
+
+<pre><code>git clone https://github.com/rossant/spiky.git
+</code></pre>
+</li>
+<li>
+<p>Install Spiky with <code>pip</code> so that external packages are automatically
+updated (like <code>qtools</code> which contains some Qt-related utility functions):</p>
+
+<pre><code>pip install -r requirements.txt
+</code></pre>
+</li>
+</ul><h3>Test that Spiky is well installed</h3>
+
+<p>To test that the installation went fine, type in a shell the following command:</p>
+
+<pre><code>$ spiky
+</code></pre>
+
+<p>On Windows, you may need to add <code>C:\Python27\Scripts</code> in the PATH variable,
+as <a href="http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-windows-path-in-windows-7.aspx">described here</a>.</p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/rossant">rossant</a></p>
