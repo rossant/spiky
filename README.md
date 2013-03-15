@@ -32,22 +32,38 @@ Installation
 ------------
 
 The software is still in developpement, but you can download an experimental
-version here.
+version here. The first step is to install the dependencies, the second
+step is to install the software itself.
+
 
 ### Dependencies
   
+The following libraries are required:
+  
   * Python 2.7
   * Numpy
-  * pandas >= 0.10
+  * Pandas >= 0.10
   * Matplotlib >= 1.1.1
   * PyOpenGL >= 3.0.1
   * either PyQt4 or PySide
-  * h5py
-  * galry (included in the package for now)
 
-All dependencies are included in the 
+There are two possibilities to install these dependencies.
+  
+#### Use an all-in-one Python distribution
+
+All these dependencies are included in the 
 [Enthought Python Distribution](http://www.enthought.com/products/epd.php) (EPD),
 which is free for academics.
+
+
+#### Install all packages one by one
+
+This solution can be useful if you already have a Python installation and 
+only a few packages are missing.
+
+  * On Windows, [find the packages on this webpage](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
+  * On OS X, find them on [Homebrew](http://mxcl.github.com/homebrew/) or [Macports](http://www.macports.org/)
+  * On Ubuntu, use `apt-get install` with the appropriate package name, which you can find [here](http://packages.ubuntu.com/).
 
 
 ### Packages
@@ -65,6 +81,8 @@ To install Spiky:
 
 ### Development version
 
+Use this if you want to be able to update with `git pull` (you need git).
+
   * Clone the repository:
   
         git clone https://github.com/rossant/spiky.git
@@ -77,8 +95,11 @@ To install Spiky:
   
 ### Test that Spiky is well installed
   
-To test that the installation went fine, open a Python or IPython prompt and type:
+To test that the installation went fine, type in a shell the following command:
     
-    python spiky/scripts/runspiky.py
+    $ spiky
+    
+On Windows, you may need to add `C:\Python27\Scripts` in the PATH variable,
+as [described here](http://geekswithblogs.net/renso/archive/2009/10/21/how-to-set-the-windows-path-in-windows-7.aspx).
 
     
