@@ -31,7 +31,7 @@ def find_index(filename):
     else:
         return None
 
-def find_filename(filename, extension_requested):
+def find_filename(filename, extension_requested, dir='', files=[]):
     """Search the most plausible existing filename corresponding to the
     requested approximate filename, which has the required file index and
     extension.
@@ -60,9 +60,15 @@ def find_filename(filename, extension_requested):
             break
     
     # get the full path
-    dir = os.path.dirname(filename)
+    if not dir:
+        dir = os.path.dirname(filename)
     filename = os.path.basename(filename)
-    files = os.listdir(dir)
+    # try obtaining the list of all files in the directory
+    if not files:
+        try:
+            files = os.listdir(dir)
+        except (WindowsError, OSError, IOError):
+            raise IOError("Error when accessing '{0:s}'.".format(dir))
     
     # try different suffixes
     suffixes = ['.{0:s}'.format(extension_requested),
@@ -73,7 +79,6 @@ def find_filename(filename, extension_requested):
     for suffix in suffixes:
         filtered = []
         prefix = filename
-        # print suffixes
         while prefix and not filtered:
             filtered = filter(lambda file: (file.startswith(prefix) and 
                 file.endswith(suffix)), files)
@@ -173,7 +178,7 @@ def load_pickle(file):
 # -----------------------------------------------------------------------------
 # Preprocessing functions
 # -----------------------------------------------------------------------------
-def normalize(data, range=(-1., 1.), symmetrical=False):
+def normalize(data, range=(-1., 1.), symmetric=False):
     """Normalize an array so that all values fit in a given range.
     
     Symmetrical normalization means that after normalization, values equal to
@@ -183,7 +188,7 @@ def normalize(data, range=(-1., 1.), symmetrical=False):
     m = data.min()
     M = data.max()
     
-    if symmetrical:
+    if symmetric:
         vx = max(np.abs(m), np.abs(M))
         m, M = -vx, vx
         
@@ -192,37 +197,4 @@ def normalize(data, range=(-1., 1.), symmetrical=False):
     return data
 
     
-# -----------------------------------------------------------------------------
-# Selection functions
-# -----------------------------------------------------------------------------
-def select(data, spikes=None):
-    """Select a portion of an array with the corresponding spike indices.
-    The first axis of data corresponds to the spikes."""
-    # spikes=None means select all.
-    if spikes is None:
-        return data
-    # Ensure spikes is an array of indices or boolean masks.
-    if not isinstance(spikes, np.ndarray):
-        # Deal with empty spikes.
-        if not len(spikes):
-            if data.ndim == 1:
-                return np.array([])
-            elif data.ndim == 2:
-                return np.array([[]])
-            elif data.ndim == 3:
-                return np.array([[[]]])
-        else:
-            if type(spikes[0]) in (int, int32, int64):
-                spikes = np.array(spikes, dtype=np.int32)
-            elif type(spikes[0]) == bool:
-                spikes = np.array(spikes, dtype=np.bool)
-            else:
-                spike = np.array(spikes)
-    # Now, spikes is an array.
-    # spikes can contain boolean masks...
-    if data.dtype == np.bool:
-        data_selection = np.compress(spikes, data, axis=0)
-    # or spike indices.
-    else:
-        data_selection = np.take(data, spikes, axis=0)
-    return data_selection
+    

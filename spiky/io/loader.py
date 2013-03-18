@@ -10,7 +10,8 @@ import re
 import numpy as np
 
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
-    load_binary, select)
+    load_binary)
+from selection import select
 from spiky.logger import debug, info, warn
 
 # -----------------------------------------------------------------------------
@@ -62,10 +63,10 @@ def read_features(filename_fet, nchannels, fetdim, freq):
     
     # normalize normal features while keeping symmetry
     features[:,:-nextrafet] = normalize(features[:,:-nextrafet],
-                                        symmetrical=True)
+                                        symmetric=True)
     # normalize extra features without keeping symmetry
     features[:,-nextrafet:] = normalize(features[:,-nextrafet:],
-                                        symmetrical=False)
+                                        symmetric=False)
     
     return features, spiketimes
     
