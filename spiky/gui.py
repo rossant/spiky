@@ -17,6 +17,7 @@ import spiky.dataio as sdataio
 import rcicons
 
 import spiky.tasks as tasks
+from qtools import GarbageCollector
 
 SETTINGS = tools.get_settings()
 
@@ -74,6 +75,9 @@ class SpikyMainWindow(QtGui.QMainWindow):
     
     def __init__(self):
         super(SpikyMainWindow, self).__init__()
+        
+        self.gc = GarbageCollector(self)  #, True)
+        
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
         
         # parameters related to docking
