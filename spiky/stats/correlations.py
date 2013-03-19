@@ -14,17 +14,18 @@ from tools import matrix_of_pairs
 # -----------------------------------------------------------------------------
 # Correlation matrix
 # -----------------------------------------------------------------------------
-def compute_clusters_statistics(Fet1, Fet2, spikes_in_clusters, masks):
+def compute_statistics(Fet1, Fet2, spikes_in_clusters, masks):
     """Return Gaussian statistics about each cluster."""
     nPoints = Fet1.shape[0]
     nDims = Fet1.shape[1]
     nClusters = len(spikes_in_clusters)
-
+    
     # precompute the mean and variances of the masked points for each feature
     # contains 1 when the corresponding point is masked
     masked = np.zeros_like(masks)
     masked[masks == 0] = 1
     nmasked = np.sum(masked, axis=0)
+    nmasked[nmasked == 0] = 1
     nu = np.sum(Fet2 * masked, axis=0) / nmasked
     nu = nu.reshape((1, -1))
     sigma2 = np.sum(((Fet2 - nu) * masked) ** 2, axis=0) / nmasked
@@ -33,14 +34,20 @@ def compute_clusters_statistics(Fet1, Fet2, spikes_in_clusters, masks):
     y = Fet1 * masks + (1 - masks) * nu
     z = masks * Fet1**2 + (1 - masks) * (nu ** 2 + sigma2)
     eta = z - y ** 2
-
+    # print nu
+    # print nmasked
+    
     LogP = np.zeros((nPoints, nClusters))
     stats = {}
-
+    
     for c in xrange(nClusters):
         MyPoints = spikes_in_clusters[c]
+        
+        # print MyPoints
+        
         # now, take the modified features here
         MyFet2 = np.take(y, MyPoints, axis=0)
+        
         if len(MyPoints) > nDims:
             # log of the proportion in cluster c
             LogProp = np.log(len(MyPoints) / float(nPoints))
@@ -64,7 +71,7 @@ def compute_clusters_statistics(Fet1, Fet2, spikes_in_clusters, masks):
 
     return stats
 
-def compute_cluster_correlations(features, clusters, masks,
+def compute_correlations(features, clusters, masks,
         clusters_to_update=None):
     """Compute the correlation matrix between every pair of clusters.
     
@@ -82,7 +89,9 @@ def compute_cluster_correlations(features, clusters, masks,
     c = Counter(clusters)
     spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
     
-    stats = compute_clusters_statistics(features, features, spikes_in_clusters, masks)
+    stats = compute_statistics(features, features, spikes_in_clusters, masks)
+    
+    # print stats
     
     if clusters_to_update is None:
         clusters_to_update = sorted(stats.keys())
@@ -134,7 +143,7 @@ if __name__ == '__main__':
     clusters = l.get_clusters()
     masks = l.get_masks(full=True)
     
-    C = compute_cluster_correlations(features, clusters, masks)
+    C = compute_correlations(features, clusters, masks)
     
     C = matrix_of_pairs(C)
     

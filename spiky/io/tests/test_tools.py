@@ -1,4 +1,4 @@
-"""Unit tests for tools module."""
+"""Unit tests for io.tools module."""
 
 # -----------------------------------------------------------------------------
 # Imports

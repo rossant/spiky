@@ -59,7 +59,6 @@ def compute_spike_delays(spiketimes, clusters, clusters_to_update=None,
                 if clusters_mask[cl1]:
                     # compute only correlograms if necessary
                     # and avoid computing symmetric pairs twice
-                    # add the delay
                     if t0min <= t1 <= t0max:
                         d = t1 - t0
                         delays[(cl0, cl1)].append(d)
@@ -67,7 +66,6 @@ def compute_spike_delays(spiketimes, clusters, clusters_to_update=None,
                     else:
                         break
                 j += 1
-    
     return delays
 
 def compute_correlograms(spiketimes, clusters, clusters_to_update=None,
