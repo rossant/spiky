@@ -340,29 +340,7 @@ class KlustersDataProvider(DataProvider):
             # spiky = True
         # else:
             # spiky = False
-        
-        
-        # CLUSTERS
-        # -------------------------------------------------
-        try:
-            # if spiky:
-                # path = filename + "_spiky.clu.%d" % fileindex
-            # else:
-                # path = filename + ".clu.%d" % fileindex
-            path = get_actual_filename(filename, 'clu', fileindex)
-            # clusters = load_text(path, np.int32)
-            clusters = load_text_pandas(path, np.int32)
-            nspikes = len(clusters) - 1
-        except Exception as e:
-            log_warn("CLU file '%s' not found" % filename)
-            clusters = np.zeros(nspikes + 1, dtype=np.int32)
-            clusters[0] = 1
-        # nclusters = clusters[0]
-        clusters = clusters[1:]
-        # if progressbar:
-            # progressbar.setValue(1)
-        ssignals.emit(self, 'FileLoading', .2)
-        
+                
         
         # FEATURES
         # -------------------------------------------------
@@ -384,6 +362,29 @@ class KlustersDataProvider(DataProvider):
             except:
                 log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 5, so I'm confused and I can't continue. Sorry :(" \
                     % (fetdim, nchannels))
+                
+        nspikes = features.shape[0]
+
+
+        # CLUSTERS
+        # -------------------------------------------------
+        try:
+            # if spiky:
+                # path = filename + "_spiky.clu.%d" % fileindex
+            # else:
+                # path = filename + ".clu.%d" % fileindex
+            path = get_actual_filename(filename, 'clu', fileindex)
+            # clusters = load_text(path, np.int32)
+            clusters = load_text_pandas(path, np.int32)
+        except Exception as e:
+            log_warn("CLU file '%s' not found" % filename)
+            clusters = np.zeros(nspikes + 1, dtype=np.int32)
+            clusters[0] = 1
+        # nclusters = clusters[0]
+        clusters = clusters[1:]
+        # if progressbar:
+            # progressbar.setValue(1)
+        ssignals.emit(self, 'FileLoading', .2)
             
         
         # get the spiketimes
