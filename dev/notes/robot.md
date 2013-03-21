@@ -127,4 +127,15 @@ Things to do
 
 
 
+New notes
+---------
+
+  * Sort all clusters by decreasing quality (amplitude, spike count, etc.)
+  * Take the first cluster, and sort all neighbor clusters by decreasing
+    order, according to some metric
+  * Ask the user whether the two clusters should be merged: yes, no, 
+    next cluster
+  * Go to next neighbor, until the user decides to go to the next cluster
+  * Repeat
+
 

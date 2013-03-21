@@ -48,26 +48,25 @@ def compute_statistics(Fet1, Fet2, spikes_in_clusters, masks):
         # now, take the modified features here
         MyFet2 = np.take(y, MyPoints, axis=0)
         
-        if len(MyPoints) > nDims:
-            # log of the proportion in cluster c
-            LogProp = np.log(len(MyPoints) / float(nPoints))
-            Mean = np.mean(MyFet2, axis=0).reshape((1, -1))
-            # stats for cluster c
-            CovMat = np.cov(MyFet2, rowvar=0)
-            
-            # HACK: avoid instability issues, kind of works
-            CovMat += np.diag(1e-3 * np.ones(nDims))
-            
-            # now, add the diagonal modification to the covariance matrix
-            # the eta just for the current cluster
-            etac = np.take(eta, MyPoints, axis=0)
-            d = np.sum(etac, axis=0) / nmasked
-            # add diagonal
-            CovMat += np.diag(d)
-            CovMatinv = np.linalg.inv(CovMat)
-            LogDet = np.log(np.linalg.det(CovMat))
-            
-            stats[c] = (Mean, CovMat, CovMatinv, LogDet, len(MyPoints))
+        # log of the proportion in cluster c
+        LogProp = np.log(len(MyPoints) / float(nPoints))
+        Mean = np.mean(MyFet2, axis=0).reshape((1, -1))
+        # stats for cluster c
+        CovMat = np.cov(MyFet2, rowvar=0)
+        
+        # HACK: avoid instability issues, kind of works
+        CovMat += np.diag(1e-3 * np.ones(nDims))
+        
+        # now, add the diagonal modification to the covariance matrix
+        # the eta just for the current cluster
+        etac = np.take(eta, MyPoints, axis=0)
+        d = np.sum(etac, axis=0) / nmasked
+        # add diagonal
+        CovMat += np.diag(d)
+        CovMatinv = np.linalg.inv(CovMat)
+        LogDet = np.log(np.linalg.det(CovMat))
+        
+        stats[c] = (Mean, CovMat, CovMatinv, LogDet, len(MyPoints))
 
     return stats
 
