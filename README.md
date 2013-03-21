@@ -23,7 +23,9 @@ version here.
 
 ### Step 1
 
-If you don't already have a Python distribution, install [Enthought Python Distribution](http://www.enthought.com/products/epd.php) (EPD), which is free for academics.
+If you don't already have a Python distribution, install [Enthought Python Distribution](http://www.enthought.com/products/edudownload.php) (EPD), which is free for academics (*EPD ACADEMIC SUBSCRIPTION* and **NOT** *EPD FREE*).
+
+You need to click on *request an academic license here* on the webpage and create an account with your **academic e-mail address**.
 
 
 ### Step 2
