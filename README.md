@@ -13,12 +13,13 @@ showing the most relevant feature projections, and asks him or her to make merge
 split decisions. The goal is to make the manual stage more reliable, less
 error-prone and quicker than what it currently is.
 
-This software was developed by Cyrille Rossant in the [Cortical Processing Laboratory](http://www.ucl.ac.uk/cortexlab) at UCL.
+This software was 
+ed by Cyrille Rossant in the [Cortical Processing Laboratory](http://www.ucl.ac.uk/cortexlab) at UCL.
 
 Installation
 ------------
 
-The software is still in developpement, but you can download an experimental
+The software is still in development, but you can download an experimental
 version here.
 
 ### Step 1
