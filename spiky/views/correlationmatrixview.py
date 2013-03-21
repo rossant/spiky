@@ -62,8 +62,6 @@ class CorrelationMatrixDataManager(Manager):
         elif matrix.shape[0] == 1:
             matrix = -np.ones((2, 2))
         n = matrix.shape[0]
-        # remove diagonal
-        # matrix[range(n), range(n)] = -1
         
         self.texture = colormap(matrix)[::-1, :, :]
         self.matrix = matrix
@@ -81,12 +79,6 @@ class CorrelationMatrixPaintManager(PaintManager):
     def initialize(self):
         self.add_visual(TextureVisual,
             texture=self.data_manager.texture, name='correlation_matrix')
-
-        # self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
-            # color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
-            # depth=-.99,
-            # is_static=True
-            # )
         
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             # background=(0., 0., 0., 1.),
@@ -108,7 +100,7 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         self.register(None, self.hide_closest_cluster)
             
     def get_closest_cluster(self, parameter):
-        nclu = self.data_manager.nclusters
+        nclu = self.data_manager.texture.shape[0]
         
         nav = self.get_processor('navigation')
         
@@ -134,11 +126,11 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         
         self.cursor = 'ArrowCursor'
         
-        cx_rel, cy_rel = self.get_closest_cluster(parameter)
+        # cx_rel, cy_rel = self.get_closest_cluster(parameter)
+        cx, cy = self.get_closest_cluster(parameter)
         
-        cx = self.data_manager.clusters_unique[cx_rel]
-        cy = self.data_manager.clusters_unique[cy_rel]
-        
+        # cx = self.data_manager.clusters_unique[cx_rel]
+        # cy = self.data_manager.clusters_unique[cy_rel]
         pair = np.unique(np.array([cx, cy]))
         
         ssignals.emit(self, 'ClusterSelectionToChange', pair)
@@ -158,39 +150,17 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         # data coordinates
         xd, yd = nav.get_data_coordinates(x, y)
         
-        cx_rel, cy_rel = self.get_closest_cluster(parameter)
+        # cx_rel, cy_rel = self.get_closest_cluster(parameter)
+        cx, cy = self.get_closest_cluster(parameter)
         
-        color1 = self.data_manager.cluster_colors[cy_rel]
-        r, g, b = scolors.COLORMAP[color1,:]
-        color1 = (r, g, b, .75)
-        
-        cx = self.data_manager.clusters_unique[cx_rel]
-        cy = self.data_manager.clusters_unique[cy_rel]
-        
-        if ((cx_rel >= self.data_manager.matrix.shape[0]) or
-            (cy_rel >= self.data_manager.matrix.shape[1])):
+        if ((cx>= self.data_manager.matrix.shape[0]) or
+            (cy>= self.data_manager.matrix.shape[1])):
             return
             
-        val = self.data_manager.matrix[cx_rel, cy_rel]
-        # val2 = self.data_manager.texture[cx_rel, cy_rel, :]
-        # print type(val), val
-        # if type(val) is float:
-            # val = "%.3f" % float
-        # else:
-            # val = str(val)
+        val = self.data_manager.matrix[cx, cy]
+
         text = "%d / %d : %.3f" % (cx, cy, val)
         
-        # print cx, cy, val
-        # print val, val2
-        
-        # text = "%d / %d" % (cx, cy)
-        
-        # update clusterinfo visual
-        # rect = (x-.24, y-.04, x+.44, y-.21)
-        # self.paint_manager.set_data(coordinates=rect, 
-            # visible=True,
-            # visual='clusterinfo_bg')
-            
         self.paint_manager.set_data(coordinates=(xd, yd), #color=color1,
             text=text,
             visible=True,
@@ -198,14 +168,6 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         
         
 class CorrelationMatrixBindings(SpikyBindings):
-    # def set_zoombox_keyboard(self):
-        # """Set zoombox bindings with the keyboard."""
-        # self.set('LeftClickMove', 'ZoomBox',
-                    # key_modifier='Shift',
-                    # param_getter=lambda p: (p["mouse_press_position"][0],
-                                            # p["mouse_press_position"][1],
-                                            # p["mouse_position"][0],
-                                            # p["mouse_position"][1]))
 
     def set_clusterinfo(self):
         self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
@@ -226,8 +188,6 @@ class CorrelationMatrixBindings(SpikyBindings):
 class CorrelationMatrixView(GalryWidget):
     def initialize(self):
         self.set_bindings(CorrelationMatrixBindings)
-        # self.constrain_ratio = True
-        # self.constrain_navigation = True
         self.set_companion_classes(
             paint_manager=CorrelationMatrixPaintManager,
             interaction_manager=CorrelationMatrixInteractionManager,
@@ -251,8 +211,6 @@ class CorrelationMatrixWidget(VisualizationWidget):
         view.set_data(
                       matrix=dh.correlation_matrix,
                       clusters_info=self.dh.clusters_info,
-                      # clusters_unique=self.dh.clusters_unique,
-                      # cluster_colors=dh.cluster_colors
                       )
         return view
         
@@ -262,7 +220,5 @@ class CorrelationMatrixWidget(VisualizationWidget):
         self.view.set_data(
                       matrix=dh.correlation_matrix,
                       clusters_info=self.dh.clusters_info,
-                      # clusters_unique=self.dh.clusters_unique,
-                      # cluster_colors=dh.cluster_colors
                       )
 

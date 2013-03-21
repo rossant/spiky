@@ -371,31 +371,31 @@ def get_stats(Fet1, Fet2, spikes_in_clusters, masks):
 
     stats = {}
 
-    for c in xrange(nClusters):
+    for c in spikes_in_clusters:
         # MyPoints = np.nonzero(Clu2==c)[0]
         MyPoints = spikes_in_clusters[c]
         # MyFet2 = Fet2[MyPoints, :]
         # now, take the modified features here
         # MyFet2 = y[MyPoints, :]
         MyFet2 = np.take(y, MyPoints, axis=0)
-        if len(MyPoints) > nDims:
-            LogProp = np.log(len(MyPoints) / float(nPoints)) # log of the proportion in cluster c
-            Mean = np.mean(MyFet2, axis=0).reshape((1, -1))
-            CovMat = np.cov(MyFet2, rowvar=0) # stats for cluster c
-            
-            # HACK: avoid instability issues, kind of works
-            CovMat += np.diag(1e-3 * np.ones(nDims))
-            
-            # now, add the diagonal modification to the covariance matrix
-            # the eta just for the current cluster
-            etac = np.take(eta, MyPoints, axis=0)
-            d = np.sum(etac, axis=0) / nmasked
-            # add diagonal
-            CovMat += np.diag(d)
-            CovMatinv = np.linalg.inv(CovMat)
-            LogDet = np.log(np.linalg.det(CovMat))
-            
-            stats[c] = (Mean, CovMat, CovMatinv, LogDet, len(MyPoints))
+        # if len(MyPoints) > nDims:
+        LogProp = np.log(len(MyPoints) / float(nPoints)) # log of the proportion in cluster c
+        Mean = np.mean(MyFet2, axis=0).reshape((1, -1))
+        CovMat = np.cov(MyFet2, rowvar=0) # stats for cluster c
+        
+        # HACK: avoid instability issues, kind of works
+        CovMat += np.diag(1e-3 * np.ones(nDims))
+        
+        # now, add the diagonal modification to the covariance matrix
+        # the eta just for the current cluster
+        etac = np.take(eta, MyPoints, axis=0)
+        d = np.sum(etac, axis=0) / nmasked
+        # add diagonal
+        CovMat += np.diag(d)
+        CovMatinv = np.linalg.inv(CovMat)
+        LogDet = np.log(np.linalg.det(CovMat))
+        
+        stats[c] = (Mean, CovMat, CovMatinv, LogDet, len(MyPoints))
 
     return stats
     
@@ -464,29 +464,48 @@ def correlation_matrix2(features, clusters, masks):
     
     # print masks.shape
     c = Counter(clusters)
-    spikes_in_clusters = [np.nonzero(clusters == clu)[0] for clu in sorted(c)]
+    spikes_in_clusters = dict([(clu, np.nonzero(clusters == clu)[0]) for clu in sorted(c)])
     nClusters = len(spikes_in_clusters)
+    clumax = max(spikes_in_clusters.keys()) + 1
     
     stats = get_stats(features, features, spikes_in_clusters, masks)
     
     clusterslist = sorted(stats.keys())
-    matrix = np.zeros((nClusters, nClusters))
+    # matrix = np.zeros((nClusters, nClusters))
+    matrix_product = np.zeros((clumax, clumax))
 
-    for i, ci in enumerate(clusterslist):
+    # for i, ci in enumerate(clusterslist):
+        # mui, Ci, Ciinv, logdeti, npointsi = stats[ci]
+        # for j, cj in enumerate(clusterslist):
+            # muj, Cj, Cjinv, logdetj, npointsj = stats[cj]
+            # dmu = (muj - mui).reshape((-1, 1))
+            
+            # p = np.log(2*np.pi)*(-nDims/2.)+(-.5*np.log(np.linalg.det(Ci+Cj)))+(-.5)*np.dot(np.dot(dmu.T, np.linalg.inv(Ci+Cj)), dmu)
+            # alpha = float(npointsi) / nPoints
+            # # print ci, cj, p
+            # matrix[ci, cj] = p + np.log(alpha)
+    
+    # matrix[range(nClusters), range(nClusters)] = 0
+    # matrix[matrix==0] = matrix[matrix!=0].min()
+    
+    # return np.exp(matrix)
+    
+    
+    for ci in clusterslist:
         mui, Ci, Ciinv, logdeti, npointsi = stats[ci]
-        for j, cj in enumerate(clusterslist):
+        for cj in clusterslist:
             muj, Cj, Cjinv, logdetj, npointsj = stats[cj]
             dmu = (muj - mui).reshape((-1, 1))
             
             p = np.log(2*np.pi)*(-nDims/2.)+(-.5*np.log(np.linalg.det(Ci+Cj)))+(-.5)*np.dot(np.dot(dmu.T, np.linalg.inv(Ci+Cj)), dmu)
             alpha = float(npointsi) / nPoints
-            # print ci, cj, p
-            matrix[i, j] = p + np.log(alpha)
+            matrix_product[ci, cj] = np.exp(p + np.log(alpha))
+    s = matrix_product.sum(axis=1)
+    matrix_product[s == 0, 0] = 1e-9
+    s = matrix_product.sum(axis=1)
+    matrix_product *= (1. / s.reshape((-1, 1)))
     
-    matrix[range(nClusters), range(nClusters)] = 0
-    matrix[matrix==0] = matrix[matrix!=0].min()
-    
-    return np.exp(matrix)
+    return matrix_product.T
     
     
 class CorrelationMatrixQueue(object):

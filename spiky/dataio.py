@@ -192,9 +192,12 @@ class SelectDataHolder(object):
     # @profile
     def select_clusters(self, clusters):
         """Provides the data related to the specified clusters."""
+
+        clusters = list(set(clusters).intersection(self.dataholder.clusters_info['clusters_info'].keys()))
         
         # keep the order of the selected clusters in clusters_ordered
         clusters = np.array(clusters)
+        # only clusters that exist
         clusters_ordered = list(clusters.copy())
         clusters.sort()
         
