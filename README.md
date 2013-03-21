@@ -35,7 +35,7 @@ You need to click on *request an academic license here* on the webpage and creat
 
 ### Step 3
 
-Unextract this ZIP file in a temporary folder.
+Extract this ZIP file in a temporary folder.
 
 
 ### Step 4
