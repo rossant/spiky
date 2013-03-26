@@ -28,7 +28,7 @@ def select_numpy(data, spikes):
 def select_pandas(data, spikes):
     return data.ix[spikes]
 
-def select(data, spikes=None):
+def select(data, spikes=None, clusters=None):
     """Select portion of the data, with the only assumption that spikes are
     along the first axis.
     

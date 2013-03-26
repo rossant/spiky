@@ -10,8 +10,8 @@ import re
 import numpy as np
 
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
-    load_binary)
-from selection import select
+    load_binary, load_pickle)
+from selection import select, get_spikes_in_clusters
 from spiky.logger import debug, info, warn
 
 # -----------------------------------------------------------------------------
@@ -31,6 +31,10 @@ def read_xml(filename_xml, fileindex):
         freq=params['rate'])
     
     return metadata
+
+def read_clusters_info(filename_cluinfo, fileindex):
+    info = load_pickle(filename_cluinfo)
+    return info
     
 def read_features(filename_fet, nchannels, fetdim, freq):
     """Read a .fet file and return the normalize features array,
@@ -102,6 +106,7 @@ class KlustersLoader(object):
         
         """
         self.spikes_selected = None
+        self.clusters_selected = None
         if filename:
             self.open(filename)
     
@@ -143,6 +148,20 @@ class KlustersLoader(object):
         fetdim = self.metadata.get('fetdim')
         freq = self.metadata.get('freq')
         
+        
+        # # Read cluster groups.
+        # try:
+            # info = read_clusters_info(self.filename_cluinfo)
+            # clusters_info = info['clusters_info']
+            # groups_info = info['groups_info']
+        # except:
+            # groups_info = {
+                # 0: dict(groupidx=0, name='Noise', color=0, spkcount=0),
+                # 1: dict(groupidx=1, name='Multi-unit', color=1, spkcount=0),
+                # 2: dict(groupidx=2, name='Good', color=2, spkcount=nspikes),
+            # }
+        
+        
         # Read features.
         try:
             self.features, self.spiketimes = read_features(self.filename_fet,
@@ -182,6 +201,9 @@ class KlustersLoader(object):
             self.waveforms = np.zeros((nspikes, nsamples, nchannels))
         
     def close(self):
+        self.spikes_selected = None
+        self.clusters_selected = None
+        
         self.filename = None
         self.fileindex = None
         self.filename_xml = None
@@ -200,27 +222,38 @@ class KlustersLoader(object):
         self.metadata = {}
     
     
-    # Access to the data
-    # ------------------
-    def select(self, spikes=None):
+    # Access to the data: spikes
+    # --------------------------
+    def select(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)    
         self.spikes_selected = spikes
+        self.clusters_selected = clusters
     
-    def get_features(self, spikes=None):
+    def get_features(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
         if spikes is None:
             spikes = self.spikes_selected
         return select(self.features, spikes)
     
-    def get_spiketimes(self, spikes=None):
+    def get_spiketimes(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
         if spikes is None:
             spikes = self.spikes_selected
         return select(self.spiketimes, spikes)
     
-    def get_clusters(self, spikes=None):
+    def get_clusters(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
         if spikes is None:
             spikes = self.spikes_selected
         return select(self.clusters, spikes)
     
-    def get_masks(self, spikes=None, full=None):
+    def get_masks(self, spikes=None, full=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
         if spikes is None:
             spikes = self.spikes_selected
         if not full:
@@ -229,12 +262,21 @@ class KlustersLoader(object):
             masks = self.masks_full
         return select(masks, spikes)
     
-    def get_waveforms(self, spikes=None):
+    def get_waveforms(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
         if spikes is None:
             spikes = self.spikes_selected
         return select(self.waveforms, spikes)
     
+    
+    # Access to the data: clusters
+    # ----------------------------
+    def get_clusters_info(self, clusters=None):
+        pass
 
+    
+    
 if __name__ == '__main__':
     
     filename = "D:\Git\spiky\_test\data\subset41test.clu.1"
