@@ -18,6 +18,7 @@ Major features
   * GUI to visualize probe files
   * new HDF5 file format
   * robot
+  * multiple selections
 
   
 Minor features

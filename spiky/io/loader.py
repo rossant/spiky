@@ -101,6 +101,7 @@ class KlustersLoader(object):
             dataset.
         
         """
+        self.spikes_selected = None
         if filename:
             self.open(filename)
     
@@ -201,16 +202,27 @@ class KlustersLoader(object):
     
     # Access to the data
     # ------------------
+    def select(self, spikes=None):
+        self.spikes_selected = spikes
+    
     def get_features(self, spikes=None):
+        if spikes is None:
+            spikes = self.spikes_selected
         return select(self.features, spikes)
     
     def get_spiketimes(self, spikes=None):
+        if spikes is None:
+            spikes = self.spikes_selected
         return select(self.spiketimes, spikes)
     
     def get_clusters(self, spikes=None):
+        if spikes is None:
+            spikes = self.spikes_selected
         return select(self.clusters, spikes)
     
     def get_masks(self, spikes=None, full=None):
+        if spikes is None:
+            spikes = self.spikes_selected
         if not full:
             masks = self.masks
         else:
@@ -218,6 +230,8 @@ class KlustersLoader(object):
         return select(masks, spikes)
     
     def get_waveforms(self, spikes=None):
+        if spikes is None:
+            spikes = self.spikes_selected
         return select(self.waveforms, spikes)
     
 
