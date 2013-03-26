@@ -19,6 +19,13 @@ Major features
   * new HDF5 file format
   * robot
   * multiple selections
+  
+  
+  
+  * widgets emit signals, and do not receive any signals. all functionality
+    is implemented with public methods.
+    the main GUI receives all signals and call those methods.
+    
 
   
 Minor features

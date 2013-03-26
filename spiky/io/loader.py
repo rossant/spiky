@@ -199,7 +199,10 @@ class KlustersLoader(object):
         except IOError:
             warn("The SPK file is missing.")
             self.waveforms = np.zeros((nspikes, nsamples, nchannels))
-        
+    
+    def save(self):
+        pass
+    
     def close(self):
         self.spikes_selected = None
         self.clusters_selected = None
@@ -273,6 +276,9 @@ class KlustersLoader(object):
     # Access to the data: clusters
     # ----------------------------
     def get_clusters_info(self, clusters=None):
+        pass
+
+    def get_groups_info(self, groups=None):
         pass
 
     
