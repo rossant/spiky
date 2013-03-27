@@ -8,6 +8,7 @@ import os.path
 import re
 
 import numpy as np
+import pandas as pd
 
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
     load_binary, load_pickle)
@@ -85,7 +86,7 @@ def read_masks(filename_mask, fetdim):
     return masks, full_masks
     
 def read_waveforms(filename_spk, nsamples, nchannels):
-    waveforms = load_binary(filename_spk)
+    waveforms = np.array(load_binary(filename_spk), dtype=np.float32)
     waveforms = waveforms.reshape((-1, nsamples, nchannels))
     return waveforms
 
@@ -168,6 +169,9 @@ class KlustersLoader(object):
                 nchannels, fetdim, freq)
         except IOError:
             raise IOError("The FET file is missing.")
+        # Convert to Pandas.
+        self.features = pd.DataFrame(self.features, dtype=np.float32)
+        self.spiketimes = pd.Series(self.spiketimes, dtype=np.float32)
         
         # Count the number of spikes and save it in the metadata.
         nspikes = self.features.shape[0]
@@ -181,6 +185,8 @@ class KlustersLoader(object):
             # Default clusters if the CLU file is not available.
             self.clusters = np.zeros(nspikes + 1, dtype=np.int32)
             self.clusters[0] = 1
+        # Convert to Pandas.
+        self.clusters = pd.Series(self.clusters, dtype=np.int32)
         
         # Read masks.
         try:
@@ -191,7 +197,9 @@ class KlustersLoader(object):
             # Default masks if the MASK/FMASK file is not available.
             self.masks = np.ones((nspikes, nchannels))
             self.masks_full = np.ones(features.shape)
-        
+        self.masks = pd.DataFrame(self.masks)
+        self.masks_full = pd.DataFrame(self.masks_full)
+
         # Read waveforms.
         try:
             self.waveforms = read_waveforms(self.filename_spk, nsamples,
@@ -199,6 +207,8 @@ class KlustersLoader(object):
         except IOError:
             warn("The SPK file is missing.")
             self.waveforms = np.zeros((nspikes, nsamples, nchannels))
+        # Convert to Pandas.
+        self.waveforms = pd.Panel(self.waveforms, dtype=np.float32)
     
     def save(self):
         pass

@@ -18,7 +18,7 @@ def select_numpy(data, spikes):
     assert isinstance(spikes, np.ndarray)
     
     # spikes can contain boolean masks...
-    if data.dtype == np.bool:
+    if spikes.dtype == np.bool:
         data_selection = np.compress(spikes, data, axis=0)
     # or spike indices.
     else:
@@ -28,7 +28,7 @@ def select_numpy(data, spikes):
 def select_pandas(data, spikes):
     return data.ix[spikes]
 
-def select(data, spikes=None, clusters=None):
+def select(data, spikes=None):
     """Select portion of the data, with the only assumption that spikes are
     along the first axis.
     

@@ -90,6 +90,15 @@ def find_filename(filename, extension_requested, dir='', files=[]):
     
     return None
 
+def check_dtype(data, dtype):
+    if hasattr(data, 'dtype'):
+        return data.dtype == dtype
+    elif hasattr(data, 'dtypes'):
+        return (data.dtypes == dtype).all()
+        
+def check_shape(data, shape):
+    return tuple(data.shape) == shape
+    
 
 # -----------------------------------------------------------------------------
 # Text files related functions
@@ -107,8 +116,20 @@ if HAS_PANDAS:
             x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
         return x
     
-def save_text(file, data):
-    return np.savetxt(file, data, fmt='%d', newline='\n')
+def save_text(file, data, header=None):
+    if isinstance(data, basestring):
+        with open(file, 'w') as f:
+            f.write(data)
+    else:
+        np.savetxt(file, data, fmt='%d', newline='\n')
+        # Write a header.
+        if header is not None:
+            with open(file, 'r') as f:
+                contents = f.read()
+            contents_updated = str(header) + '\n' + contents
+            with open(file, 'w') as f:
+                f.write(contents_updated)
+        
 
 
 # -----------------------------------------------------------------------------
@@ -165,6 +186,9 @@ def load_binary(file, dtype=None, count=None):
         X = np.fromfile(file, dtype=dtype, count=count)
     return X
 
+def save_binary(file, data):
+    data.tofile(file)
+    
 def save_pickle(file, obj):
     with open(file, 'wb') as f:
         cPickle.dump(obj, f)

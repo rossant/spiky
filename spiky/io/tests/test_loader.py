@@ -1,0 +1,170 @@
+"""Unit tests for loader module."""
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
+import os
+
+import numpy as np
+import numpy.random as rnd
+import pandas as pd
+from nose import with_setup
+import shutil
+
+from spiky.io.loader import KlustersLoader
+from spiky.io.selection import select
+from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
+
+# -----------------------------------------------------------------------------
+# Data creation methods
+# -----------------------------------------------------------------------------
+def create_waveforms(nspikes, nsamples, nchannels):
+    return np.array(rnd.randint(size=(nspikes, nsamples, nchannels),
+        low=-32768, high=32768), dtype=np.int16)
+    
+def create_features(nspikes, nchannels, fetdim):
+    return np.array(rnd.randint(size=(nspikes, nchannels * fetdim + 1),
+        low=-32768, high=32768), dtype=np.int16)
+    
+def create_clusters(nspikes, nclusters):
+    return rnd.randint(size=nspikes, low=0, high=nclusters)
+    
+def create_masks(nspikes, nchannels, fetdim):
+    return rnd.rand(nspikes, nchannels * fetdim + 1) < .5
+    
+def create_xml(nchannels, nsamples, fetdim):
+    channels = '\n'.join(["<channel>{0:d}</channel>".format(i) 
+        for i in xrange(nchannels)])
+    xml = """
+    <parameters>
+      <acquisitionSystem>
+        <nBits>16</nBits>
+        <nChannels>{0:d}</nChannels>
+        <samplingRate>20000</samplingRate>
+        <voltageRange>20</voltageRange>
+        <amplification>1000</amplification>
+        <offset>2048</offset>
+      </acquisitionSystem>
+      <anatomicalDescription>
+        <channelGroups>
+          <group>
+            {2:s}
+          </group>
+        </channelGroups>
+      </anatomicalDescription>
+      <spikeDetection>
+        <channelGroups>
+          <group>
+            <channels>
+              {2:s}
+            </channels>
+            <nSamples>{1:d}</nSamples>
+            <peakSampleIndex>10</peakSampleIndex>
+            <nFeatures>{3:d}</nFeatures>
+          </group>
+        </channelGroups>
+      </spikeDetection>
+    </parameters>
+    """.format(nchannels, nsamples, channels, fetdim)
+    return xml
+    
+
+# -----------------------------------------------------------------------------
+# Global variables
+# -----------------------------------------------------------------------------
+# Mock parameters.
+nspikes = 1000
+nclusters = 10
+nsamples = 20
+nchannels = 32
+fetdim = 3
+
+
+# -----------------------------------------------------------------------------
+# Fixtures
+# -----------------------------------------------------------------------------
+def setup():
+    
+    # Create mock data.
+    waveforms = create_waveforms(nspikes, nsamples, nchannels)
+    features = create_features(nspikes, nchannels, fetdim)
+    clusters = create_clusters(nspikes, nclusters)
+    masks = create_masks(nspikes, nchannels, fetdim)
+    xml = create_xml(nchannels, nsamples, fetdim)
+    
+    # Create mock directory if needed.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    
+    # Create mock files.
+    save_binary(os.path.join(dir, 'test.spk.1'), waveforms)
+    save_text(os.path.join(dir, 'test.fet.1'), features,
+        header=nchannels * fetdim + 1)
+    save_text(os.path.join(dir, 'test.clu.1'), clusters, header=nclusters)
+    save_text(os.path.join(dir, 'test.mask.1'), masks, header=nclusters)
+    save_text(os.path.join(dir, 'test.xml'), xml)
+    
+def teardown():
+    # Erase the temporary data directory.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    if os.path.exists(dir):
+        shutil.rmtree(dir)
+    
+
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
+@with_setup(setup, teardown)
+def test_klusters_loader():
+    # Open the mock data.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    xmlfile = os.path.join(dir, 'test.xml')
+    l = KlustersLoader(xmlfile)
+    
+    # Get full data sets.
+    features = l.get_features()
+    masks = l.get_masks()
+    waveforms = l.get_waveforms()
+    clusters = l.get_clusters()
+    spiketimes = l.get_spiketimes()
+    
+    # Check the shape of the data sets.
+    assert check_shape(features, (nspikes, nchannels * fetdim + 1))
+    assert check_shape(masks, (nspikes, nchannels))
+    assert check_shape(waveforms, (nspikes, nsamples, nchannels))
+    assert check_shape(clusters, (nspikes,))
+    assert check_shape(spiketimes, (nspikes,))
+    
+    # Check the data type of the data sets.
+    assert check_dtype(features, np.float32)
+    assert check_dtype(masks, np.float32)
+    # HACK: Panel has no dtype(s) attribute
+    # assert check_dtype(waveforms, np.float32)
+    assert check_dtype(clusters, np.int32)
+    assert check_dtype(spiketimes, np.float32)
+    
+    # Check selection.
+    index = nspikes / 2
+    waveform = select(waveforms, index).values
+    cluster = clusters[index]
+    spikes_in_cluster = np.nonzero(clusters == cluster)[0]
+    nspikes_in_cluster = len(spikes_in_cluster)
+    l.select(clusters=[cluster])
+    
+    # Check the size of the selected data.
+    assert check_shape(l.get_features(), (nspikes_in_cluster, 
+                                          nchannels * fetdim + 1))
+    assert check_shape(l.get_masks(full=True), (nspikes_in_cluster, 
+                                                nchannels * fetdim + 1))
+    assert check_shape(l.get_waveforms(), 
+                       (nspikes_in_cluster, nsamples, nchannels))
+    assert check_shape(l.get_clusters(), (nspikes_in_cluster,))
+    assert check_shape(l.get_spiketimes(), (nspikes_in_cluster,))
+    
+    # Check waveform sub selection.
+    waveforms_selected = l.get_waveforms()
+    assert np.array_equal(select(waveforms_selected, index).values, waveform)
+    
+    # Close the loader.
+    l.close()
