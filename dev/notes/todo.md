@@ -51,7 +51,7 @@ Minor features
   * interaction mode buttons: deactivate in gray to highlight the current mode
   * small widget with text information (number of spikes, highlighted spikes...)
 
-  
+
 Ideas
 -----
   
