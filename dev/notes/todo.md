@@ -23,6 +23,8 @@ Major features
 Minor features
 --------------
   
+  * try antialiasing, especially in correlograms view
+  * put scale and grid in all views
   * option to change width/bin of correlograms
   * option to toggle normalization in correlograms view
   * when selecting a group, only show the corresponding clusters in the
