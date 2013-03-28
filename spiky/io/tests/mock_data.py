@@ -8,8 +8,10 @@ import os
 import numpy as np
 import numpy.random as rnd
 import pandas as pd
-from nose import with_setup
 import shutil
+from nose import with_setup
+
+from spiky.colors import COLORS_COUNT
 
 
 # -----------------------------------------------------------------------------
@@ -25,6 +27,9 @@ def create_features(nspikes, nchannels, fetdim):
     
 def create_clusters(nspikes, nclusters):
     return rnd.randint(size=nspikes, low=0, high=nclusters)
+    
+def create_cluster_colors(maxcluster):
+    return np.mod(np.arange(maxcluster + 1, dtype=np.int32), COLORS_COUNT) + 1
     
 def create_masks(nspikes, nchannels, fetdim):
     return rnd.rand(nspikes, nchannels * fetdim + 1) < .1
@@ -66,4 +71,9 @@ def create_xml(nchannels, nsamples, fetdim):
     return xml
 
 def create_probe(nchannels):
-    return np.random.randint(size=(nchannels, 2), low=0, high=10)
+    # return np.random.randint(size=(nchannels, 2), low=0, high=10)
+    probe = np.zeros((nchannels, 2), dtype=np.int32)
+    probe[:, 0] = np.arange(nchannels)
+    probe[::2, 0] *= -1
+    probe[:, 1] = np.arange(nchannels)
+    return probe

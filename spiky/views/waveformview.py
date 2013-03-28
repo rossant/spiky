@@ -6,7 +6,7 @@
 import numpy as np
 import numpy.random as rdn
 from numpy.lib.stride_tricks import as_strided
-import collections
+from collections import Counter
 import operator
 import time
 
@@ -188,9 +188,6 @@ class WaveformPositionManager(Manager):
         """
         self.nchannels = nchannels
         self.nclusters = nclusters
-        
-        # HEURISTIC
-        # self.diffxc, self.diffyc = [np.sqrt(float(self.nchannels))] * 2
         
         # linear position: indexing from top to bottom
         linear_positions = np.zeros((self.nchannels, 2), dtype=np.float32)
@@ -408,10 +405,11 @@ class WaveformDataManager(Manager):
                  box_size=None,
                  probe_scale=None,
                  ):
-        
+                 
         self.waveforms_array = get_array(waveforms)
         self.masks_array = get_array(masks)
         self.clusters_array = get_array(clusters)
+        self.cluster_colors_array = get_array(cluster_colors)
         
         # Relative indexing.
         self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected))-1
@@ -421,7 +419,7 @@ class WaveformDataManager(Manager):
         self.npoints = self.waveforms_array.size
         self.geometrical_positions = geometrical_positions
         self.clusters_selected = clusters_selected
-        self.nclusters = len(clusters_selected)
+        self.nclusters = len(Counter(clusters))
         self.waveforms = waveforms
         self.clusters = clusters
         self.cluster_colors = cluster_colors
@@ -746,7 +744,7 @@ class WaveformPaintManager(PlotPaintManager):
             cluster_depth=self.data_manager.clusters_full_depth,
             nsamples=self.data_manager.nsamples,
             position0=self.data_manager.data,
-            cluster_colors=self.data_manager.cluster_colors,
+            cluster_colors=self.data_manager.cluster_colors_array,
             mask=self.data_manager.masks_full,
             cluster=self.data_manager.clusters_full,
             channel=self.data_manager.channels_full,
@@ -786,7 +784,7 @@ class WaveformPaintManager(PlotPaintManager):
     def update(self):
         size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples, self.data_manager.npoints)
         cluster = self.data_manager.clusters_full
-        cluster_colors = self.data_manager.cluster_colors
+        cluster_colors = self.data_manager.cluster_colors_array
         cmap_index = cluster_colors[cluster]
     
         self.set_data(visual='waveforms', 
@@ -836,7 +834,7 @@ class WaveformHighlightManager(HighlightManager):
         # self.get_data_position = self.data_manager.get_data_position
         self.masks_full = self.data_manager.masks_full
         self.clusters_rel = self.data_manager.clusters_rel
-        self.cluster_colors = self.data_manager.cluster_colors
+        self.cluster_colors = self.data_manager.cluster_colors_array
         self.nchannels = data_manager.nchannels
         self.nclusters = data_manager.nclusters
         self.nsamples = data_manager.nsamples
@@ -1233,10 +1231,14 @@ if __name__ == '__main__':
     l = KlustersLoader(xmlfile)
     
     # Get full data sets.
+    clusters_selected = [1, 3]
+    l.select(clusters=clusters_selected)
+    
     features = l.get_features()
     masks = l.get_masks()
     waveforms = l.get_waveforms()
     clusters = l.get_clusters()
+    cluster_colors = l.get_cluster_colors()
     spiketimes = l.get_spiketimes()
     probe = l.get_probe()
     
@@ -1249,9 +1251,10 @@ if __name__ == '__main__':
             self.view.set_data(
                           waveforms=waveforms,
                           clusters=clusters,
-                          cluster_colors=np.arange(1, 11),
-                          clusters_selected=[1,3],
+                          cluster_colors=cluster_colors,
+                          clusters_selected=clusters_selected,
                           masks=masks,
+                          geometrical_positions=probe,
                           )
             
             self.setCentralWidget(self.view)

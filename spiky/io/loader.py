@@ -6,6 +6,7 @@ data sets."""
 # -----------------------------------------------------------------------------
 import os.path
 import re
+from collections import Counter
 
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ from tools import (find_filename, find_index, load_text, load_xml, normalize,
     load_binary, load_pickle)
 from selection import select, get_spikes_in_clusters
 from spiky.logger import debug, info, warn
+from spiky.colors import COLORS_COUNT
 
 # -----------------------------------------------------------------------------
 # File loading functions
@@ -79,6 +81,10 @@ def read_clusters(filename_clu):
     clusters = load_text(filename_clu, np.int32)
     clusters = clusters[1:]
     return clusters
+
+def read_cluster_colors(filename_clucol):
+    cluster_colors = load_text(filename_clucol, np.int32)
+    return cluster_colors
     
 def read_masks(filename_mask, fetdim):
     masks_full = load_text(filename_mask, np.float32, skiprows=1)
@@ -92,7 +98,8 @@ def read_waveforms(filename_spk, nsamples, nchannels):
     return waveforms
 
 def read_probe(filename_probe):
-    return load_text(filename_probe, np.int32)
+    return normalize(np.array(load_text(filename_probe, np.int32),
+        dtype=np.float32))
 
 
 # -----------------------------------------------------------------------------
@@ -129,6 +136,7 @@ class KlustersLoader(object):
         self.filename_xml = find_filename(self.filename, 'xml')
         self.filename_fet = find_filename(self.filename, 'fet')
         self.filename_clu = find_filename(self.filename, 'clu')
+        self.filename_clucol = find_filename(self.filename, 'clucol')
         # fmask or mask file
         self.filename_mask = find_filename(self.filename, 'fmask')
         if not self.filename_mask:
@@ -155,7 +163,7 @@ class KlustersLoader(object):
         freq = self.metadata.get('freq')
         
         
-        # Read metadata.
+        # Read probe.
         try:
             self.probe = read_probe(self.filename_probe)
         except IOError:
@@ -178,6 +186,7 @@ class KlustersLoader(object):
         
         
         # Read features.
+        # --------------
         try:
             self.features, self.spiketimes = read_features(self.filename_fet,
                 nchannels, fetdim, freq)
@@ -192,6 +201,7 @@ class KlustersLoader(object):
         self.metadata['nspikes'] = nspikes
         
         # Read clusters.
+        # --------------
         try:
             self.clusters = read_clusters(self.filename_clu)
         except IOError:
@@ -202,7 +212,20 @@ class KlustersLoader(object):
         # Convert to Pandas.
         self.clusters = pd.Series(self.clusters, dtype=np.int32)
         
+        # Read cluster colors.
+        # --------------------
+        try:
+            self.cluster_colors = read_cluster_colors(self.filename_clucol)
+        except IOError:
+            warn("The CLUCOL file is missing.")
+            maxcluster = self.clusters.max()
+            self.cluster_colors = np.mod(np.arange(maxcluster + 1, 
+                dtype=np.int32), COLORS_COUNT) + 1
+        # Convert to Pandas.
+        self.cluster_colors = pd.Series(self.cluster_colors, dtype=np.int32)
+        
         # Read masks.
+        # -----------
         try:
             self.masks, self.masks_full = read_masks(self.filename_mask,
                                                      fetdim)
@@ -215,6 +238,7 @@ class KlustersLoader(object):
         self.masks_full = pd.DataFrame(self.masks_full)
 
         # Read waveforms.
+        # ---------------
         try:
             self.waveforms = read_waveforms(self.filename_spk, nsamples,
                                             nchannels)
@@ -277,6 +301,9 @@ class KlustersLoader(object):
         if spikes is None:
             spikes = self.spikes_selected
         return select(self.clusters, spikes)
+    
+    def get_cluster_colors(self, clusters=None):
+        return select(self.cluster_colors, clusters)
     
     def get_masks(self, spikes=None, full=None, clusters=None):
         if clusters is not None:

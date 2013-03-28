@@ -28,24 +28,24 @@ def select_numpy(data, spikes):
 def select_pandas(data, spikes):
     return data.ix[spikes]
 
-def select(data, spikes=None):
-    """Select portion of the data, with the only assumption that spikes are
+def select(data, indices=None):
+    """Select portion of the data, with the only assumption that indices are
     along the first axis.
     
     data can be a NumPy or Pandas object.
     
     """
-    # spikes=None means select all.
-    if spikes is None:
+    # indices=None means select all.
+    if indices is None:
         return data
         
-    if not hasattr(spikes, '__len__'):
-        spikes = [spikes]
+    if not hasattr(indices, '__len__'):
+        indices = [indices]
         
-    # Ensure spikes is an array of indices or boolean masks.
-    if not isinstance(spikes, np.ndarray):
-        # Deal with empty spikes.
-        if not len(spikes):
+    # Ensure indices is an array of indices or boolean masks.
+    if not isinstance(indices, np.ndarray):
+        # Deal with empty indices.
+        if not len(indices):
             if data.ndim == 1:
                 return np.array([])
             elif data.ndim == 2:
@@ -53,18 +53,18 @@ def select(data, spikes=None):
             elif data.ndim == 3:
                 return np.array([[[]]])
         else:
-            if type(spikes[0]) in (int, np.int32, np.int64):
-                spikes = np.array(spikes, dtype=np.int32)
-            elif type(spikes[0]) == bool:
-                spikes = np.array(spikes, dtype=np.bool)
+            if type(indices[0]) in (int, np.int32, np.int64):
+                indices = np.array(indices, dtype=np.int32)
+            elif type(indices[0]) == bool:
+                indices = np.array(indices, dtype=np.bool)
             else:
-                spikes = np.array(spikes)
+                indices = np.array(indices)
     
     # Use NumPy or Pandas version
     if type(data) == np.ndarray:
-        return select_numpy(data, spikes)
+        return select_numpy(data, indices)
     else:
-        return select_pandas(data, spikes)
+        return select_pandas(data, indices)
 
 def get_spikes_in_clusters(clusters_selected, clusters, return_indices=False):
     spike_indices = np.in1d(clusters, clusters_selected)

@@ -2,7 +2,8 @@ import numpy as np
 # from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
 
 
-__all__ = ['COLORMAP', 'HIGHLIGHT_COLORMAP', 'COLORS', 'COLORS_COUNT', 'generate_colors']
+__all__ = ['COLORMAP', 'HIGHLIGHT_COLORMAP', 'COLORS', 'COLORS_COUNT',
+          ]# 'generate_colors']
 
 
 # Color creation routines
@@ -59,6 +60,7 @@ step = 17  # needs to be prime with COLORS_COUNT
 perm = np.mod(np.arange(0, step * 24, step), 24)
 perm = np.hstack((2 * perm, 2 * perm + 1))
 COLORMAP = COLORS[perm, ...]
+COLORMAP = np.vstack(((1., 1., 1.), COLORMAP))
 # COLORMAP = np.array(COLORS)
 
 # Highlight color map
@@ -70,15 +72,16 @@ hsv[:,2] += .5
 hsv = np.clip(hsv, 0, 1)
 hsv = hsv[perm, ...]
 HIGHLIGHT_COLORMAP = hsv_to_rgb(hsv)
+HIGHLIGHT_COLORMAP = np.vstack(((1., 1., 1.), HIGHLIGHT_COLORMAP))
 
 
-def generate_colors(n=None):
-    if n is None:
-        n = COLORS_COUNT
-    if n < COLORS_COUNT:
-        return COLORS[:n]
-    else:
-        return [COLORS[i % COLORS_COUNT] for i in xrange(n)]
+# def generate_colors(n=None):
+    # if n is None:
+        # n = COLORS_COUNT
+    # if n < COLORS_COUNT:
+        # return COLORS[:n]
+    # else:
+        # return [COLORS[i % COLORS_COUNT] for i in xrange(n)]
 
 
 if __name__ == "__main__":

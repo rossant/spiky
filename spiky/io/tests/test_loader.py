@@ -12,7 +12,8 @@ from nose import with_setup
 import shutil
 
 from spiky.io.tests.mock_data import (create_waveforms, create_features, 
-    create_clusters, create_masks, create_xml, create_probe)
+    create_clusters, create_masks, create_xml, create_probe,
+    create_cluster_colors)
 from spiky.io.loader import KlustersLoader
 from spiky.io.selection import select
 from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
@@ -38,6 +39,7 @@ def setup():
     waveforms = create_waveforms(nspikes, nsamples, nchannels)
     features = create_features(nspikes, nchannels, fetdim)
     clusters = create_clusters(nspikes, nclusters)
+    cluster_colors = create_cluster_colors(nclusters - 1)
     masks = create_masks(nspikes, nchannels, fetdim)
     xml = create_xml(nchannels, nsamples, fetdim)
     probe = create_probe(nchannels)
@@ -52,6 +54,7 @@ def setup():
     save_text(os.path.join(dir, 'test.fet.1'), features,
         header=nchannels * fetdim + 1)
     save_text(os.path.join(dir, 'test.clu.1'), clusters, header=nclusters)
+    save_text(os.path.join(dir, 'test.clucol.1'), cluster_colors)
     save_text(os.path.join(dir, 'test.mask.1'), masks, header=nclusters)
     save_text(os.path.join(dir, 'test.xml'), xml)
     save_text(os.path.join(dir, 'test.probe'), probe)
@@ -78,14 +81,18 @@ def test_klusters_loader():
     masks = l.get_masks()
     waveforms = l.get_waveforms()
     clusters = l.get_clusters()
+    cluster_colors = l.get_cluster_colors()
     spiketimes = l.get_spiketimes()
     probe = l.get_probe()
+    
+    maxcluster = clusters.max()
     
     # Check the shape of the data sets.
     assert check_shape(features, (nspikes, nchannels * fetdim + 1))
     assert check_shape(masks, (nspikes, nchannels))
     assert check_shape(waveforms, (nspikes, nsamples, nchannels))
     assert check_shape(clusters, (nspikes,))
+    assert check_shape(cluster_colors, (maxcluster + 1,))
     assert check_shape(spiketimes, (nspikes,))
     assert check_shape(probe, (nchannels, 2))
     
@@ -95,8 +102,9 @@ def test_klusters_loader():
     # HACK: Panel has no dtype(s) attribute
     # assert check_dtype(waveforms, np.float32)
     assert check_dtype(clusters, np.int32)
+    assert check_dtype(cluster_colors, np.int32)
     assert check_dtype(spiketimes, np.float32)
-    assert check_dtype(probe, np.int32)
+    assert check_dtype(probe, np.float32)
     
     # Check selection.
     index = nspikes / 2
