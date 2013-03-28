@@ -1,3 +1,8 @@
+
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
 import numpy as np
 import numpy.random as rdn
 from numpy.lib.stride_tricks import as_strided
@@ -5,7 +10,9 @@ import collections
 import operator
 import time
 
-from galry import *
+from galry import (Manager, PlotPaintManager, PlotInteractionManager, Visual,
+    GalryWidget, QtGui, show_window, enforce_dtype, RectanglesVisual,
+    TextVisual)
 from spiky.io.tools import get_array
 from spiky.views.common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
 from spiky.views.widgets import VisualizationWidget
@@ -13,9 +20,13 @@ import spiky.tools as stools
 import spiky.colors as scolors
 import spiky.signals as ssignals
 
+
 __all__ = ['WaveformView']
 
 
+# -----------------------------------------------------------------------------
+# Shaders
+# -----------------------------------------------------------------------------
 VERTEX_SHADER = """
     // get channel position
     vec2 channel_position = channel_positions[int(channel)];
@@ -68,8 +79,6 @@ FRAGMENT_SHADER = """
 """
         
 FRAGMENT_SHADER_AVERAGE = """
-    //out_color = vec4(.75, .75, .75, .25);
-    
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
     
@@ -85,149 +94,9 @@ FRAGMENT_SHADER_AVERAGE = """
 """
 
 
-class WaveformHighlightManager(HighlightManager):
-    def initialize(self):
-        """Set info from the data manager."""
-        super(WaveformHighlightManager, self).initialize()
-        data_manager = self.data_manager
-        # self.get_data_position = self.data_manager.get_data_position
-        self.masks_full = self.data_manager.masks_full
-        self.clusters_rel = self.data_manager.clusters_rel
-        self.cluster_colors = self.data_manager.cluster_colors
-        self.nchannels = data_manager.nchannels
-        self.nclusters = data_manager.nclusters
-        self.nsamples = data_manager.nsamples
-        # self.spike_ids = data_manager.spike_ids
-        self.nspikes = data_manager.nspikes
-        self.npoints = data_manager.npoints
-        # self.get_data_position = data_manager.get_data_position
-        self.highlighted_spikes = []
-        self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
-        self.highlighting = False
-        
-
-    def find_enclosed_spikes(self, enclosing_box):
-        
-        if self.nspikes == 0:
-            return np.array([])
-        
-        # first call
-        if not self.highlighting:
-            # create
-            box_positions, box_size = self.position_manager.get_transformation()
-            # Tx, Ty: Nchannels x Nclusters
-            Tx, Ty = box_positions
-            # to: Nspikes x Nsamples x Nchannels
-            Px = np.tile(Tx[:,self.clusters_rel].reshape((self.nchannels, self.nspikes, 1)), (1, 1, self.nsamples))
-            self.Px = Px.transpose([1, 2, 0])
-            Py = np.tile(Ty[:,self.clusters_rel].reshape((self.nchannels, self.nspikes, 1)), (1, 1, self.nsamples))
-            self.Py = Py.transpose([1, 2, 0])
-            
-            self.Wx = np.tile(np.linspace(-1., 1., self.nsamples).reshape((1, -1, 1)), (self.nspikes, 1, self.nchannels))
-            self.Wy = self.data_manager.waveforms_reordered
-            
-            self.highlighting = True
-        
-        x0, y0, x1, y1 = enclosing_box
-        
-        # press_position
-        xp, yp = x0, y0
-
-        # reorder
-        xmin, xmax = min(x0, x1), max(x0, x1)
-        ymin, ymax = min(y0, y1), max(y0, y1)
-
-        # transformation
-        box_positions, box_size = self.position_manager.get_transformation()
-        Tx, Ty = box_positions
-        w, h = box_size
-        a, b = w / 2, h / 2
-        
-        # find the enclosed channels and clusters
-        channels, clusters = self.position_manager.get_enclosed_channels((x0, y0, x1, y1))
-        channels = np.unique(channels)
-        clusters = np.unique(clusters)
-        
-        # print channels
-        
-        if channels.size == 0:
-            return np.array([])
-        
-        u, v = self.Px[:,:,channels], self.Py[:,:,channels]
-        Wx, Wy = self.Wx[:,:,channels], self.Wy[:,:,channels]
-        
-        ind =  ((Wx >= (xmin-u)/a) & (Wx <= (xmax-u)/a) & \
-                (Wy >= (ymin-v)/b) & (Wy <= (ymax-v)/b))
-        
-        spkindices = np.nonzero(ind.max(axis=1).max(axis=1))[0]
-
-        # return self.spike_ids[spkindices]
-        return spkindices
-
-
-    def find_indices_from_spikes(self, spikes):
-        if spikes is None or len(spikes)==0:
-            return None
-        n = len(spikes)
-        # find point indices in the data buffer corresponding to 
-        # the selected spikes. In particular, waveforms of those spikes
-        # across all channels should be selected as well.
-        spikes = np.array(spikes, dtype=np.int32)
-        ind = np.repeat(spikes * self.nsamples, self.nsamples)
-        ind += np.tile(np.arange(self.nsamples), n)
-        ind = np.tile(ind, self.nchannels)
-        ind += np.repeat(np.arange(self.nchannels) * self.nsamples * self.nspikes,
-                                self.nsamples * n)
-        return ind
-        
-
-    def set_highlighted_spikes(self, spikes, do_emit=True):
-        """Update spike colors to mark transiently selected spikes with
-        a special color."""
-        if len(spikes) == 0:
-            # do update only if there were previously selected spikes
-            do_update = len(self.highlighted_spikes) > 0
-            self.highlight_mask[:] = 0
-        else:
-            do_update = True
-            # from absolute indices to relative indices
-            # only keep spikes that are displayed
-            # spikes = np.intersect1d(spikes, self.spike_ids)
-            self.highlight_mask[:] = 0
-            if len(spikes) > 0:
-                # spikes_rel = np.digitize(spikes, self.spike_ids) - 1
-                ind = self.find_indices_from_spikes(spikes_rel)
-                self.highlight_mask[ind] = 1
-        
-        if do_update:
-            
-            # emit the HighlightSpikes signal
-            if do_emit:
-                ssignals.emit(self.parent, 'HighlightSpikes', spikes)
-                    # self.spike_ids[np.array(spikes, dtype=np.int32)])
-                
-            self.paint_manager.set_data(
-                highlight=self.highlight_mask,
-                visual='waveforms')
-        
-        self.highlighted_spikes = spikes
-        
-
-    def highlighted(self, box):
-        # get selected spikes
-        spikes = self.find_enclosed_spikes(box) 
-        
-        # from relative indices to absolute indices
-        spikes = np.array(spikes, dtype=np.int32)
-        # print spikes
-        # self.set_highlighted_spikes(self.spike_ids[spikes])
-    
-    def cancel_highlight(self):
-        super(WaveformHighlightManager, self).cancel_highlight()
-        self.set_highlighted_spikes(np.array([]))
-        self.highlighting = False
-    
-    
+# -----------------------------------------------------------------------------
+# Data manager
+# -----------------------------------------------------------------------------
 class WaveformPositionManager(Manager):
     # Initialization methods
     # ----------------------
@@ -380,12 +249,6 @@ class WaveformPositionManager(Manager):
         else:
             w, h = size
             
-        # # effective box width
-        # if self.superposition == 'Separated' and self.nclusters >= 1:
-            # w = w / self.nclusters
-        # # else:
-            # # w2 = w
-        
         # update translation vector
         # order: cluster, channel
         T = np.repeat(channel_positions, self.nclusters, axis=0)
@@ -438,9 +301,9 @@ class WaveformPositionManager(Manager):
         # the w in box size has been divided by the number of clusters, so we
         # remultiply it to have the normalized value
         # w *= self.nclusters
-        w = max(self.box_size_min, w + dsx)
-        h = max(self.box_size_min, h + dsy)
-        self.update_arrangement(box_size=(w,h))
+        w = max(self.box_size_min, w * (1 + dsx))
+        h = max(self.box_size_min, h * (1 + dsy))
+        self.update_arrangement(box_size=(w, h))
         self.paint_manager.auto_update_uniforms("box_size", "box_size_margin")
         
     def change_probe_scale(self, dsx, dsy):
@@ -532,12 +395,12 @@ class WaveformPositionManager(Manager):
 class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
-
     def set_data(self,
                  waveforms,
                  masks=None,
                  clusters=None,
-                 clusters_selected=None, # list of clusters that are selected, the order matters
+                 # list of clusters that are selected, the order matters
+                 clusters_selected=None,
                  cluster_colors=None,
                  geometrical_positions=None,
                  spatial_arrangement=None,
@@ -550,16 +413,13 @@ class WaveformDataManager(Manager):
         self.masks_array = get_array(masks)
         self.clusters_array = get_array(clusters)
         
-        # Relative indexing
-        # rel = digitize(data, sorted(clusters_selected))-1
-        # rel_ordered = argsort(clusters_selected)[rel]
+        # Relative indexing.
         self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected))-1
         self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
         
         self.nspikes, self.nsamples, self.nchannels = self.waveforms_array.shape
         self.npoints = self.waveforms_array.size
         self.geometrical_positions = geometrical_positions
-        
         self.clusters_selected = clusters_selected
         self.nclusters = len(clusters_selected)
         self.waveforms = waveforms
@@ -590,7 +450,6 @@ class WaveformDataManager(Manager):
     
     # Internal methods
     # ----------------
-
     def prepare_waveform_data(self):
         """Define waveform data."""
         X = np.tile(np.linspace(-1., 1., self.nsamples),
@@ -750,7 +609,10 @@ class AverageWaveformDataManager(Manager):
         # normalization in dataio instead
         self.data = data
         
-    
+
+# -----------------------------------------------------------------------------
+# Visuals
+# -----------------------------------------------------------------------------
 class WaveformVisual(Visual):
     @staticmethod
     def get_size_bounds(nsamples=None, npoints=None):
@@ -962,6 +824,146 @@ class WaveformPaintManager(PlotPaintManager):
             "channel_positions"
             )
     
+    
+# -----------------------------------------------------------------------------
+# Interactivity
+# -----------------------------------------------------------------------------
+class WaveformHighlightManager(HighlightManager):
+    def initialize(self):
+        """Set info from the data manager."""
+        super(WaveformHighlightManager, self).initialize()
+        data_manager = self.data_manager
+        # self.get_data_position = self.data_manager.get_data_position
+        self.masks_full = self.data_manager.masks_full
+        self.clusters_rel = self.data_manager.clusters_rel
+        self.cluster_colors = self.data_manager.cluster_colors
+        self.nchannels = data_manager.nchannels
+        self.nclusters = data_manager.nclusters
+        self.nsamples = data_manager.nsamples
+        # self.spike_ids = data_manager.spike_ids
+        self.nspikes = data_manager.nspikes
+        self.npoints = data_manager.npoints
+        # self.get_data_position = data_manager.get_data_position
+        self.highlighted_spikes = []
+        self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
+        self.highlighting = False
+
+    def find_enclosed_spikes(self, enclosing_box):
+        
+        if self.nspikes == 0:
+            return np.array([])
+        
+        # first call
+        if not self.highlighting:
+            # create
+            box_positions, box_size = self.position_manager.get_transformation()
+            # Tx, Ty: Nchannels x Nclusters
+            Tx, Ty = box_positions
+            # to: Nspikes x Nsamples x Nchannels
+            Px = np.tile(Tx[:,self.clusters_rel].reshape((self.nchannels, self.nspikes, 1)), (1, 1, self.nsamples))
+            self.Px = Px.transpose([1, 2, 0])
+            Py = np.tile(Ty[:,self.clusters_rel].reshape((self.nchannels, self.nspikes, 1)), (1, 1, self.nsamples))
+            self.Py = Py.transpose([1, 2, 0])
+            
+            self.Wx = np.tile(np.linspace(-1., 1., self.nsamples).reshape((1, -1, 1)), (self.nspikes, 1, self.nchannels))
+            self.Wy = self.data_manager.waveforms_reordered
+            
+            self.highlighting = True
+        
+        x0, y0, x1, y1 = enclosing_box
+        
+        # press_position
+        xp, yp = x0, y0
+
+        # reorder
+        xmin, xmax = min(x0, x1), max(x0, x1)
+        ymin, ymax = min(y0, y1), max(y0, y1)
+
+        # transformation
+        box_positions, box_size = self.position_manager.get_transformation()
+        Tx, Ty = box_positions
+        w, h = box_size
+        a, b = w / 2, h / 2
+        
+        # find the enclosed channels and clusters
+        channels, clusters = self.position_manager.get_enclosed_channels((x0, y0, x1, y1))
+        channels = np.unique(channels)
+        clusters = np.unique(clusters)
+        
+        # print channels
+        
+        if channels.size == 0:
+            return np.array([])
+        
+        u, v = self.Px[:,:,channels], self.Py[:,:,channels]
+        Wx, Wy = self.Wx[:,:,channels], self.Wy[:,:,channels]
+        
+        ind =  ((Wx >= (xmin-u)/a) & (Wx <= (xmax-u)/a) & \
+                (Wy >= (ymin-v)/b) & (Wy <= (ymax-v)/b))
+        
+        spkindices = np.nonzero(ind.max(axis=1).max(axis=1))[0]
+
+        # return self.spike_ids[spkindices]
+        return spkindices
+
+    def find_indices_from_spikes(self, spikes):
+        if spikes is None or len(spikes)==0:
+            return None
+        n = len(spikes)
+        # find point indices in the data buffer corresponding to 
+        # the selected spikes. In particular, waveforms of those spikes
+        # across all channels should be selected as well.
+        spikes = np.array(spikes, dtype=np.int32)
+        ind = np.repeat(spikes * self.nsamples, self.nsamples)
+        ind += np.tile(np.arange(self.nsamples), n)
+        ind = np.tile(ind, self.nchannels)
+        ind += np.repeat(np.arange(self.nchannels) * self.nsamples * self.nspikes,
+                                self.nsamples * n)
+        return ind
+
+    def set_highlighted_spikes(self, spikes, do_emit=True):
+        """Update spike colors to mark transiently selected spikes with
+        a special color."""
+        if len(spikes) == 0:
+            # do update only if there were previously selected spikes
+            do_update = len(self.highlighted_spikes) > 0
+            self.highlight_mask[:] = 0
+        else:
+            do_update = True
+            # from absolute indices to relative indices
+            # only keep spikes that are displayed
+            # spikes = np.intersect1d(spikes, self.spike_ids)
+            self.highlight_mask[:] = 0
+            if len(spikes) > 0:
+                # spikes_rel = np.digitize(spikes, self.spike_ids) - 1
+                ind = self.find_indices_from_spikes(spikes_rel)
+                self.highlight_mask[ind] = 1
+        
+        if do_update:
+            
+            # emit the HighlightSpikes signal
+            if do_emit:
+                ssignals.emit(self.parent, 'HighlightSpikes', spikes)
+                    # self.spike_ids[np.array(spikes, dtype=np.int32)])
+                
+            self.paint_manager.set_data(
+                highlight=self.highlight_mask,
+                visual='waveforms')
+        
+        self.highlighted_spikes = spikes
+
+    def highlighted(self, box):
+        # get selected spikes
+        spikes = self.find_enclosed_spikes(box) 
+        
+        # from relative indices to absolute indices
+        spikes = np.array(spikes, dtype=np.int32)
+    
+    def cancel_highlight(self):
+        super(WaveformHighlightManager, self).cancel_highlight()
+        self.set_highlighted_spikes(np.array([]))
+        self.highlighting = False
+    
 
 class WaveformInteractionManager(PlotInteractionManager):
     def select_channel(self, coord, xp, yp):
@@ -1088,44 +1090,39 @@ class WaveformBindings(SpikyBindings):
                  key='M')
                  
     def set_box_scaling(self):
-        # change box scale: CTRL + right mouse
-        # self.set('RightClickMove',
-                 # 'ChangeBoxScale',
-                 # key_modifier='Control',
-                 # param_getter=lambda p: (p["mouse_position_diff"][0]*.2,
-                                         # p["mouse_position_diff"][1]*.2))
+        ww = .002
         self.set('Wheel',
                  'ChangeBoxScale',
                  description='vertical',
                  key_modifier='Control',
-                 param_getter=lambda p: (0, p["wheel"]*.0005))
+                 param_getter=lambda p: (0, p["wheel"] * ww))
         self.set('Wheel',
                  'ChangeBoxScale',
                  description='horizontal',
                  key_modifier='Shift',
-                 param_getter=lambda p: (p["wheel"]*.0005, 0))
+                 param_getter=lambda p: (p["wheel"] * ww, 0))
                  
-                 
+        w = .1
         self.set('KeyPress',
                  'ChangeBoxScale',
                  description='vertical',
                  key='I',
-                 param_getter=lambda p: (0, .02))
+                 param_getter=lambda p: (0, w))
         self.set('KeyPress',
                  'ChangeBoxScale',
                  description='vertical',
                  key='D',
-                 param_getter=lambda p: (0, -.02))
+                 param_getter=lambda p: (0, -w))
         self.set('KeyPress',
                  'ChangeBoxScale',
                  description='horizontal',
                  key='I', key_modifier='Control',
-                 param_getter=lambda p: (.02, 0))
+                 param_getter=lambda p: (w, 0))
         self.set('KeyPress',
                  'ChangeBoxScale',
                  description='horizontal',
                  key='D', key_modifier='Control',
-                 param_getter=lambda p: (-.02, 0))
+                 param_getter=lambda p: (-w, 0))
                  
     def set_probe_scaling(self):
         # change probe scale: Shift + left mouse
@@ -1183,8 +1180,11 @@ class WaveformBindings(SpikyBindings):
         self.set_highlight()
         self.set_channel_selection()
         self.set_clusterinfo()
-    
-    
+
+
+# -----------------------------------------------------------------------------
+# Top-level widget
+# -----------------------------------------------------------------------------
 class WaveformView(GalryWidget):
     def initialize(self):
         # self.constrain_navigation = True
