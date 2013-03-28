@@ -90,6 +90,10 @@ def find_filename(filename, extension_requested, dir='', files=[]):
     
     return None
 
+    
+# -----------------------------------------------------------------------------
+# Utility data functions
+# -----------------------------------------------------------------------------
 def check_dtype(data, dtype):
     if hasattr(data, 'dtype'):
         return data.dtype == dtype
@@ -98,6 +102,14 @@ def check_dtype(data, dtype):
         
 def check_shape(data, shape):
     return tuple(data.shape) == shape
+
+def get_array(data):
+    """Get a NumPy array from a NumPy array or a Pandas data object (Series,
+    DataFrame or Panel)."""
+    if type(data) == np.ndarray:
+        return data
+    else:
+        return data.values
     
 
 # -----------------------------------------------------------------------------

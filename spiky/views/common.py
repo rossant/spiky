@@ -5,93 +5,10 @@ import collections
 from galry import *
 
 
-__all__ = ['SpikeDataOrganizer', 'HighlightManager', 'SpikyBindings',
+__all__ = [
+           'HighlightManager', 'SpikyBindings',
            ]
 
-
-class SpikeDataOrganizer(object):
-    def __init__(self, *args, **kwargs):
-        # set data
-        self.set_data(*args, **kwargs)
-        # reorder data
-        # self.reorder()
-        
-    def set_data(self, data, clusters=None, cluster_colors=None, masks=None,
-                             nchannels=None, spike_ids=None, clusters_ordered=None,
-                             clusters_unique=None):
-        """
-        Arguments:
-          * data: a Nspikes x ?? (x ??) array
-          * clusters: a Nspikes array, dtype=int, absolute indices
-          * cluster_colors: as a function of the RELATIVE index
-        """
-        # get the number of spikes from the first dimension of data
-        self.nspikes = data.shape[0]
-        self.ndim = data.ndim
-        
-        # check arguments
-        if nchannels is None:
-            raise TypeError("The number of channels should be specified.")
-            
-        # default arguments
-        if clusters is None:
-            clusters = np.zeros(self.nspikes, dtype=np.int)
-        if masks is None:
-            masks = np.ones((self.nspikes, self.nchannels))
-        if spike_ids is None:
-            spike_ids = np.arange(self.nspikes)
-            
-        self.data = enforce_dtype(data, np.float32)
-        self.clusters = enforce_dtype(clusters, np.int32)
-        self.masks = enforce_dtype(masks, np.float32)
-        
-        # unique clusters
-        if clusters_unique is None:
-            self.clusters_unique = np.unique(clusters)
-        else:
-            self.clusters_unique = clusters_unique
-        self.clusters_unique.sort()
-        self.nclusters = len(self.clusters_unique)
-        
-        if cluster_colors is None:
-            cluster_colors = np.ones(self.nclusters)
-        cluster_colors = enforce_dtype(cluster_colors, np.int32)
-        self.cluster_colors = cluster_colors[:self.nclusters,...]
-        
-        # same as clusters, but with relative indexing instead of absolute
-        if self.nclusters > 0:
-            clusters_rel = np.arange(self.clusters_unique.max() + 1)
-            clusters_rel[self.clusters_unique] = np.arange(self.nclusters)
-            self.clusters_rel = clusters_rel[self.clusters]
-            if clusters_ordered is not None:
-                self.clusters_depth = clusters_ordered[self.clusters_rel]
-        else:
-            self.clusters_rel = self.clusters
-            self.clusters_depth = self.clusters
-            
-        # NEW: no more reordering
-        self.data_reordered = self.data
-        
-        counter = collections.Counter(clusters)
-        self.cluster_sizes_dict = counter
-        self.cluster_sizes = np.array(map(operator.itemgetter(1),
-                                    sorted(self.cluster_sizes_dict.iteritems(),
-                                            key=operator.itemgetter(0))))
-    
-    def get_reordering(self):
-        # regroup spikes from the same clusters, so that all data from
-        # one cluster are contiguous in memory (better for OpenGL rendering)
-        # permutation contains the spike indices in successive clusters
-        permutation = []
-        for cluster in self.clusters_unique:
-            ids = np.nonzero(self.clusters == cluster)[0]
-            size = len(ids)
-            permutation.append(ids)
-        if permutation:
-            permutation = np.hstack(permutation)
-        else:
-            permutation = np.array([], dtype=np.int32)
-        return permutation
 
 
 class HighlightManager(Manager):

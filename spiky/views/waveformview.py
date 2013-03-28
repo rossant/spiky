@@ -6,13 +6,14 @@ import operator
 import time
 
 from galry import *
-from common import HighlightManager, SpikyBindings, SpikeDataOrganizer
-from widgets import VisualizationWidget
+from spiky.io.tools import get_array
+from spiky.views.common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
+from spiky.views.widgets import VisualizationWidget
 import spiky.tools as stools
 import spiky.colors as scolors
 import spiky.signals as ssignals
 
-__all__ = ['WaveformView', 'WaveformWidget']
+__all__ = ['WaveformView']
 
 
 VERTEX_SHADER = """
@@ -90,13 +91,13 @@ class WaveformHighlightManager(HighlightManager):
         super(WaveformHighlightManager, self).initialize()
         data_manager = self.data_manager
         # self.get_data_position = self.data_manager.get_data_position
-        self.full_masks = self.data_manager.full_masks
+        self.masks_full = self.data_manager.masks_full
         self.clusters_rel = self.data_manager.clusters_rel
         self.cluster_colors = self.data_manager.cluster_colors
         self.nchannels = data_manager.nchannels
         self.nclusters = data_manager.nclusters
         self.nsamples = data_manager.nsamples
-        self.spike_ids = data_manager.spike_ids
+        # self.spike_ids = data_manager.spike_ids
         self.nspikes = data_manager.nspikes
         self.npoints = data_manager.npoints
         # self.get_data_position = data_manager.get_data_position
@@ -104,7 +105,7 @@ class WaveformHighlightManager(HighlightManager):
         self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
         self.highlighting = False
         
-    # @profile
+
     def find_enclosed_spikes(self, enclosing_box):
         
         if self.nspikes == 0:
@@ -163,7 +164,7 @@ class WaveformHighlightManager(HighlightManager):
         # return self.spike_ids[spkindices]
         return spkindices
 
-    # @profile
+
     def find_indices_from_spikes(self, spikes):
         if spikes is None or len(spikes)==0:
             return None
@@ -179,7 +180,7 @@ class WaveformHighlightManager(HighlightManager):
                                 self.nsamples * n)
         return ind
         
-    # @profile
+
     def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
@@ -191,10 +192,10 @@ class WaveformHighlightManager(HighlightManager):
             do_update = True
             # from absolute indices to relative indices
             # only keep spikes that are displayed
-            spikes = np.intersect1d(spikes, self.spike_ids)
+            # spikes = np.intersect1d(spikes, self.spike_ids)
             self.highlight_mask[:] = 0
             if len(spikes) > 0:
-                spikes_rel = np.digitize(spikes, self.spike_ids) - 1
+                # spikes_rel = np.digitize(spikes, self.spike_ids) - 1
                 ind = self.find_indices_from_spikes(spikes_rel)
                 self.highlight_mask[ind] = 1
         
@@ -211,7 +212,7 @@ class WaveformHighlightManager(HighlightManager):
         
         self.highlighted_spikes = spikes
         
-    # @profile
+
     def highlighted(self, box):
         # get selected spikes
         spikes = self.find_enclosed_spikes(box) 
@@ -219,7 +220,7 @@ class WaveformHighlightManager(HighlightManager):
         # from relative indices to absolute indices
         spikes = np.array(spikes, dtype=np.int32)
         # print spikes
-        self.set_highlighted_spikes(self.spike_ids[spikes])
+        # self.set_highlighted_spikes(self.spike_ids[spikes])
     
     def cancel_highlight(self):
         super(WaveformHighlightManager, self).cancel_highlight()
@@ -531,77 +532,49 @@ class WaveformPositionManager(Manager):
 class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
-    # @profile
-    def set_data(self, waveforms, clusters=None, cluster_colors=None,
-                 clusters_unique=None, clusters_ordered=None,
-                 masks=None, geometrical_positions=None, spike_ids=None,
-                 spatial_arrangement=None, superposition=None,
-                 box_size=None, probe_scale=None, subselect=None):
-        """
-        waveforms is a Nspikes x Nsamples x Nchannels array.
-        clusters is a Nspikes array, with the cluster absolute index for each
-                    spike
-        cluster_colors is a Nclusters x 3 array (RGB components)
-            cluster_colors[i] is the color of cluster #i where i is the RELATIVE
-            index
-        masks is a Nspikes x Nchannels array (with values in [0,1])
-        spike_ids is a Nspikes array, it contains the absolute indices of spikes
-        """
+
+    def set_data(self,
+                 waveforms,
+                 masks=None,
+                 clusters=None,
+                 clusters_selected=None, # list of clusters that are selected, the order matters
+                 cluster_colors=None,
+                 geometrical_positions=None,
+                 spatial_arrangement=None,
+                 superposition=None,
+                 box_size=None,
+                 probe_scale=None,
+                 ):
         
-        # select only a subsample of the spikes
-        if subselect:
-            nspk = waveforms.shape[0]
-            if nspk > 0:
-                indices = np.unique(np.random.randint(low=0, high=nspk, size=subselect))
-                # waveforms = waveforms[indices,...]
-                waveforms = np.take(waveforms, indices, axis=0)
-                # spike_ids = spike_ids[indices,...]
-                spike_ids = np.take(spike_ids, indices, axis=0)
-                # clusters = clusters[indices,...]
-                clusters = np.take(clusters, indices, axis=0)
-                # masks = masks[indices,...]
-                masks = np.take(masks, indices, axis=0)
+        self.waveforms_array = get_array(waveforms)
+        self.masks_array = get_array(masks)
+        self.clusters_array = get_array(clusters)
         
+        # Relative indexing
+        # rel = digitize(data, sorted(clusters_selected))-1
+        # rel_ordered = argsort(clusters_selected)[rel]
+        self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected))-1
+        self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
         
-        self.nspikes, self.nsamples, self.nchannels = waveforms.shape
-        self.npoints = waveforms.size
+        self.nspikes, self.nsamples, self.nchannels = self.waveforms_array.shape
+        self.npoints = self.waveforms_array.size
         self.geometrical_positions = geometrical_positions
-        self.spike_ids = spike_ids
+        
+        self.clusters_selected = clusters_selected
+        self.nclusters = len(clusters_selected)
         self.waveforms = waveforms
-        
-        # data organizer: reorder data according to clusters
-        self.data_organizer = SpikeDataOrganizer(waveforms,
-                                                clusters=clusters,
-                                                cluster_colors=cluster_colors,
-                                                clusters_unique=clusters_unique,
-                                                clusters_ordered=clusters_ordered,
-                                                masks=masks,
-                                                nchannels=self.nchannels,
-                                                spike_ids=spike_ids)
-        
-        # get reordered data
-        self.waveforms_reordered = self.data_organizer.data_reordered
-        self.nclusters = self.data_organizer.nclusters
-        self.clusters = self.data_organizer.clusters
-        self.masks = self.data_organizer.masks
-        self.cluster_colors = self.data_organizer.cluster_colors
-        self.clusters_unique = self.data_organizer.clusters_unique
-        self.clusters_rel = self.data_organizer.clusters_rel
-        self.clusters_depth = self.data_organizer.clusters_depth
-        self.cluster_sizes = self.data_organizer.cluster_sizes
-        self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
+        self.clusters = clusters
+        self.cluster_colors = cluster_colors
+        self.masks = masks
         
         # prepare GPU data: waveform initial positions and colors
-        data = self.prepare_waveform_data()
+        self.data = self.prepare_waveform_data()
         
         # masks
-        self.full_masks = np.repeat(self.masks.T.ravel(), self.nsamples)
-        self.full_clusters = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
-        self.full_clusters_depth = np.tile(np.repeat(self.clusters_depth, self.nsamples), self.nchannels)
-        self.full_channels = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
-        
-        # normalization in dataio instead
-        self.normalized_data = data
+        self.masks_full = np.repeat(self.masks_array.T.ravel(), self.nsamples)
+        self.clusters_full = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
+        self.clusters_full_depth = np.tile(np.repeat(self.clusters_rel_ordered, self.nsamples), self.nchannels)
+        self.channels_full = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
         
         # position waveforms
         self.position_manager.set_info(self.nchannels, self.nclusters, 
@@ -617,34 +590,24 @@ class WaveformDataManager(Manager):
     
     # Internal methods
     # ----------------
-    # @profile
+
     def prepare_waveform_data(self):
         """Define waveform data."""
-        # prepare data for GPU transfer
-        # in GPU memory, X coordinates are always between -1 and 1
         X = np.tile(np.linspace(-1., 1., self.nsamples),
                                 (self.nchannels * self.nspikes, 1))
         
-        # waveforms_reordered: Nspikes x Nsamples x Nchannels
-        # Y: (Nsamples x Nspikes) x Nchannels array
-        # if self.nspikes == 0:
-            # Y = np.array([], dtype=np.float32)
-        # else:
-            # Y = np.vstack(self.waveforms_reordered)
-        
         # new: use strides to avoid unnecessary memory copy
-        strides = self.waveforms_reordered.strides
+        strides = self.waveforms_array.strides
         strides = (strides[2], strides[0], strides[1])
 
-        shape = self.waveforms_reordered.shape
+        shape = self.waveforms_array.shape
         shape = (shape[2], shape[0], shape[1])
         # strides = (strides[2], strides[1], strides[0])
-        Y = as_strided(self.waveforms_reordered, strides=strides, shape=shape)
+        Y = as_strided(self.waveforms_array, strides=strides, shape=shape)
         
         # create a Nx2 array with all coordinates
         data = np.empty((X.size, 2), dtype=np.float32)
         data[:,0] = X.ravel()
-        # data[:,1] = Y.T.ravel()
         data[:,1] = Y.ravel()
         return data
     
@@ -652,38 +615,39 @@ class WaveformDataManager(Manager):
 class AverageWaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
-    # @profile
+
     def set_data(self, waveforms, clusters=None, cluster_colors=None,
-                 clusters_unique=None, clusters_ordered=None,
-                 masks=None, geometrical_positions=None, spike_ids=None,
+                 # clusters_unique=None, clusters_ordered=None,
+                 masks=None, geometrical_positions=None, #spike_ids=None,
                  spatial_arrangement=None, superposition=None,
-                 box_size=None, probe_scale=None, subselect=None):
-        """
-        waveforms is a Nspikes x Nsamples x Nchannels array.
-        clusters is a Nspikes array, with the cluster absolute index for each
-                    spike
-        cluster_colors is a Nclusters x 3 array (RGB components)
-            cluster_colors[i] is the color of cluster #i where i is the RELATIVE
-            index
-        masks is a Nspikes x Nchannels array (with values in [0,1])
-        spike_ids is a Nspikes array, it contains the absolute indices of spikes
-        """
+                 box_size=None, probe_scale=None,# subselect=None
+                 ):
+        # """
+        # waveforms is a Nspikes x Nsamples x Nchannels array.
+        # clusters is a Nspikes array, with the cluster absolute index for each
+                    # spike
+        # cluster_colors is a Nclusters x 3 array (RGB components)
+            # cluster_colors[i] is the color of cluster #i where i is the RELATIVE
+            # index
+        # masks is a Nspikes x Nchannels array (with values in [0,1])
+        # spike_ids is a Nspikes array, it contains the absolute indices of spikes
+        # """
         
-        if subselect:
-            nspk = waveforms.shape[0]
-            if nspk > 0:
-                indices = np.unique(np.random.randint(low=0, high=nspk, size=subselect))
-                # waveforms = waveforms[indices,...]
-                waveforms = np.take(waveforms, indices, axis=0)
-                # spike_ids = spike_ids[indices,...]
-                spike_ids = np.take(spike_ids, indices, axis=0)
-                # clusters = clusters[indices,...]
-                clusters = np.take(clusters, indices, axis=0)
-                # masks = masks[indices,...]
-                masks = np.take(masks, indices, axis=0)
+        # if subselect:
+            # nspk = waveforms.shape[0]
+            # if nspk > 0:
+                # indices = np.unique(np.random.randint(low=0, high=nspk, size=subselect))
+                # # waveforms = waveforms[indices,...]
+                # waveforms = np.take(waveforms, indices, axis=0)
+                # # spike_ids = spike_ids[indices,...]
+                # spike_ids = np.take(spike_ids, indices, axis=0)
+                # # clusters = clusters[indices,...]
+                # clusters = np.take(clusters, indices, axis=0)
+                # # masks = masks[indices,...]
+                # masks = np.take(masks, indices, axis=0)
                 
                 
-        _, self.nsamples, self.nchannels = waveforms.shape
+        _, self.nsamples, self.nchannels = waveforms.values
         
         # compute the average
         clusters_unique = np.unique(clusters)
@@ -751,18 +715,18 @@ class AverageWaveformDataManager(Manager):
         
         
         self.geometrical_positions = geometrical_positions
-        self.spike_ids = spike_ids
+        # self.spike_ids = spike_ids
         self.waveforms = waveforms
         
-        # data organizer: reorder data according to clusters
-        self.data_organizer = SpikeDataOrganizer(waveforms,
-                                                clusters=clusters,
-                                                cluster_colors=cluster_colors,
-                                                clusters_ordered=clusters_ordered,
-                                                clusters_unique=clusters_unique,
-                                                masks=masks,
-                                                nchannels=self.nchannels,
-                                                spike_ids=spike_ids)
+        # # data organizer: reorder data according to clusters
+        # self.data_organizer = SpikeDataOrganizer(waveforms,
+                                                # clusters=clusters,
+                                                # cluster_colors=cluster_colors,
+                                                # clusters_ordered=clusters_ordered,
+                                                # clusters_unique=clusters_unique,
+                                                # masks=masks,
+                                                # nchannels=self.nchannels,
+                                                # spike_ids=spike_ids)
         
         # get reordered data
         self.waveforms_reordered = self.data_organizer.data_reordered
@@ -778,13 +742,13 @@ class AverageWaveformDataManager(Manager):
         # self.clusters_ordered = clusters_ordered
         
         # masks
-        self.full_masks = np.repeat(self.masks.T.ravel(), self.nsamples)
-        self.full_clusters = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
-        self.full_clusters_depth = np.tile(np.repeat(self.clusters_depth, self.nsamples), self.nchannels)
-        self.full_channels = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
+        self.masks_full = np.repeat(self.masks.T.ravel(), self.nsamples)
+        self.clusters_full = np.tile(np.repeat(self.clusters_rel, self.nsamples), self.nchannels)
+        self.clusters_full_depth = np.tile(np.repeat(self.clusters_depth, self.nsamples), self.nchannels)
+        self.channels_full = np.repeat(np.arange(self.nchannels, dtype=np.int32), self.nspikes * self.nsamples)
         
         # normalization in dataio instead
-        self.normalized_data = data
+        self.data = data
         
     
 class WaveformVisual(Visual):
@@ -913,36 +877,34 @@ class WaveformPaintManager(PlotPaintManager):
         self.set_data(visual='avg_waveforms', **dic)
         
     def initialize(self):
-        # self.set_rendering_options(transparency_blendfunc=('ONE_MINUS_DST_ALPHA', 'ONE'))
-        
         self.add_visual(WaveformVisual, name='waveforms',
             npoints=self.data_manager.npoints,
             nchannels=self.data_manager.nchannels,
             nclusters=self.data_manager.nclusters,
-            cluster_depth=self.data_manager.full_clusters_depth,
+            cluster_depth=self.data_manager.clusters_full_depth,
             nsamples=self.data_manager.nsamples,
-            position0=self.data_manager.normalized_data,
+            position0=self.data_manager.data,
             cluster_colors=self.data_manager.cluster_colors,
-            mask=self.data_manager.full_masks,
-            cluster=self.data_manager.full_clusters,
-            channel=self.data_manager.full_channels,
+            mask=self.data_manager.masks_full,
+            cluster=self.data_manager.clusters_full,
+            channel=self.data_manager.channels_full,
             highlight=self.highlight_manager.highlight_mask)
             
-        # average waveforms
-        self.add_visual(AverageWaveformVisual, name='avg_waveforms',
-            average=True,
-            npoints=self.data_manager_avg.npoints,
-            nchannels=self.data_manager_avg.nchannels,
-            nclusters=self.data_manager_avg.nclusters,
-            nsamples=self.data_manager_avg.nsamples,
-            position0=self.data_manager_avg.normalized_data,
-            cluster_colors=self.data_manager_avg.cluster_colors,
-            cluster_depth=self.data_manager.full_clusters_depth,
-            mask=self.data_manager_avg.full_masks,
-            cluster=self.data_manager_avg.full_clusters,
-            channel=self.data_manager_avg.full_channels,
-            highlight=np.zeros(self.data_manager_avg.npoints, dtype=np.int32),
-            visible=False)
+        # # average waveforms
+        # self.add_visual(AverageWaveformVisual, name='avg_waveforms',
+            # average=True,
+            # npoints=self.data_manager_avg.npoints,
+            # nchannels=self.data_manager_avg.nchannels,
+            # nclusters=self.data_manager_avg.nclusters,
+            # nsamples=self.data_manager_avg.nsamples,
+            # position0=self.data_manager_avg.normalized_data,
+            # cluster_colors=self.data_manager_avg.cluster_colors,
+            # cluster_depth=self.data_manager.clusters_full_depth,
+            # mask=self.data_manager_avg.masks_full,
+            # cluster=self.data_manager_avg.clusters_full,
+            # channel=self.data_manager_avg.channels_full,
+            # highlight=np.zeros(self.data_manager_avg.npoints, dtype=np.int32),
+            # visible=False)
         
         self.auto_update_uniforms("box_size", "box_size_margin", "probe_scale",
             "superimposed", "channel_positions",)
@@ -958,10 +920,10 @@ class WaveformPaintManager(PlotPaintManager):
             depth=-1,
             visible=False)
         
-    # @profile
+
     def update(self):
         size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples, self.data_manager.npoints)
-        cluster = self.data_manager.full_clusters
+        cluster = self.data_manager.clusters_full
         cluster_colors = self.data_manager.cluster_colors
         cmap_index = cluster_colors[cluster]
     
@@ -969,32 +931,32 @@ class WaveformPaintManager(PlotPaintManager):
             size=size,
             bounds=bounds,
             nclusters=self.data_manager.nclusters,
-            position0=self.data_manager.normalized_data,
-            mask=self.data_manager.full_masks,
-            cluster=self.data_manager.full_clusters,
-            cluster_depth=self.data_manager.full_clusters_depth,
+            position0=self.data_manager.data,
+            mask=self.data_manager.masks_full,
+            cluster=self.data_manager.clusters_full,
+            cluster_depth=self.data_manager.clusters_full_depth,
             cmap_index=cmap_index,
-            channel=self.data_manager.full_channels,
+            channel=self.data_manager.channels_full,
             highlight=self.highlight_manager.highlight_mask)
             
         
         # average waveforms
-        size, bounds = WaveformVisual.get_size_bounds(self.data_manager_avg.nsamples, self.data_manager_avg.npoints)
-        cluster = self.data_manager_avg.full_clusters
-        cluster_colors = self.data_manager_avg.cluster_colors
-        cmap_index = cluster_colors[cluster]
+        # size, bounds = WaveformVisual.get_size_bounds(self.data_manager_avg.nsamples, self.data_manager_avg.npoints)
+        # cluster = self.data_manager_avg.clusters_full
+        # cluster_colors = self.data_manager_avg.cluster_colors
+        # cmap_index = cluster_colors[cluster]
         
-        self.set_data(visual='avg_waveforms', 
-            size=size,
-            bounds=bounds,
-            nclusters=self.data_manager_avg.nclusters,
-            position0=self.data_manager_avg.normalized_data,
-            mask=self.data_manager_avg.full_masks,
-            cluster=self.data_manager_avg.full_clusters,
-            cluster_depth=self.data_manager_avg.full_clusters_depth,
-            cmap_index=cluster_colors[self.data_manager_avg.full_clusters],
-            channel=self.data_manager_avg.full_channels,
-            highlight=np.zeros(size, dtype=np.int32))
+        # self.set_data(visual='avg_waveforms', 
+            # size=size,
+            # bounds=bounds,
+            # nclusters=self.data_manager_avg.nclusters,
+            # position0=self.data_manager_avg.data,
+            # mask=self.data_manager_avg.masks_full,
+            # cluster=self.data_manager_avg.clusters_full,
+            # cluster_depth=self.data_manager_avg.clusters_full_depth,
+            # cmap_index=cluster_colors[self.data_manager_avg.clusters_full],
+            # channel=self.data_manager_avg.channels_full,
+            # highlight=np.zeros(size, dtype=np.int32))
             
         self.auto_update_uniforms('box_size', 'box_size_margin',
             "channel_positions"
@@ -1238,10 +1200,9 @@ class WaveformView(GalryWidget):
                 highlight_manager=WaveformHighlightManager,
                 )
 
-    # @profile
     def set_data(self, *args, **kwargs):
         self.data_manager.set_data(*args, **kwargs)
-        self.data_manager_avg.set_data(*args, **kwargs)
+        # self.data_manager_avg.set_data(*args, **kwargs)
         # update?
         if self.initialized:
             self.paint_manager.update()
@@ -1255,97 +1216,48 @@ class WaveformView(GalryWidget):
         self.updateGL()
         
 
-class WaveformWidget(VisualizationWidget):
-    def create_view(self, dh):
-        self.dh = dh
-        self.view = WaveformView(getfocus=False)
-            
-        # subselection only if more than 2 clusters
-        # if len(self.dh.clusters_unique) > 1:
-        if self.dh.nclusters > 1:
-            subselect = 1000
-        # elif len(self.dh.clusters_unique) == 1:
-        elif self.dh.nclusters == 1:
-            subselect = 1000
-        else:
-            subselect = None
-        
-        # load user preferences
-        geometry_preferences = self.restore_geometry()
-        if geometry_preferences is None:
-            geometry_preferences = {}
-        # print geometry_preferences
-        self.view.set_data(self.dh.waveforms,
-                      clusters=self.dh.clusters,
-                      cluster_colors=self.dh.cluster_colors,
-                      geometrical_positions=self.dh.probe['positions'],
-                      subselect=subselect,
-                      masks=self.dh.masks,
-                      **geometry_preferences
-                      )
-        return self.view
-        
-    def update_view(self, dh=None):
-        if dh is not None:
-            self.dh = dh
-            
-        # subselection only if more than 2 clusters
-        # if len(self.dh.clusters_unique) > 1:
-        if self.dh.nclusters > 1:
-            subselect = 1000
-        # elif len(self.dh.clusters_unique) == 1:
-        elif self.dh.nclusters == 1:
-            subselect = 1000
-        else:
-            subselect = None
-        # print subselect
-            
-        self.view.set_data(self.dh.waveforms,
-                      clusters=self.dh.clusters,
-                      clusters_ordered=self.dh.clusters_ordered,
-                      spike_ids=self.dh.spike_ids,
-                      clusters_unique=self.dh.clusters_unique,
-                      cluster_colors=self.dh.cluster_colors,
-                      geometrical_positions=self.dh.probe['positions'],
-                      subselect=subselect,
-                      masks=self.dh.masks
-                      )
+if __name__ == '__main__':
     
-    def initialize_connections(self):
-        ssignals.SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes, QtCore.Qt.UniqueConnection)
-        
-    def slotClusterSelectionChanged(self, sender, clusters):
-        self.update_view()
-        
-    def slotProjectionChanged(self, sender, coord, channel, feature):
-        pass
-        
-    def slotHighlightSpikes(self, sender, spikes):
-        if sender != self.view:
-            self.view.highlight_spikes(spikes)
-        
-    def slotSelectSpikes(self, sender, spikes):
-        if sender != self.view:
-            self.view.highlight_spikes(spikes)
-        
-        
-    # Save and restore geometry
-    # -------------------------
-    def save_geometry(self):
-        geometry_preferences = {
-            'spatial_arrangement': self.view.position_manager.spatial_arrangement,
-            'superposition': self.view.position_manager.superposition,
-            'box_size': self.view.position_manager.load_box_size(effective=False),
-            'probe_scale': self.view.position_manager.probe_scale,
-        }
-        stools.SETTINGS.set("waveformWidget/geometry", geometry_preferences)
-        
-    def restore_geometry(self):
-        """Return a dictionary with the user preferences regarding geometry
-        in the WaveformView."""
-        return stools.SETTINGS.get("waveformWidget/geometry")
-        
-        
+    import os
+    from spiky.io import KlustersLoader
+    from spiky.io.tests.test_loader import setup, teardown
+    
+    # Create the mock data files.
+    setup()
+    
+    # Mock data folder.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../io/tests/mockdata')
+    
+    # Load data files.
+    xmlfile = os.path.join(dir, 'test.xml')
+    l = KlustersLoader(xmlfile)
+    
+    # Get full data sets.
+    features = l.get_features()
+    masks = l.get_masks()
+    waveforms = l.get_waveforms()
+    clusters = l.get_clusters()
+    spiketimes = l.get_spiketimes()
+    probe = l.get_probe()
+    
+    # Display the widget.
+    class TestWindow(QtGui.QMainWindow):
+        def __init__(self):
+            super(TestWindow, self).__init__()
+            
+            self.view = WaveformView(self)
+            self.view.set_data(
+                          waveforms=waveforms,
+                          clusters=clusters,
+                          cluster_colors=np.arange(1, 11),
+                          clusters_selected=[1,3],
+                          masks=masks,
+                          )
+            
+            self.setCentralWidget(self.view)
+            self.show()
+    show_window(TestWindow)
+    
+    # Erase the mock data files.
+    teardown()
+    

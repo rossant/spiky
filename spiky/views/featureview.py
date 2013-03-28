@@ -6,7 +6,7 @@ import time
 from matplotlib.path import Path
 
 from galry import *
-from common import HighlightManager, SpikyBindings, SpikeDataOrganizer
+from common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
 from widgets import VisualizationWidget
 import spiky.colors as scolors
 import spiky
@@ -115,14 +115,14 @@ class FeatureDataManager(Manager):
         # self.colormap = colormap
         
         # data organizer: reorder data according to clusters
-        self.data_organizer = SpikeDataOrganizer(features,
-                                                clusters=clusters,
-                                                cluster_colors=cluster_colors,
-                                                clusters_unique=clusters_unique,
-                                                clusters_ordered=clusters_ordered,
-                                                masks=masks,
-                                                nchannels=self.nchannels,
-                                                spike_ids=spike_ids)
+        # self.data_organizer = SpikeDataOrganizer(features,
+                                                # clusters=clusters,
+                                                # cluster_colors=cluster_colors,
+                                                # clusters_unique=clusters_unique,
+                                                # clusters_ordered=clusters_ordered,
+                                                # masks=masks,
+                                                # nchannels=self.nchannels,
+                                                # spike_ids=spike_ids)
         
         # get reordered data
         # self.permutation = self.data_organizer.permutation
@@ -133,13 +133,13 @@ class FeatureDataManager(Manager):
         self.cluster_colors = self.data_organizer.cluster_colors
         self.clusters_unique = self.data_organizer.clusters_unique
         self.clusters_depth = self.data_organizer.clusters_depth
-        self.full_clusters_depth = self.data_organizer.clusters_depth
+        self.clusters_full_depth = self.data_organizer.clusters_depth
         self.clusters_rel = self.data_organizer.clusters_rel
         self.cluster_sizes = self.data_organizer.cluster_sizes
         # self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
         self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
         
-        # self.full_clusters = self.clusters
+        # self.clusters_full = self.clusters
         
         # prepare GPU data
         self.data = np.empty((self.nspikes, 2), dtype=np.float32)
@@ -159,7 +159,7 @@ class FeatureDataManager(Manager):
         """Set the projection axes."""
         if channel < self.nchannels:
             i = channel * self.fetdim + feature
-            self.full_masks = self.masks[:,channel]
+            self.masks_full = self.masks[:,channel]
         # handle extra feature, with channel being directly the feature index
         else:
             # print self.nchannels * self.fetdim + self.nextrafet - 1, channel
@@ -259,7 +259,7 @@ class FeatureVisual(Visual):
 class FeaturePaintManager(PlotPaintManager):
     def update_points(self):
         self.set_data(position0=self.data_manager.normalized_data,
-            mask=self.data_manager.full_masks, visual='features')
+            mask=self.data_manager.masks_full, visual='features')
         
     def initialize(self):
         self.toggle_mask_value = False
@@ -267,13 +267,13 @@ class FeaturePaintManager(PlotPaintManager):
         self.add_visual(FeatureVisual, name='features',
             npoints=self.data_manager.npoints,
             position0=self.data_manager.normalized_data,
-            mask=self.data_manager.full_masks,
+            mask=self.data_manager.masks_full,
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
             cluster_colors=self.data_manager.cluster_colors,
             nclusters=self.data_manager.nclusters,
-            cluster_depth=self.data_manager.full_clusters_depth,
+            cluster_depth=self.data_manager.clusters_full_depth,
             # colormap=self.data_manager.colormap,
             )
         
@@ -296,17 +296,17 @@ class FeaturePaintManager(PlotPaintManager):
         cluster_colors = self.data_manager.cluster_colors
         cmap_index = cluster_colors[cluster]
     
-        # print self.data_manager.full_clusters_depth
+        # print self.data_manager.clusters_full_depth
     
         self.set_data(visual='features', 
             size=self.data_manager.npoints,
             position0=self.data_manager.normalized_data,
-            mask=self.data_manager.full_masks,
+            mask=self.data_manager.masks_full,
             # cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
             nclusters=self.data_manager.nclusters,
-            cluster_depth=self.data_manager.full_clusters_depth,
+            cluster_depth=self.data_manager.clusters_full_depth,
             cmap_index=cmap_index
             )
 
@@ -335,7 +335,7 @@ class FeatureHighlightManager(HighlightManager):
         ymin, ymax = min(y0, y1), max(y0, y1)
 
         features = self.data_manager.normalized_data
-        masks = self.data_manager.full_masks
+        masks = self.data_manager.masks_full
 
         indices = (
                   # (masks > 0) & \
@@ -447,7 +447,7 @@ class FeatureSelectionManager(Manager):
         if polygon is None:
             polygon = self.polygon()
         features = self.data_manager.normalized_data
-        masks = self.data_manager.full_masks
+        masks = self.data_manager.masks_full
         # indices = (masks > 0) & polygon_contains_points(polygon, features)
         indices = polygon_contains_points(polygon, features)
         spkindices = np.nonzero(indices)[0]

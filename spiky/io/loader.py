@@ -81,14 +81,18 @@ def read_clusters(filename_clu):
     return clusters
     
 def read_masks(filename_mask, fetdim):
-    full_masks = load_text(filename_mask, np.float32, skiprows=1)
-    masks = full_masks[:,:-1:fetdim]
-    return masks, full_masks
+    masks_full = load_text(filename_mask, np.float32, skiprows=1)
+    masks = masks_full[:,:-1:fetdim]
+    return masks, masks_full
     
 def read_waveforms(filename_spk, nsamples, nchannels):
     waveforms = np.array(load_binary(filename_spk), dtype=np.float32)
+    waveforms = normalize(waveforms)
     waveforms = waveforms.reshape((-1, nsamples, nchannels))
     return waveforms
+
+def read_probe(filename_probe):
+    return load_text(filename_probe, np.int32)
 
 
 # -----------------------------------------------------------------------------
@@ -130,6 +134,7 @@ class KlustersLoader(object):
         if not self.filename_mask:
             self.filename_mask = find_filename(self.filename, 'mask')
         self.filename_spk = find_filename(self.filename, 'spk')
+        self.filename_probe = find_filename(self.filename, 'probe')
     
     
     # Input-Output methods
@@ -149,6 +154,15 @@ class KlustersLoader(object):
         fetdim = self.metadata.get('fetdim')
         freq = self.metadata.get('freq')
         
+        
+        # Read metadata.
+        try:
+            self.probe = read_probe(self.filename_probe)
+        except IOError:
+            # Die if no XML file is available for this dataset, as it contains
+            # critical metadata.
+            # raise IOError("The XML file is missing.")
+            pass
         
         # # Read cluster groups.
         # try:
@@ -281,6 +295,9 @@ class KlustersLoader(object):
         if spikes is None:
             spikes = self.spikes_selected
         return select(self.waveforms, spikes)
+    
+    def get_probe(self):
+        return self.probe
     
     
     # Access to the data: clusters

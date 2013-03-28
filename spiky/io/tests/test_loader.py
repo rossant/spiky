@@ -67,7 +67,10 @@ def create_xml(nchannels, nsamples, fetdim):
     </parameters>
     """.format(nchannels, nsamples, channels, fetdim)
     return xml
-    
+
+def create_probe(nchannels):
+    return np.random.randint(size=(nchannels, 2), low=0, high=10)
+
 
 # -----------------------------------------------------------------------------
 # Global variables
@@ -91,6 +94,7 @@ def setup():
     clusters = create_clusters(nspikes, nclusters)
     masks = create_masks(nspikes, nchannels, fetdim)
     xml = create_xml(nchannels, nsamples, fetdim)
+    probe = create_probe(nchannels)
     
     # Create mock directory if needed.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
@@ -104,6 +108,7 @@ def setup():
     save_text(os.path.join(dir, 'test.clu.1'), clusters, header=nclusters)
     save_text(os.path.join(dir, 'test.mask.1'), masks, header=nclusters)
     save_text(os.path.join(dir, 'test.xml'), xml)
+    save_text(os.path.join(dir, 'test.probe'), probe)
     
 def teardown():
     # Erase the temporary data directory.
@@ -128,6 +133,7 @@ def test_klusters_loader():
     waveforms = l.get_waveforms()
     clusters = l.get_clusters()
     spiketimes = l.get_spiketimes()
+    probe = l.get_probe()
     
     # Check the shape of the data sets.
     assert check_shape(features, (nspikes, nchannels * fetdim + 1))
@@ -135,6 +141,7 @@ def test_klusters_loader():
     assert check_shape(waveforms, (nspikes, nsamples, nchannels))
     assert check_shape(clusters, (nspikes,))
     assert check_shape(spiketimes, (nspikes,))
+    assert check_shape(probe, (nchannels, 2))
     
     # Check the data type of the data sets.
     assert check_dtype(features, np.float32)
@@ -143,6 +150,7 @@ def test_klusters_loader():
     # assert check_dtype(waveforms, np.float32)
     assert check_dtype(clusters, np.int32)
     assert check_dtype(spiketimes, np.float32)
+    assert check_dtype(probe, np.int32)
     
     # Check selection.
     index = nspikes / 2
