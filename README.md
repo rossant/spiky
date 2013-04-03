@@ -91,7 +91,9 @@ only a few packages are missing.
 
   * On Windows, [find the packages on this webpage](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
   * On OS X, find them on [Homebrew](http://mxcl.github.com/homebrew/) or [Macports](http://www.macports.org/)
-  * On Ubuntu, use `apt-get install` with the appropriate package name, which you can find [here](http://packages.ubuntu.com/).
+  * On Ubuntu, use `apt-get install` with the appropriate package name, which you can find [here](http://packages.ubuntu.com/):
+        
+        sudo apt-get install python-numpy python-pandas python-matplotlib python-opengl python-qt4 python-qt4-gl
 
 
 ### Installer
