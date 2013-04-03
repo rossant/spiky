@@ -34,10 +34,10 @@ def get_undersampled_data(data, xlim, slice):
       * xlim: (x0, x1) of the current data view.
       
     """
-    total_size = data.shape[0]
+    # total_size = data.shape[0]
     # Get the view slice.
-    x0ex, x1ex = xlim
-    x0d, x1d = x0ex / (duration) * 2 - 1, x1ex / (duration) * 2 - 1
+    # x0ex, x1ex = xlim
+    # x0d, x1d = x0ex / (duration_initial) * 2 - 1, x1ex / (duration_initial) * 2 - 1
     # Extract the samples from the data (HDD access).
     samples = data[slice, :]
     # Convert the data into floating points.
@@ -52,7 +52,9 @@ def get_undersampled_data(data, xlim, slice):
     samples = samples.T + np.linspace(-1., 1., nchannels).reshape((-1, 1))
     M[:, 1] = samples.ravel()
     # Generate the x coordinates.
-    x = np.arange(slice.start, slice.stop, slice.step) / float(total_size - 1) * 2 - 1
+    x = np.arange(slice.start, slice.stop, slice.step) / float(total_size - 1)
+    # [0, 1] -> [-1, 2*duration.duration_initial - 1]
+    x = x * 2 * duration / duration_initial - 1
     M[:, 0] = np.tile(x, nchannels)
     # Update the bounds.
     bounds = np.arange(nchannels + 1) * nsamples
@@ -60,37 +62,36 @@ def get_undersampled_data(data, xlim, slice):
     return M, bounds, size
 
 
-filename = "test_data/n6mab031109.trim.h5"
+filename = "test_data/n6mab031109.h5"
 f = tables.openFile(filename)
-data = f.root.RawData
+data = f.root.raw_data
 nsamples, nchannels = data.shape
+total_size = nsamples
 freq = 20000.
 dt = 1. / freq
 duration = (data.shape[0] - 1) * dt
 
-# Convert the data into floating points.
-step = nsamples // MAXSIZE
-samples = np.array(data[::step, :], dtype=np.float32).T
-# Normalize the data.
-samples *= (1. / 65535)
-samples *= .25
+duration_initial = 10.
 
-# |_|_|_|
-# n = 4
-# duration = (n-1)*dt
-# xmax = duration
+x = np.tile(np.linspace(0., duration, nsamples // MAXSIZE), (nchannels, 1))
+y = np.zeros_like(x)+ np.linspace(-1, 1, nchannels).reshape((-1, 1))
 
-y = samples + np.linspace(-1, 1, nchannels).reshape((-1, 1))
-x = np.tile(np.linspace(0., duration, y.shape[1]), (nchannels, 1))
-
+plt.figure(toolbar=False, show_grid=True)
 plt.plot(x=x, y=y)
 
 SLICE = None
 
 def anim(figure, parameter):
-    zoom = figure.get_processor('navigation').sx
-    box = figure.get_processor('navigation').get_viewbox()
-    xlim = ((box[0] + 1) / 2. * (duration), (box[2] + 1) / 2. * (duration))
+    # Constrain the zoom.
+    nav = figure.get_processor('navigation')
+    nav.constrain_navigation = True
+    nav.xmin = -1
+    nav.xmax = 2 * duration / duration_initial
+    nav.sxmin = 1.
+    
+    zoom = nav.sx
+    box = nav.get_viewbox()
+    xlim = ((box[0] + 1) / 2. * (duration_initial), (box[2] + 1) / 2. * (duration_initial))
     xlimex, slice = get_view(data.shape[0], xlim, freq)
     global SLICE
     if slice != SLICE:
@@ -101,7 +102,9 @@ def anim(figure, parameter):
         figure.set_data(position=samples, bounds=bounds, size=size,
             index=color_array_index)
     
-plt.animate(anim, dt=1.)
+plt.animate(anim, dt=.25)
+
+plt.xlim(0., 10.)
 
 plt.show()
 f.close()
