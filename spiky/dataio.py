@@ -80,14 +80,17 @@ try:
     # make sure that read_csv is available
     assert hasattr(pd, 'read_csv')
     
-    def load_text_pandas(filename, dtype, skiprows=0, delimiter=' '):
+    def load_text_pandas(filename, dtype, skiprows=0, delimiter=' ',
+            returnheaders=False):
         with open(filename, 'r') as f:
-            for _ in xrange(skiprows):
-                f.readline()
+            headers = [f.readline() for _ in xrange(skiprows)]
             x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
         # return pd.read_csv(filename, skiprows=skiprows, sep=delimiter).values.astype(dtype)
         # print x.shape
-        return x
+        if not returnheaders:
+            return x
+        else:
+            return x, headers
     
 except (ImportError, AssertionError):
     log_warn("You'd better have Pandas v>=0.10")
@@ -349,22 +352,31 @@ class KlustersDataProvider(DataProvider):
         # -------------------------------------------------
         # features = load_text_fast(filename + ".fet.%d" % fileindex, np.int32, skiprows=1)
         path = get_actual_filename(filename, 'fet', fileindex)
-        features = load_text_pandas(path, np.int32, skiprows=1)
+        features, headers = load_text_pandas(path, np.int32, skiprows=1, returnheaders=True)
         features = np.array(features, dtype=np.float32)
+        
+        # Find out the number of extra features.
+        nfet = int(headers[0])
+        # HACK: sometimes, problem with penultimate column due to double white space
+        if features.shape[1] != nfet:
+            features = np.hstack((features[:,:-2], features[:,-1].reshape((-1, 1))))
+        nextrafet = nfet - fetdim * nchannels
         
         # HACK: there are either 1 or 5 dimensions more than fetdim*nchannels
         # we can't be sure so we first try 1, if it does not work we try 5
-        try:
-            features = features.reshape((-1, fetdim * nchannels + 1))
-        except:
-            log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 1." \
-                % (fetdim, nchannels))
-            try:
-                features = features.reshape((-1, fetdim * nchannels + 5))
+        # try:
+        features = features.reshape((-1, nfet))
+        # except:
+            # raise Exception(("The FET file was not found and the data cannot "
+                # "be loaded."))
+            # log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 1." \
+                # % (fetdim, nchannels))
+            # try:
+                # features = features.reshape((-1, fetdim * nchannels + 5))
                 
-            except:
-                log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 5, so I'm confused and I can't continue. Sorry :(" \
-                    % (fetdim, nchannels))
+            # except:
+                # log_debug("The number of columns is not fetdim (%d) x nchannels (%d) + 5, so I'm confused and I can't continue. Sorry :(" \
+                    # % (fetdim, nchannels))
                 
         nspikes = features.shape[0]
 
@@ -456,6 +468,14 @@ class KlustersDataProvider(DataProvider):
         try:
             path = get_actual_filename(filename, 'spk', fileindex)
             waveforms = load_binary(path)
+            # print waveforms.shape
+            # print (nspikes, nsamples, nchannels)
+            # DEBUG
+            # nchannels = 32
+            
+            print waveforms.shape
+            print nspikes * nsamples * nchannels
+            
             waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
         except IOError as e:
             log_warn("SPK file '%s' not found" % filename)
