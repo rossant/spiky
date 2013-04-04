@@ -1,8 +1,89 @@
 import numpy as np
 import tables
 import galry.pyplot as plt
+from galry import Visual, process_coordinates, get_next_color, get_color
+from qtools import inthread
 
 MAXSIZE = 5000
+CHANNEL_HEIGHT = .25
+
+
+
+
+class MultiChannelVisual(Visual):
+    def initialize(self, x=None, y=None, color=None, point_size=1.0,
+            position=None, nprimitives=None, index=None,
+            color_array_index=None, channel_height=CHANNEL_HEIGHT,
+            options=None, autocolor=None):
+            
+        position, shape = process_coordinates(x=x, y=y)
+        
+        # register the size of the data
+        self.size = np.prod(shape)
+        
+        # there is one plot per row
+        if not nprimitives:
+            nprimitives = shape[0]
+            nsamples = shape[1]
+        else:
+            nsamples = self.size // nprimitives
+        
+        # register the bounds
+        if nsamples <= 1:
+            self.bounds = [0, self.size]
+        else:
+            self.bounds = np.arange(0, self.size + 1, nsamples)
+        
+        # automatic color with color map
+        if autocolor is not None:
+            if nprimitives <= 1:
+                color = get_next_color(autocolor)
+            else:
+                color = np.array([get_next_color(i + autocolor) for i in xrange(nprimitives)])
+            
+        # set position attribute
+        self.add_attribute("position", ndim=2, data=position, autonormalizable=True)
+        
+        index = np.array(index)
+        self.add_index("index", data=index)
+    
+        if color_array_index is None:
+            color_array_index = np.repeat(np.arange(nprimitives), nsamples)
+        color_array_index = np.array(color_array_index)
+            
+        ncolors = color.shape[0]
+        ncomponents = color.shape[1]
+        color = color.reshape((1, ncolors, ncomponents))
+        
+        dx = 1. / ncolors
+        offset = dx / 2.
+        
+        self.add_texture('colormap', ncomponents=ncomponents, ndim=1, data=color)
+        self.add_attribute('index', ndim=1, vartype='int', data=color_array_index)
+        self.add_varying('vindex', vartype='int', ndim=1)
+        self.add_uniform('nchannels', vartype='float', ndim=1, data=float(nprimitives))
+        self.add_uniform('channel_height', vartype='float', ndim=1, data=channel_height)
+        
+        self.add_vertex_main("""
+        position.y = channel_height * position.y + .9 * (2 * index - (nchannels - 1)) / (nchannels - 1);
+        vindex = index;
+        """)
+        
+        self.add_fragment_main("""
+        float coord = %.5f + vindex * %.5f;
+        vec4 color = texture1D(colormap, coord);
+        out_color = color;
+        """ % (offset, dx))
+
+        # add point size uniform (when it's not specified, there might be some
+        # bugs where its value is obtained from other datasets...)
+        self.add_uniform("point_size", data=point_size)
+        self.add_vertex_main("""gl_PointSize = point_size;""")
+        
+
+
+
+
 
 def get_view(total_size, xlim, freq):
     """Return the slice of the data.
@@ -44,12 +125,12 @@ def get_undersampled_data(data, xlim, slice):
     samples = np.array(samples, dtype=np.float32)
     # Normalize the data.
     samples *= (1. / 65535)
-    samples *= .25
+    # samples *= .25
     # Size of the slice.
     nsamples, nchannels = samples.shape
     # Create the data array for the plot visual.
     M = np.empty((nsamples * nchannels, 2))
-    samples = samples.T + np.linspace(-1., 1., nchannels).reshape((-1, 1))
+    samples = samples.T# + np.linspace(-1., 1., nchannels).reshape((-1, 1))
     M[:, 1] = samples.ravel()
     # Generate the x coordinates.
     x = np.arange(slice.start, slice.stop, slice.step) / float(total_size - 1)
@@ -61,6 +142,17 @@ def get_undersampled_data(data, xlim, slice):
     size = bounds[-1]
     return M, bounds, size
 
+@inthread
+class DataUpdater(object):
+    info = {}
+    
+    def update(self, data, xlimex, slice):
+        samples, bounds, size = get_undersampled_data(data, xlimex, slice)
+        nsamples = samples.shape[0]
+        color_array_index = np.repeat(np.arange(nchannels), nsamples / nchannels)
+        self.info = dict(position=samples, bounds=bounds, size=size,
+            index=color_array_index)
+    
 
 filename = "test_data/n6mab031109.h5"
 f = tables.openFile(filename)
@@ -74,13 +166,23 @@ duration = (data.shape[0] - 1) * dt
 duration_initial = 10.
 
 x = np.tile(np.linspace(0., duration, nsamples // MAXSIZE), (nchannels, 1))
-y = np.zeros_like(x)+ np.linspace(-1, 1, nchannels).reshape((-1, 1))
+y = np.zeros_like(x)+ np.linspace(-.9, .9, nchannels).reshape((-1, 1))
 
 plt.figure(toolbar=False, show_grid=True)
-plt.plot(x=x, y=y)
+plt.visual(MultiChannelVisual, x=x, y=y)
+
+updater = DataUpdater(impatient=True)
 
 SLICE = None
 
+def change_channel_height(figure, parameter):
+    global CHANNEL_HEIGHT
+    CHANNEL_HEIGHT *= (1 + parameter)
+    figure.set_data(channel_height=CHANNEL_HEIGHT)
+
+def pan(figure, parameter):
+    figure.process_interaction('Pan', parameter)
+    
 def anim(figure, parameter):
     # Constrain the zoom.
     nav = figure.get_processor('navigation')
@@ -96,14 +198,18 @@ def anim(figure, parameter):
     global SLICE
     if slice != SLICE:
         SLICE = slice
-        samples, bounds, size = get_undersampled_data(data, xlimex, slice)
-        nsamples = samples.shape[0]
-        color_array_index = np.repeat(np.arange(nchannels), nsamples / nchannels)
-        figure.set_data(position=samples, bounds=bounds, size=size,
-            index=color_array_index)
+        updater.update(data, xlimex, slice)
+    if updater.info:
+        figure.set_data(**updater.info)
+        updater.info.clear()
     
 plt.animate(anim, dt=.25)
-
+plt.action('Wheel', change_channel_height, key_modifier='Control',
+           param_getter=lambda p: p['wheel'] * .001)
+plt.action('Wheel', pan, key_modifier='Shift',
+           param_getter=lambda p: (p['wheel'] * .002, 0))
+           
+           
 plt.xlim(0., 10.)
 
 plt.show()
