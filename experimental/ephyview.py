@@ -8,8 +8,6 @@ MAXSIZE = 5000
 CHANNEL_HEIGHT = .25
 
 
-
-
 class MultiChannelVisual(Visual):
     def initialize(self, x=None, y=None, color=None, point_size=1.0,
             position=None, nprimitives=None, index=None,
@@ -42,7 +40,7 @@ class MultiChannelVisual(Visual):
                 color = np.array([get_next_color(i + autocolor) for i in xrange(nprimitives)])
             
         # set position attribute
-        self.add_attribute("position", ndim=2, data=position, autonormalizable=True)
+        self.add_attribute("position0", ndim=2, data=position, autonormalizable=True)
         
         index = np.array(index)
         self.add_index("index", data=index)
@@ -65,6 +63,7 @@ class MultiChannelVisual(Visual):
         self.add_uniform('channel_height', vartype='float', ndim=1, data=channel_height)
         
         self.add_vertex_main("""
+        vec2 position = position0;
         position.y = channel_height * position.y + .9 * (2 * index - (nchannels - 1)) / (nchannels - 1);
         vindex = index;
         """)
@@ -80,10 +79,6 @@ class MultiChannelVisual(Visual):
         self.add_uniform("point_size", data=point_size)
         self.add_vertex_main("""gl_PointSize = point_size;""")
         
-
-
-
-
 
 def get_view(total_size, xlim, freq):
     """Return the slice of the data.
@@ -150,13 +145,20 @@ class DataUpdater(object):
         samples, bounds, size = get_undersampled_data(data, xlimex, slice)
         nsamples = samples.shape[0]
         color_array_index = np.repeat(np.arange(nchannels), nsamples / nchannels)
-        self.info = dict(position=samples, bounds=bounds, size=size,
+        self.info = dict(position0=samples, bounds=bounds, size=size,
             index=color_array_index)
     
-
-filename = "test_data/n6mab031109.h5"
-f = tables.openFile(filename)
-data = f.root.raw_data
+try:
+    filename = r"test_data/n6mab031109.h5"
+    f = tables.openFile(filename)
+except:
+    filename = r"test_data/n6mab031109.trim.h5"
+    f = tables.openFile(filename)
+try:
+    data = f.root.RawData
+except:
+    data = f.root.raw_data
+    
 nsamples, nchannels = data.shape
 total_size = nsamples
 freq = 20000.
@@ -210,7 +212,7 @@ plt.action('Wheel', pan, key_modifier='Shift',
            param_getter=lambda p: (p['wheel'] * .002, 0))
            
            
-plt.xlim(0., 10.)
+plt.xlim(0., duration_initial)
 
 plt.show()
 f.close()
