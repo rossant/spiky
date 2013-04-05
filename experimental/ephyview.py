@@ -96,8 +96,8 @@ def get_view(total_size, xlim, freq):
     view_size = total_size / zoom
     step = int(np.ceil(view_size / MAXSIZE))
     # Extended viewport for data.
-    x0ex = np.clip(x0 - 2 * d, 0, dmax)
-    x1ex = np.clip(x1 + 2 * d, 0, dmax)
+    x0ex = np.clip(x0 - 3 * d, 0, dmax)
+    x1ex = np.clip(x1 + 3 * d, 0, dmax)
     i0 = np.clip(int(np.round(x0ex * freq)), 0, total_size)
     i1 = np.clip(int(np.round(x1ex * freq)), 0, total_size)
     return (x0ex, x1ex), slice(i0, i1, step)
@@ -205,7 +205,7 @@ def anim(figure, parameter):
         figure.set_data(**updater.info)
         updater.info.clear()
     
-plt.animate(anim, dt=.25)
+plt.animate(anim, dt=.01)
 plt.action('Wheel', change_channel_height, key_modifier='Control',
            param_getter=lambda p: p['wheel'] * .001)
 plt.action('Wheel', pan, key_modifier='Shift',
