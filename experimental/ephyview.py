@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tables
 import galry.pyplot as plt
@@ -146,13 +147,14 @@ class DataUpdater(object):
         color_array_index = np.repeat(np.arange(nchannels), nsamples / nchannels)
         self.info = dict(position0=samples, bounds=bounds, size=size,
             index=color_array_index)
-    
+
+dir = os.path.dirname(os.path.abspath(__file__))
 try:
     filename = r"test_data/n6mab031109.h5"
-    f = tables.openFile(filename)
+    f = tables.openFile(os.path.join(dir, filename))
 except:
     filename = r"test_data/n6mab031109.trim.h5"
-    f = tables.openFile(filename)
+    f = tables.openFile(os.path.join(dir, filename))
 try:
     data = f.root.RawData
 except:
