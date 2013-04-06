@@ -79,7 +79,6 @@ class MultiChannelVisual(Visual):
         self.add_uniform("point_size", data=point_size)
         self.add_vertex_main("""gl_PointSize = point_size;""")
         
-
 def get_view(total_size, xlim, freq):
     """Return the slice of the data.
     
@@ -165,7 +164,7 @@ freq = 20000.
 dt = 1. / freq
 duration = (data.shape[0] - 1) * dt
 
-duration_initial = 10.
+duration_initial = 5.
 
 x = np.tile(np.linspace(0., duration, nsamples // MAXSIZE), (nchannels, 1))
 y = np.zeros_like(x)+ np.linspace(-.9, .9, nchannels).reshape((-1, 1))
@@ -197,9 +196,15 @@ def anim(figure, parameter):
     box = nav.get_viewbox()
     xlim = ((box[0] + 1) / 2. * (duration_initial), (box[2] + 1) / 2. * (duration_initial))
     xlimex, slice = get_view(data.shape[0], xlim, freq)
+    
+    # Paging system.
+    dur = xlim[1] - xlim[0]
+    index = int(np.floor(xlim[0] / dur))
+    zoom_index = int(np.round(duration_initial / dur))
+    i = (index, zoom_index)
     global SLICE
-    if slice != SLICE:
-        SLICE = slice
+    if i != SLICE:
+        SLICE = i
         updater.update(data, xlimex, slice)
     if updater.info:
         figure.set_data(**updater.info)
@@ -210,8 +215,8 @@ plt.action('Wheel', change_channel_height, key_modifier='Control',
            param_getter=lambda p: p['wheel'] * .001)
 plt.action('Wheel', pan, key_modifier='Shift',
            param_getter=lambda p: (p['wheel'] * .002, 0))
-           
-           
+plt.action('DoubleClick', 'ResetZoom')
+
 plt.xlim(0., duration_initial)
 
 plt.show()
