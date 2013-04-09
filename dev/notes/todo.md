@@ -22,6 +22,13 @@ Major features
   
 Minor features
 --------------
+
+  * auto update correlation matrix
+  * remove bad groups in correlation matrix
+  * in feature view, add non-selected spikes in gray in the background
+  * CTRL + click in correlation matrix = add pair to the selection
+  * bug fix: when click in correlation matrix, show selected clusters in
+    cluster list
   
   * try antialiasing, especially in correlograms view
   * put scale and grid in all views

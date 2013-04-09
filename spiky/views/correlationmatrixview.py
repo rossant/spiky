@@ -24,10 +24,11 @@ def colormap(x, col0=None, col1=None):
     removed = x == -1
     
     x[np.isnan(x)] = 0.
-    # TODO: proper scaling
     x -= x.min()
     x *= (1. / x.max())
-    x = np.clip(x, 0., 1.)
+    # Set the maximum values above which the max color should be used.
+    max = .1
+    x = np.clip(x / max, 0., 1.)
     
     shape = x.shape
     
@@ -170,12 +171,12 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
 class CorrelationMatrixBindings(SpikyBindings):
 
     def set_clusterinfo(self):
-        self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
+        self.set('Move', 'ShowClosestCluster',# key_modifier='Shift',
             param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
     
     def set_selectcluster(self):
-        self.set('LeftClick', 'SelectPair', key_modifier='Shift',
+        self.set('LeftClick', 'SelectPair',# key_modifier='Shift',
             param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
     
