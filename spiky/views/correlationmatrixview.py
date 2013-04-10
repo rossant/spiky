@@ -72,29 +72,38 @@ class CorrelationMatrixDataManager(Manager):
         clusters_info=None,
         clusters_hidden=[], # list with all cluster to hide
         ):
+        
         if matrix.size == 0:
             matrix = -np.ones((2, 2))
         elif matrix.shape[0] == 1:
             matrix = -np.ones((2, 2))
         n = matrix.shape[0]
         
+        self.matrix = matrix
         
         self.texture = colormap(matrix)[::-1, :, :]
         
-        # Hide some clusters.
-        if n >= 3:
-            tex0 = self.texture.copy()
-            for clu in clusters_hidden:
-                self.texture[clu, :, :] = tex0[clu, :, :] * .25
-                self.texture[:, clu, :] = tex0[:, clu, :] * .25
-        
-        self.matrix = matrix
         
         groups_info = clusters_info['groups_info']
         
         clusters_info = clusters_info['clusters_info']
         clusters_unique = sorted(clusters_info.keys())
         cluster_colors = [clusters_info[c]['color'] for c in clusters_unique]
+        
+        
+        # Hide some clusters.
+        if n >= 3:
+            tex0 = self.texture.copy()
+            # Put bad clusters in shadow.
+            for clu in clusters_hidden:
+                self.texture[-clu-1, :, :] = tex0[-clu-1, :, :] * .25
+                self.texture[:, clu, :] = tex0[:, clu, :] * .25
+            # Show non-existing pairs in black.
+            for clu in xrange(self.matrix.shape[0]):
+                if clu not in clusters_unique:
+                    self.texture[-clu-1,:,:] = 0
+                    self.texture[:,clu,:] = 0
+        
         
         self.clusters_unique = clusters_unique
         self.cluster_colors = cluster_colors

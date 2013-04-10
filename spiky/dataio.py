@@ -191,6 +191,7 @@ class SelectDataHolder(object):
         
     def invalidate(self, clusters):
         tasks.TASKS.cluster_cache.invalidate(clusters)
+        # tasks.TASKS.correlation_matrix_queue.process()
         
     # @profile
     def select_clusters(self, clusters):

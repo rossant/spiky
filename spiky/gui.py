@@ -585,7 +585,8 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.correlograms_widget.update_view(self.sdh)
         
     def slotCorrelationMatrixUpdated(self, sender, matrix):
-        self.sdh.correlation_matrix = matrix
+        if matrix.size > 0:
+            self.sdh.correlation_matrix = matrix
         self.correlationmatrix_widget.update_view(self.sdh)
         
     # Event methods

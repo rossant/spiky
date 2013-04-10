@@ -15,8 +15,6 @@ Message for alpha pre-release version:
 Minor features
 --------------
 
-  * auto update correlation matrix
-  
   * bug fix: when click in correlation matrix, show selected clusters in
     cluster list
   

@@ -3,6 +3,7 @@ from copy import deepcopy as dcopy
 import numpy as np
 from colors import COLORMAP
 from dataio import get_clusters_info
+import spiky.tasks as tasks
 
 
 # Base class for actions
@@ -120,12 +121,22 @@ class MergeAction(Action):
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
         self.dh.clusters_info['clusters_info'] = clusters_info
+        
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(self.dh)
+        
 
     def unexecute(self):
         self.sdh.invalidate(self.clusters_to_merge)
+        
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(self.dh)
 
     def reexecute(self):
         self.sdh.invalidate(self.clusters_to_merge)
+        
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(self.dh)
         
     def selected_clusters_after_undo(self):
         return self.clusters_to_merge
@@ -190,12 +201,21 @@ class SplitAction(Action):
         self.dh.nclusters = nclusters
         self.dh.clusters = clusters
         self.dh.clusters_info['clusters_info'] = clusters_info
+        
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(self.dh)
 
     def unexecute(self):
         self.sdh.invalidate(self.clusters_to_split)
         
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(self.dh)
+        
     def reexecute(self):
         self.sdh.invalidate(self.clusters_to_split)
+        
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(self.dh)
         
     def selected_clusters_after_undo(self):
         return self.clusters_to_split
@@ -214,6 +234,9 @@ class MoveToGroupAction(Action):
     def execute(self):
         for clusteridx in self.clusters:
             self.dh.clusters_info['clusters_info'][clusteridx]['groupidx'] = self.groupidx
+        
+        # Update correlation matrix.
+        tasks.TASKS.correlation_matrix_queue.process(doupdate=False)
         
     def selected_clusters_after_undo(self):
         return self.clusters

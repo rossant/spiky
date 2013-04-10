@@ -724,7 +724,6 @@ class ClusterWidget(QtGui.QWidget):
         self.initialize_connections()
         
     def initialize_connections(self):
-        
         ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
         
     def slotClusterSelectionToChange(self, sender, clusters):

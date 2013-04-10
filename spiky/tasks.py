@@ -512,14 +512,18 @@ class CorrelationMatrixQueue(object):
     def __init__(self, dh):
         self.dh = dh
         
-    def process(self):
+    def process(self, dh=None, doupdate=True):
+        if not doupdate:
+            return np.array([])
+        if dh is not None:
+            self.dh = dh
         correlation_matrix = correlation_matrix2(
             self.dh.features[:,:-self.dh.nextrafet], self.dh.clusters,
             self.dh.masks_complete[:,:-self.dh.nextrafet])
         return correlation_matrix
         
     @staticmethod
-    def process_done(_result=None):
+    def process_done(dh=None, doupdate=None, _result=None):
         ssignals.emit(None, 'CorrelationMatrixUpdated', _result)
         
         
