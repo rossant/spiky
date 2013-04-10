@@ -644,7 +644,7 @@ class SpikyMainWindow(QtGui.QMainWindow):
         self.split_action.setEnabled(False)
         self.selected_spikes = None
         
-        
+        self.cluster_widget.view.select_multiple(clusters, dosignal=False)
         
     
     

@@ -625,25 +625,30 @@ class ClusterTreeView(QtGui.QTreeView):
         sel_model.select(cluster, sel_model.Clear | sel_model.SelectCurrent | sel_model.Rows)
         self.scrollTo(cluster, QtGui.QAbstractItemView.EnsureVisible)
         
-    def select_multiple(self, clusters):
+    def select_multiple(self, clusters, dosignal=True):
         if len(clusters) == 0:
             return
         elif len(clusters) == 1:
-            self.select(clusters[0])
+            if clusters[0] is not None:
+                self.select(clusters[0])
         else:
             # HACK: loop to select multiple clusters without sending signals
             self.can_signal_selection = False
             sel_model = self.selectionModel()
-            for cluster in clusters[:-1]:
+            for i, cluster in enumerate(clusters[:-1]):
                 cl = self.get_cluster(cluster)
                 if cl:
                     cl = cl.index
-                    sel_model.select(cl, sel_model.Select | sel_model.Rows)
-            self.can_signal_selection = True
+                    if i == 0:
+                        sel_model.select(cl, sel_model.ClearAndSelect | sel_model.Rows)
+                    else:
+                        sel_model.select(cl, sel_model.Select | sel_model.Rows)
+            self.can_signal_selection = dosignal
             cl = self.get_cluster(clusters[-1])
             if cl:
                 cl = cl.index
                 sel_model.select(cl, sel_model.Select | sel_model.Rows)
+        self.can_signal_selection = True
             
     def select_all(self):
         self.select_multiple([cl.clusteridx() for cl in self.get_clusters()])
