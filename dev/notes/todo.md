@@ -15,10 +15,6 @@ Message for alpha pre-release version:
 Minor features
 --------------
 
-  * bug fix: when click in correlation matrix, show selected clusters in
-    cluster list
-  
-  
   * in feature view, add non-selected spikes in gray in the background
   * CTRL + click in correlation matrix = add pair to the selection
   
