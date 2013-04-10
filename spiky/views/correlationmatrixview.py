@@ -51,14 +51,26 @@ def colormap(x, col0=None, col1=None):
     
     # value of -1 = black
     y[removed,:] = 0
+    # Remove diagonal.
+    n = y.shape[0]
+    y[xrange(n), xrange(n), :] = 0
     
     return y
+
+def get_noise_clusters(clusters_info, groups_info):
+    names = ['Noise', 'Multi-unit']
+    group_indices = [key for key in groups_info.keys() 
+                        if groups_info[key]['name'] in names]
+    clusters = [key for key in clusters_info.keys() 
+                    if clusters_info[key]['groupidx'] in group_indices]
+    return clusters
     
     
 class CorrelationMatrixDataManager(Manager):
     def set_data(self, matrix=None, 
         # clusters_unique=None, cluster_colors=None
         clusters_info=None,
+        clusters_hidden=[], # list with all cluster to hide
         ):
         if matrix.size == 0:
             matrix = -np.ones((2, 2))
@@ -66,8 +78,19 @@ class CorrelationMatrixDataManager(Manager):
             matrix = -np.ones((2, 2))
         n = matrix.shape[0]
         
+        
         self.texture = colormap(matrix)[::-1, :, :]
+        
+        # Hide some clusters.
+        if n >= 3:
+            tex0 = self.texture.copy()
+            for clu in clusters_hidden:
+                self.texture[clu, :, :] = tex0[clu, :, :] * .25
+                self.texture[:, clu, :] = tex0[:, clu, :] * .25
+        
         self.matrix = matrix
+        
+        groups_info = clusters_info['groups_info']
         
         clusters_info = clusters_info['clusters_info']
         clusters_unique = sorted(clusters_info.keys())
@@ -211,17 +234,23 @@ class CorrelationMatrixWidget(VisualizationWidget):
     def create_view(self, dh):
         self.dh = dh
         view = CorrelationMatrixView(getfocus=False)
+        clusters_hidden = get_noise_clusters(dh.clusters_info['clusters_info'],
+            dh.clusters_info['groups_info'])
         view.set_data(
                       matrix=dh.correlation_matrix,
                       clusters_info=self.dh.clusters_info,
+                      clusters_hidden=clusters_hidden,
                       )
         return view
         
     def update_view(self, dh=None):
         if dh is not None:
             self.dh = dh
+        clusters_hidden = get_noise_clusters(dh.clusters_info['clusters_info'],
+            dh.clusters_info['groups_info'])
         self.view.set_data(
                       matrix=dh.correlation_matrix,
                       clusters_info=self.dh.clusters_info,
+                      clusters_hidden=clusters_hidden,
                       )
 

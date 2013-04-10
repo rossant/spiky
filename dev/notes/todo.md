@@ -15,15 +15,13 @@ Message for alpha pre-release version:
 Minor features
 --------------
 
-  * remove bad groups in correlation matrix
   * auto update correlation matrix
   
-  * load all features in memory
-  
-  * in feature view, add non-selected spikes in gray in the background
   * bug fix: when click in correlation matrix, show selected clusters in
     cluster list
   
+  
+  * in feature view, add non-selected spikes in gray in the background
   * CTRL + click in correlation matrix = add pair to the selection
   
   * put scale and grid in all views
