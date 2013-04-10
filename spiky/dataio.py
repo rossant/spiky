@@ -473,8 +473,8 @@ class KlustersDataProvider(DataProvider):
             # DEBUG
             # nchannels = 32
             
-            print waveforms.shape
-            print nspikes * nsamples * nchannels
+            # print waveforms.shape
+            # print nspikes * nsamples * nchannels
             
             waveforms = waveforms.reshape((nspikes, nsamples, nchannels))
         except IOError as e:

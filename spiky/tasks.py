@@ -122,7 +122,7 @@ class ClusterCache(object):
         self.sdh = sdh
         
         if width is None:
-            width = .2
+            width = .025
         if bin is None:
             bin = .001
         

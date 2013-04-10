@@ -29,6 +29,8 @@ def colormap(x, col0=None, col1=None):
     # Set the maximum values above which the max color should be used.
     max = .1
     x = np.clip(x / max, 0., 1.)
+    # Gamma correction. Doesn't look very good.
+    # x = x ** .2
     
     shape = x.shape
     

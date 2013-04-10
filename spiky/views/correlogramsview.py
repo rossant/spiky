@@ -306,9 +306,13 @@ class CorrelogramsBindings(SpikyBindings):
     
     
 class CorrelogramsView(GalryWidget):
+    def __init__(self, *args, **kwargs):
+        format = QtOpenGL.QGLFormat()
+        format.setSampleBuffers(True)
+        kwargs['format'] = format
+        super(CorrelogramsView, self).__init__(*args, **kwargs)
+
     def initialize(self):
-        # self.constrain_ratio = True
-        # self.constrain_navigation = True
         self.set_bindings(CorrelogramsBindings)
         self.set_companion_classes(paint_manager=CorrelogramsPaintManager,
             interaction_manager=CorrelogramsInteractionManager,

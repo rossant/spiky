@@ -10,61 +10,57 @@ Message for alpha pre-release version:
     Make sure you backup your data before loading it (although the software
     won't modify any of your files by default, proposing you to save in 
     a different CLU file).
-   
-   
-Major features
---------------
-
-  * GUI to visualize probe files
-  * new HDF5 file format
-  * robot
-
+  
   
 Minor features
 --------------
 
-  * auto update correlation matrix
   * remove bad groups in correlation matrix
+  * auto update correlation matrix
+  
+  * load all features in memory
+  
   * in feature view, add non-selected spikes in gray in the background
-  * CTRL + click in correlation matrix = add pair to the selection
   * bug fix: when click in correlation matrix, show selected clusters in
     cluster list
   
-  * try antialiasing, especially in correlograms view
+  * CTRL + click in correlation matrix = add pair to the selection
+  
   * put scale and grid in all views
   * option to change width/bin of correlograms
   * option to toggle normalization in correlograms view
   * when selecting a group, only show the corresponding clusters in the
     correlation matrix
-  * merge: use the smallest cluster index instead of creating a new one
-  * buttons for all commands (reset view for any view)
-  * make settings independent from pyqt/pyside
+  * most recent selected cluster on top in both views
+    
+    
+  * buttons or menu for all commands (reset view for any view)
   * store visualization-related information in the XML file (cluster colors,
-    probe scaling, etc)
+    probe scaling, etc) (klustaviewa table)
   * feature view: flip X/Y
-  * highlighting: less transient with CTRL + click (click to deactivate)
-  * option to toggle showing masks as gray waveforms in waveform view
-  * feature view gray points transparency depth
-  * function for automatic zoom in waveformview as a function of
+  
+  * option to toggle showing masks as gray waveforms in waveform view (T)
+  * masks & transparency: shading, continuity, hsv space
+  
+  * robot: function for automatic zoom in waveformview as a function of
     channels and clusters
-  * initial launch: default window geometry config  
+  * fix dock issue with feature view
   * undock maximize button
   * interaction mode buttons: deactivate in gray to highlight the current mode
-  * small widget with text information (number of spikes, highlighted spikes...)
 
+  * initial launch: default window geometry config  
+  * make settings independent from pyqt/pyside
   
 Ideas
 -----
   
   * ISI widget
   * multiple widgets of the same type
-  * Measure of cluster quality: ratio of mask/unmask on each channel
   * feature view: when masks toggled (features gray) not possible to select
     them. when no masks, everything can be selected.
   * trace view (neuroscope)
-  * fetdim variable in controller widget (1 to ?)
-  * improve the computation of cross-correlograms (specific algorithm for
-    pairwise correlograms within a pool of neurons, maybe with numba)
+  * test: fetdim variable in controller widget (1 to ?)
+  * (Measure of cluster quality: ratio of mask/unmask on each channel)
 
 
 Fixes
@@ -72,7 +68,7 @@ Fixes
 
   * make sure the GUI work in IPython
   * force cleaning up of widgets upon closing
-  * fix focus issue with floating docks
+  * bug fix focus issue with floating docks
   
   
 Refactoring
