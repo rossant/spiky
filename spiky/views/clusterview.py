@@ -630,6 +630,7 @@ class ClusterTreeView(QtGui.QTreeView):
             return
         elif len(clusters) == 1:
             if clusters[0] is not None:
+                self.can_signal_selection = dosignal
                 self.select(clusters[0])
         else:
             # HACK: loop to select multiple clusters without sending signals
@@ -648,6 +649,7 @@ class ClusterTreeView(QtGui.QTreeView):
             if cl:
                 cl = cl.index
                 sel_model.select(cl, sel_model.Select | sel_model.Rows)
+                
         self.can_signal_selection = True
             
     def select_all(self):
