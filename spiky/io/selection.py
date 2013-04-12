@@ -83,7 +83,15 @@ def get_spikes_in_clusters(clusters_selected, clusters, return_indices=False):
         return spike_indices
     else:
         return np.nonzero(spike_indices)[0]
-    
+
+def get_indices(data):
+    if type(data) == np.ndarray:
+        return np.arange(data.shape[0], dtype=np.int32)
+    elif type(data) == pd.DataFrame:
+        return data.index
+    elif type(data) == pd.Panel:
+        return data.items
+        
 def to_array(data):
     """Convert a Pandas object to a NumPy array."""
     return np.atleast_1d(np.array(data).squeeze())

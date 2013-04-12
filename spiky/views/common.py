@@ -10,7 +10,6 @@ __all__ = [
            ]
 
 
-
 class HighlightManager(Manager):
     
     highlight_rectangle_color = (0.75, 0.75, 1., .25)
