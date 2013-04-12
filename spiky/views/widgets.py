@@ -8,10 +8,11 @@ import numpy.random as rnd
 from collections import OrderedDict
 import re
 # import spiky.dataio as sdataio
-import spiky.tools as stools
+# import spiky.tools as stools
+from spiky.utils.settings import get_settings
 
 
-SETTINGS = stools.get_settings()
+SETTINGS = get_settings()
 
 
 __all__ = ['VisualizationWidget', ]

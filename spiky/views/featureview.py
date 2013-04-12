@@ -8,10 +8,11 @@ from matplotlib.path import Path
 from galry import *
 from common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
 from widgets import VisualizationWidget
-import spiky.colors as scolors
+# import spiky.colors as scolors
+from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
 import spiky
-import spiky.tools as stools
-import spiky.signals as ssignals
+# import spiky.tools as stools
+import spiky.gui.signals as ssignals
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
@@ -222,13 +223,13 @@ class FeatureVisual(Visual):
         
         # color map for cluster colors, each spike has an index of the color
         # in the color map
-        ncolors = scolors.COLORMAP.shape[0]
-        ncomponents = scolors.COLORMAP.shape[1]
+        ncolors = COLORMAP.shape[0]
+        ncomponents = COLORMAP.shape[1]
         
         # associate the cluster color to each spike
         # give the correct shape to cmap
-        colormap = scolors.COLORMAP.reshape((1, ncolors, ncomponents))
-        hcolormap = scolors.HIGHLIGHT_COLORMAP.reshape((1, ncolors, ncomponents))
+        colormap = COLORMAP.reshape((1, ncolors, ncomponents))
+        hcolormap = HIGHLIGHT_COLORMAP.reshape((1, ncolors, ncomponents))
         
         cmap_index = cluster_colors[cluster]
         
@@ -628,7 +629,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         # x += .05
         # y += .05
         
-        r, g, b = scolors.COLORMAP[color,:]
+        r, g, b = COLORMAP[color,:]
         color = (r, g, b, .75)
         
         text = str(self.data_manager.clusters_unique[cluster])

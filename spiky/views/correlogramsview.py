@@ -2,9 +2,10 @@ import numpy.random as rdn
 from galry import *
 from common import HighlightManager, SpikyBindings
 from widgets import VisualizationWidget
-import spiky.colors as scolors
-import spiky.tools as stools
-import spiky.signals as ssignals
+# import spiky.colors as scolors
+from spiky.utils.colors import COLORMAP
+# import spiky.tools as stools
+import spiky.gui.signals as ssignals
 
 VERTEX_SHADER = """
     //vec3 color = vec3(1, 1, 1);
@@ -126,7 +127,7 @@ class CorrelogramsDataManager(Manager):
         
         color_array_index[identity] = np.array(cluster_colors + 1, dtype=np.int32)
         # very first color in color map = white (cross-correlograms)
-        self.color = np.vstack((np.ones((1, 3)), scolors.COLORMAP))
+        self.color = np.vstack((np.ones((1, 3)), COLORMAP))
         self.color_array_index = color_array_index
         
         self.clusters = np.repeat(self.clusters, self.nsamples, axis=0)
@@ -264,7 +265,7 @@ class CorrelogramsInteractionManager(PlotInteractionManager):
         # color0 = (r, g, b, .75)
         
         color1 = self.data_manager.cluster_colors[cy_rel]
-        r, g, b = scolors.COLORMAP[color1,:]
+        r, g, b = COLORMAP[color1,:]
         color1 = (r, g, b, .75)
         
         cx = self.data_manager.clusters_unique[cx_rel]

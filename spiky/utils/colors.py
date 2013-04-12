@@ -52,7 +52,6 @@ def generate_hsv(n0=20):
 # generate a list of RGB values for each color
 hsv = generate_hsv()
 hsv = np.clip(hsv, 0, 1)
-# hsv = hsv.reshape((1, -1, 3))
 COLORS = hsv_to_rgb(hsv)
 COLORS = np.clip(COLORS, 0, 1)
 COLORS_COUNT = len(COLORS)
@@ -61,11 +60,8 @@ perm = np.mod(np.arange(0, step * 24, step), 24)
 perm = np.hstack((2 * perm, 2 * perm + 1))
 COLORMAP = COLORS[perm, ...]
 COLORMAP = np.vstack(((1., 1., 1.), COLORMAP))
-# COLORMAP = np.array(COLORS)
 
 # Highlight color map
-# rgb = COLORMAP.reshape((1, -1, 3))
-# hsv = rgb_to_hsv(rgb)
 # decrease saturation, increase value
 hsv[:,1] -= .5
 hsv[:,2] += .5
@@ -73,15 +69,6 @@ hsv = np.clip(hsv, 0, 1)
 hsv = hsv[perm, ...]
 HIGHLIGHT_COLORMAP = hsv_to_rgb(hsv)
 HIGHLIGHT_COLORMAP = np.vstack(((1., 1., 1.), HIGHLIGHT_COLORMAP))
-
-
-# def generate_colors(n=None):
-    # if n is None:
-        # n = COLORS_COUNT
-    # if n < COLORS_COUNT:
-        # return COLORS[:n]
-    # else:
-        # return [COLORS[i % COLORS_COUNT] for i in xrange(n)]
 
 
 if __name__ == "__main__":

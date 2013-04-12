@@ -14,8 +14,8 @@ import pandas as pd
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
     load_binary, load_pickle)
 from selection import select, get_spikes_in_clusters
-from spiky.logger import debug, info, warn
-from spiky.colors import COLORS_COUNT
+from spiky.utils.logger import debug, info, warn
+from spiky.utils.colors import COLORS_COUNT
 
 # -----------------------------------------------------------------------------
 # File loading functions

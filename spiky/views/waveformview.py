@@ -17,9 +17,11 @@ from spiky.io.tools import get_array
 from spiky.io.selection import get_spikes_in_clusters, select, get_indices
 from spiky.views.common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
 from spiky.views.widgets import VisualizationWidget
-import spiky.tools as stools
-import spiky.colors as scolors
-import spiky.signals as ssignals
+# import spiky.tools as stools
+# import spiky.colors as scolors
+from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
+import spiky.gui.signals as ssignals
+from spiky.utils.colors import COLORMAP
 
 
 __all__ = ['WaveformView']
@@ -579,12 +581,12 @@ class WaveformVisual(Visual):
             size=nchannels)
         
         
-        ncolors = scolors.COLORMAP.shape[0]
-        ncomponents = scolors.COLORMAP.shape[1]
+        ncolors = COLORMAP.shape[0]
+        ncomponents = COLORMAP.shape[1]
         
         
-        colormap = scolors.COLORMAP.reshape((1, ncolors, ncomponents))
-        hcolormap = scolors.HIGHLIGHT_COLORMAP.reshape((1, ncolors, ncomponents))
+        colormap = COLORMAP.reshape((1, ncolors, ncomponents))
+        hcolormap = HIGHLIGHT_COLORMAP.reshape((1, ncolors, ncomponents))
         
         
         global FRAGMENT_SHADER
@@ -875,6 +877,7 @@ class WaveformHighlightManager(HighlightManager):
             self.highlighting = False
     
     def emit(self, spikes):
+        spikes = np.array(spikes, dtype=np.int32)
         spikes_abs = self.waveform_indices[spikes]
         ssignals.emit(self.parent, 'HighlightSpikes', spikes_abs)
 
@@ -886,7 +889,7 @@ class WaveformInfoManager(Manager):
         # i = self.position_manager.nclusters * channel + cluster_rel
         color = self.data_manager.cluster_colors[cluster_rel]
         
-        r, g, b = scolors.COLORMAP[color,:]
+        r, g, b = COLORMAP[color,:]
         color = (r, g, b, .75)
         
         text = "Channel {0:d}, cluster {1:d}".format(
@@ -917,7 +920,7 @@ class WaveformInteractionManager(PlotInteractionManager):
         self.register('SelectChannel', self.select_channel_callback)
         self.register('ToggleAverage', self.toggle_average)
         self.register('ShowClosestCluster', self.show_closest_cluster)
-        self.register(None, self.cancel_highlight)
+        self.register(None, self.none_callback)
         self.average_toggled = False
   
     def toggle_average(self, parameter):
@@ -946,10 +949,9 @@ class WaveformInteractionManager(PlotInteractionManager):
     def select_channel_callback(self, parameter):
         self.select_channel(*parameter)
         
-    def cancel_highlight(self, parameter):
+    def none_callback(self, parameter):
         self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
-        # self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
         
     def show_closest_cluster(self, parameter):
         self.cursor = None
@@ -1120,55 +1122,3 @@ class WaveformView(GalryWidget):
     def highlight_spikes(self, spikes):
         self.highlight_manager.set_highlighted_spikes(spikes)
         self.updateGL()
-        
-
-if __name__ == '__main__':
-    
-    import os
-    from spiky.io import KlustersLoader
-    from spiky.io.tests.test_loader import setup, teardown
-    
-    # Create the mock data files.
-    setup()
-    
-    # Mock data folder.
-    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../io/tests/mockdata')
-    
-    # Load data files.
-    xmlfile = os.path.join(dir, 'test.xml')
-    l = KlustersLoader(xmlfile)
-    
-    # Get full data sets.
-    clusters_selected = [1, 3, 10]
-    l.select(clusters=clusters_selected)
-    
-    features = l.get_features()
-    masks = l.get_masks()
-    waveforms = l.get_waveforms()
-    clusters = l.get_clusters()
-    cluster_colors = l.get_cluster_colors()
-    spiketimes = l.get_spiketimes()
-    probe = l.get_probe()
-    
-    # Display the widget.
-    class TestWindow(QtGui.QMainWindow):
-        def __init__(self):
-            super(TestWindow, self).__init__()
-            
-            self.view = WaveformView(self)
-            self.view.set_data(
-                          waveforms=waveforms,
-                          clusters=clusters,
-                          cluster_colors=cluster_colors,
-                          clusters_selected=clusters_selected,
-                          masks=masks,
-                          geometrical_positions=probe,
-                          )
-            
-            self.setCentralWidget(self.view)
-            self.show()
-    show_window(TestWindow)
-    
-    # Erase the mock data files.
-    teardown()
-    

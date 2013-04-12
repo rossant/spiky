@@ -3,8 +3,9 @@ from common import *
 import numpy.random as rdn
 from matplotlib.colors import hsv_to_rgb
 from widgets import VisualizationWidget
-import spiky.colors as scolors
-import spiky.signals as ssignals
+# import spiky.colors as scolors
+from spiky.utils.colors import COLORMAP
+import spiky.gui.signals as ssignals
 
 
 def colormap(x, col0=None, col1=None):
@@ -161,7 +162,7 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         cx_rel, cy_rel = self.get_closest_cluster(parameter)
         
         color1 = self.data_manager.cluster_colors[cy_rel]
-        r, g, b = scolors.COLORMAP[color1,:]
+        r, g, b = COLORMAP[color1,:]
         color1 = (r, g, b, .75)
         
         cx = self.data_manager.clusters_unique[cx_rel]

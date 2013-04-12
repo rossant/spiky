@@ -5,11 +5,11 @@ from galry import *
 from collections import OrderedDict
 # from signals import *
 # from colors import COLORMAP
-import spiky.tools as tools
-import spiky.signals as ssignals
-import spiky.colors as colors
+from spiky.utils.settings import get_settings
+import spiky.gui.signals as ssignals
+from spiky.utils.colors import COLORMAP
 
-SETTINGS = tools.get_settings()
+SETTINGS = get_settings()
 
 
 __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
@@ -359,7 +359,7 @@ class ClusterGroupManager(TreeModel):
             elif col == self.columnCount() - 1:
                 if role == QtCore.Qt.BackgroundRole:
                     if item.color() >= 0:
-                        color = np.array(colors.COLORMAP[item.color()]) * 255
+                        color = np.array(COLORMAP[item.color()]) * 255
                         return QtGui.QColor(*color)
                 elif role == QtCore.Qt.DisplayRole:
                     return ""
@@ -379,7 +379,7 @@ class ClusterGroupManager(TreeModel):
             # color
             elif col == self.columnCount() - 1:
                 if role == QtCore.Qt.BackgroundRole:
-                    color = np.array(colors.COLORMAP[item.color()]) * 255
+                    color = np.array(COLORMAP[item.color()]) * 255
                     return QtGui.QColor(*color)
                     
         # default
@@ -773,8 +773,8 @@ class ClusterWidget(QtGui.QWidget):
         self.color_dialog = QtGui.QColorDialog(self)
         self.color_dialog.setOptions(QtGui.QColorDialog.DontUseNativeDialog)
         for i in xrange(48):
-            if i < len(colors.COLORMAP):
-                rgb = colors.COLORMAP[i] * 255
+            if i < len(COLORMAP):
+                rgb = COLORMAP[i] * 255
                 # rgb = colors.COLORMAP[i]
             else:
                 rgb = (255, 255, 255)
@@ -843,7 +843,7 @@ class ClusterWidget(QtGui.QWidget):
             return
         initial_color = items[0].color()
         if initial_color >= 0:
-            initial_color = 255 * colors.COLORMAP[initial_color]
+            initial_color = 255 * COLORMAP[initial_color]
             initial_color = QtGui.QColor(*initial_color)
             color = QtGui.QColorDialog.getColor(initial_color)
         else:
@@ -859,7 +859,7 @@ class ClusterWidget(QtGui.QWidget):
         else:
             nocolor = False
         # take the closest color in the palette
-        i = np.argmin(np.abs(colors.COLORMAP - rgb).sum(axis=1))
+        i = np.argmin(np.abs(COLORMAP - rgb).sum(axis=1))
         
         # emit signal
         groups = np.array(self.view.selected_groups())

@@ -11,7 +11,19 @@ import pandas as pd
 import shutil
 from nose import with_setup
 
-from spiky.colors import COLORS_COUNT
+from spiky.utils.colors import COLORS_COUNT
+from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
+
+
+# -----------------------------------------------------------------------------
+# Global variables
+# -----------------------------------------------------------------------------
+# Mock parameters.
+nspikes = 1000
+nclusters = 20
+nsamples = 20
+nchannels = 32
+fetdim = 3
 
 
 # -----------------------------------------------------------------------------
@@ -80,3 +92,39 @@ def create_probe(nchannels):
     probe[::2, 0] *= -1
     probe[:, 1] = np.arange(nchannels)
     return probe
+
+    
+# -----------------------------------------------------------------------------
+# Fixtures
+# -----------------------------------------------------------------------------
+def setup():
+    # Create mock data.
+    waveforms = create_waveforms(nspikes, nsamples, nchannels)
+    features = create_features(nspikes, nchannels, fetdim)
+    clusters = create_clusters(nspikes, nclusters)
+    cluster_colors = create_cluster_colors(nclusters - 1)
+    masks = create_masks(nspikes, nchannels, fetdim)
+    xml = create_xml(nchannels, nsamples, fetdim)
+    probe = create_probe(nchannels)
+    
+    # Create mock directory if needed.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    
+    # Create mock files.
+    save_binary(os.path.join(dir, 'test.spk.1'), waveforms)
+    save_text(os.path.join(dir, 'test.fet.1'), features,
+        header=nchannels * fetdim + 1)
+    save_text(os.path.join(dir, 'test.clu.1'), clusters, header=nclusters)
+    save_text(os.path.join(dir, 'test.clucol.1'), cluster_colors)
+    save_text(os.path.join(dir, 'test.mask.1'), masks, header=nclusters)
+    save_text(os.path.join(dir, 'test.xml'), xml)
+    save_text(os.path.join(dir, 'test.probe'), probe)
+    
+def teardown():
+    # Erase the temporary data directory.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    if os.path.exists(dir):
+        shutil.rmtree(dir)
+    

@@ -3,18 +3,9 @@ import os
 from galry import *
 
 
-__all__ = ['Settings']#, 'Info']
+__all__ = ['Settings']
 
 
-# class Info(object):
-    # def __init__(self, **kwargs):
-        # self.kwargs = kwargs
-        # self.__dict__.update(kwargs)
-
-    # def __repr__(self):
-        # return str(self.kwargs)
-    
-        
 class Settings(object):
     appname = "spiky"
     
