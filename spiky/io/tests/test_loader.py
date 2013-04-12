@@ -24,7 +24,7 @@ from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
 # -----------------------------------------------------------------------------
 # Mock parameters.
 nspikes = 1000
-nclusters = 10
+nclusters = 15
 nsamples = 20
 nchannels = 32
 fetdim = 3
