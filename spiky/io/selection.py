@@ -25,8 +25,19 @@ def select_numpy(data, spikes):
         data_selection = np.take(data, spikes, axis=0)
     return data_selection
 
-def select_pandas(data, spikes):
-    return data.ix[spikes]
+def select_pandas(data, spikes, drop_empty_rows=True):
+    try:
+        # Remove empty rows.
+        data_selected = data.ix[spikes]
+    except IndexError:
+        # This exception happens if the data is a view of the whole array,
+        # and `spikes` is an array of booleans adapted to the whole array and 
+        # not to the view. So we convert `spikes` into an array of indices,
+        # so that Pandas can handle missing values.
+        data_selected = data.ix[np.nonzero(spikes)[0]]
+    if drop_empty_rows:
+        data_selected = data_selected.dropna()
+    return data_selected
 
 def select(data, indices=None):
     """Select portion of the data, with the only assumption that indices are

@@ -18,8 +18,11 @@ from spiky.colors import COLORS_COUNT
 # Data creation methods
 # -----------------------------------------------------------------------------
 def create_waveforms(nspikes, nsamples, nchannels):
-    return np.array(rnd.randint(size=(nspikes, nsamples, nchannels),
-        low=-32768, high=32768), dtype=np.int16)
+    t = np.linspace(-np.pi, np.pi, nsamples)
+    t = t.reshape((1, -1, 1))
+    return (np.array(rnd.randint(size=(nspikes, nsamples, nchannels),
+        low=-32768 // 5, high=32768 // 5), dtype=np.int16) +
+            np.array((32768 * 4) // 5 * np.cos(t), dtype=np.int16))
     
 def create_features(nspikes, nchannels, fetdim):
     return np.array(rnd.randint(size=(nspikes, nchannels * fetdim + 1),

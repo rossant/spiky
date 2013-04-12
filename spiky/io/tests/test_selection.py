@@ -19,6 +19,10 @@ def generate_clusters(indices, nspikes=100):
     clusters[indices] = 1
     return clusters
     
+def generate_data2D(nspikes=100, ncols=5):
+    data = np.random.randn(nspikes, ncols)
+    return data
+    
 def test_cluster_selection():
     indices = [10, 20, 25]
     clusters = generate_clusters(indices)
@@ -59,3 +63,29 @@ def test_select_pandas():
     
     # test recursive selection
     assert np.array_equal(to_array(select(select(clusters, [10, 25]), 25)), [1])
+
+def test_select_array():
+    # All spikes in cluster 1.
+    indices = [10, 20, 25]
+    
+    # Indices in data excerpt.
+    indices_data = [5, 10, 15, 20]
+    
+    # Generate clusters and data.
+    clusters = generate_clusters(indices)
+    data_raw = generate_data2D()
+    data = pd.DataFrame(data_raw)
+    
+    # Excerpt of the data.
+    data_excerpt = select(data, indices_data)
+    
+    # Get all spike indices in cluster 1.
+    spikes_inclu1 = get_spikes_in_clusters([1], clusters)
+    
+    # We want to select all clusters in cluster 1 among those in data excerpt.
+    data_excerpt_inclu1 = select(data_excerpt, spikes_inclu1)
+    
+    # There should be two rows: 4 in the excerpt, among which two are in
+    # cluster 1.
+    assert data_excerpt_inclu1.shape == (2, 5)
+    
