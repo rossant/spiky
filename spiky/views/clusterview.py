@@ -5,11 +5,9 @@ from galry import *
 from collections import OrderedDict
 # from signals import *
 # from colors import COLORMAP
-from spiky.utils.settings import get_settings
+from spiky.utils.settings import SETTINGS
 import spiky.gui.signals as ssignals
 from spiky.utils.colors import COLORMAP
-
-SETTINGS = get_settings()
 
 
 __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',

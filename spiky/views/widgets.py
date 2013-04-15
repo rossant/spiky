@@ -9,10 +9,7 @@ from collections import OrderedDict
 import re
 # import spiky.dataio as sdataio
 # import spiky.tools as stools
-from spiky.utils.settings import get_settings
-
-
-SETTINGS = get_settings()
+from spiky.utils.settings import SETTINGS
 
 
 __all__ = ['VisualizationWidget', ]

@@ -1,55 +1,99 @@
+"""Internal persistent settings store with cPickle."""
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
 import cPickle
 import os
 from galry import *
 
 
-__all__ = ['Settings']
+# -----------------------------------------------------------------------------
+# Utility functions
+# -----------------------------------------------------------------------------
+def ensure_folder_exists(folder):
+    """Create the settings folder if it does not exist."""
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
+def delete(filepath):
+    """Delete the settings file."""
+    if os.path.exists(filepath):
+        os.remove(filepath)
+
+def load(filepath):
+    """Load the settings from the file, and creates it if it does not exist."""
+    if not os.path.exists(filepath):
+        save(filepath)
+    with open(filepath, 'rb') as f:
+        settings = cPickle.load(f)
+    return settings
+    
+def save(filepath, settings={}):
+    """Save the settings in the file."""
+    with open(filepath, 'wb') as f:
+        cPickle.dump(settings, f)
+    return settings
 
 
+# -----------------------------------------------------------------------------
+# Settings
+# -----------------------------------------------------------------------------
 class Settings(object):
-    appname = "spiky"
+    """Store internal settings in a binary file in the user home folder.
     
-    def __init__(self):
-        """Configure the settings at initialization. A QT Application should
-        already have been created here."""
-        # create the settings file if it does not exist, or load it
+    Settings are only loaded once from disk as soon as an user preference field
+    is explicitely requested.
+    
+    """
+    def __init__(self, appname=None, folder=None, filepath=None):
+        """The settings file is not loaded here, but only once when a field is
+        first accessed."""
+        self.appname = appname
+        self.folder = folder
+        self.filepath = filepath
         self.settings = {}
-        self.configure_settings()
+        self.settings = None
     
-    def configure_settings(self):
-        """Configure the file path and creates it if necessary."""
-        self.appdata = os.path.expanduser(os.path.join("~", "." + self.appname))
-        self.filename = os.path.join(self.appdata, 'settings.dat')
-        if not os.path.exists(self.appdata):
-            os.mkdir(self.appdata)
-        if not os.path.exists(self.filename):
-            self.save()
-        else:
-            self.load()
-        
-    def load(self):
-        f = open(self.filename, 'rb')
-        self.settings = cPickle.load(f)
-        f.close()
-        
+    
+    # I/O methods
+    # -----------
+    def _load_once(self):
+        """Load or create the settings file, unless it has already been
+        loaded."""
+        if self.settings is None:
+            # Create the folder if it does not exist.
+            ensure_folder_exists(self.folder)
+            # Load or create the settings file.
+            self.settings = load(self.filepath)
+    
     def save(self):
-        f = open(self.filename, 'wb')
-        cPickle.dump(self.settings, f)
-        f.close()
+        save(self.filepath, self.settings)
     
+    
+    # Getter and setter methods
+    # -------------------------
     def set(self, key, value):
+        self._load_once()
         self.settings[key] = value
     
     def get(self, key, default=None):
+        self._load_once()
         return self.settings.get(key, default)
         
+    def __setitem__(self, key, value):
+        self.set(key, value)
         
-SETTINGS = None
-
-
-def get_settings():
-    global SETTINGS
-    if not SETTINGS:
-        SETTINGS = Settings()
-    return SETTINGS
+    def __getitem__(self, key):
+        return self.get(key)
+        
+        
+# -----------------------------------------------------------------------------
+# Global variables
+# -----------------------------------------------------------------------------
+APPNAME = 'spiky'
+FOLDER = os.path.expanduser(os.path.join('~', '.' + APPNAME))
+FILENAME = 'settings.dat'
+FILEPATH = os.path.join(FOLDER, FILENAME)
+SETTINGS = Settings(appname=APPNAME, folder=FOLDER, filepath=FILEPATH)
 

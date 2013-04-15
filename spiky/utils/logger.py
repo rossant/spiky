@@ -1,4 +1,4 @@
-"""Logging all actions."""
+"""Logger utility classes and functions."""
 
 # -----------------------------------------------------------------------------
 # Imports
@@ -40,7 +40,7 @@ class Logger(object):
         formatter = logging.Formatter(fmt, datefmt='%Y-%m-%d %H:%M:%S')
         handler = logging.StreamHandler(self.stream)
         handler.setFormatter(formatter)
-        self._logger = logging.getLogger('spiky.control')
+        self._logger = logging.getLogger('spiky')
         self._logger.addHandler(handler)
         self._logger.setLevel(logging.INFO)
         
