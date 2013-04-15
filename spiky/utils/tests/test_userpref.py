@@ -18,7 +18,7 @@ APPNAME_ORIGINAL = paths.APPNAME
 def setup():
     # HACK: monkey patch
     paths.APPNAME = APPNAME_ORIGINAL + '_test'
-    reload(spiky.utils.settings)
+    reload(spiky.utils.userpref)
     import spiky.utils.userpref as pref
     
     userpref = """field1 = 123"""
@@ -28,8 +28,6 @@ def setup():
 def teardown():
     import spiky.utils.userpref as pref
     
-    # print pref.FILEPATH
-    # print pref.FOLDER
     paths.delete_file(pref.FILEPATH)
     paths.delete_folder(pref.FOLDER)
     

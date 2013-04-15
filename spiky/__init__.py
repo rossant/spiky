@@ -1,15 +1,8 @@
-# from galry import *
-# from jobqueue import *
-# from qtqueue import *
-# from logger import *
-# from io import *
-# from stats import *
-# from qtools import *
-# from colors import *
-# from robot import *
-# from tools import *
-# from dataio import *
-# from icons import *
-# from widgets import *
-# from gui import *
-# from action import *
+import spiky.utils.logger as log
+import spiky.utils.userpref as pref
+
+# Set the logging level specified in the user preferences.
+loglevel = pref.USERPREF['loglevel']
+if loglevel:
+    log.set_level(loglevel)
+

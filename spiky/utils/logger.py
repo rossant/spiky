@@ -87,3 +87,4 @@ debug = LOGGER.debug
 info = LOGGER.info
 warn = LOGGER.warn
 exception = LOGGER.exception
+set_level = LOGGER.set_level
