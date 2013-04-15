@@ -12,18 +12,18 @@ from nose import with_setup
 import spiky.utils.globalpaths
 spiky.utils.globalpaths.APPNAME = 'spiky_test'
 
-from spiky.utils.globalpaths import (delete_file, delete_folder, 
+from spiky.utils.globalpaths import (APPNAME, delete_file, delete_folder,
     ensure_folder_exists)
-from spiky.utils.settings import SETTINGS, FILEPATH, FOLDER, load, save
+from spiky.utils.userpref import USERPREF, FOLDER, FILEPATH, load, save
 
 
 # -----------------------------------------------------------------------------
 # Fixtures
 # -----------------------------------------------------------------------------
 def setup():
-    settings = {'field1': 'value1', 'field2': 123}
+    userpref = """field1 = 123"""
     ensure_folder_exists(FOLDER)
-    save(FILEPATH, settings)
+    save(FILEPATH, userpref, appname=APPNAME)
     
 def teardown():
     delete_file(FILEPATH)
@@ -34,18 +34,7 @@ def teardown():
 # Tests
 # -----------------------------------------------------------------------------
 @with_setup(setup, teardown)
-def test_settings():
-    assert SETTINGS['field1'] == 'value1'
-    assert SETTINGS['field2'] == 123
-    SETTINGS['field2'] = 456
-    assert SETTINGS['field3'] == None
-    SETTINGS['field3'] = {'key': 789}
-    SETTINGS.save()
-    
-    assert SETTINGS['field1'] == 'value1'
-    assert SETTINGS['field2'] == 456
-    assert SETTINGS['field3'].get('key') == 789
-    
-    import time
-    time.sleep(2)
+def test_userpref():
+    USERPREF._load_once()
+    assert USERPREF['field1'] == 123    
     

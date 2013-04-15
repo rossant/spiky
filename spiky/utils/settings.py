@@ -5,22 +5,14 @@
 # -----------------------------------------------------------------------------
 import cPickle
 import os
-from galry import *
+
+from spiky.utils.globalpaths import (get_global_path, get_app_folder, 
+    APPNAME, ensure_folder_exists)
 
 
 # -----------------------------------------------------------------------------
 # Utility functions
 # -----------------------------------------------------------------------------
-def ensure_folder_exists(folder):
-    """Create the settings folder if it does not exist."""
-    if not os.path.exists(folder):
-        os.mkdir(folder)
-
-def delete(filepath):
-    """Delete the settings file."""
-    if os.path.exists(filepath):
-        os.remove(filepath)
-
 def load(filepath):
     """Load the settings from the file, and creates it if it does not exist."""
     if not os.path.exists(filepath):
@@ -40,7 +32,9 @@ def save(filepath, settings={}):
 # Settings
 # -----------------------------------------------------------------------------
 class Settings(object):
-    """Store internal settings in a binary file in the user home folder.
+    """Manage internal settings.
+    
+    They are stored in a binary file in the user home folder.
     
     Settings are only loaded once from disk as soon as an user preference field
     is explicitely requested.
@@ -91,9 +85,8 @@ class Settings(object):
 # -----------------------------------------------------------------------------
 # Global variables
 # -----------------------------------------------------------------------------
-APPNAME = 'spiky'
-FOLDER = os.path.expanduser(os.path.join('~', '.' + APPNAME))
 FILENAME = 'settings.dat'
-FILEPATH = os.path.join(FOLDER, FILENAME)
+FOLDER = get_app_folder()
+FILEPATH = get_global_path(FILENAME)
 SETTINGS = Settings(appname=APPNAME, folder=FOLDER, filepath=FILEPATH)
 

@@ -44,14 +44,17 @@ class Logger(object):
         self._logger.addHandler(handler)
         self._logger.setLevel(logging.INFO)
         
-    def debug(self, line):
-        self._logger.debug(line)
+    def debug(self, msg):
+        self._logger.debug(msg)
         
-    def info(self, line):
-        self._logger.info(line)
+    def info(self, msg):
+        self._logger.info(msg)
         
-    def warn(self, line):
-        self._logger.warn(line)
+    def warn(self, msg):
+        self._logger.warn(msg)
+        
+    def exception(self, msg):
+        self._logger.exception(msg)
 
 
 class StringLogger(Logger):
@@ -76,3 +79,4 @@ LOGGER = ConsoleLogger()
 debug = LOGGER.debug
 info = LOGGER.info
 warn = LOGGER.warn
+exception = LOGGER.exception
