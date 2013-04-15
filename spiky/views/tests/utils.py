@@ -37,6 +37,10 @@ def get_data():
         cluster_colors=l.get_cluster_colors(),
         spiketimes=l.get_spiketimes(),
         geometrical_positions=l.get_probe(),
+        nchannels=l.nchannels,
+        nsamples=l.nsamples,
+        fetdim=l.fetdim,
+        nextrafet=l.nextrafet,
     )
     
     return data

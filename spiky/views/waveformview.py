@@ -440,10 +440,6 @@ class WaveformDataManager(Manager):
         # position waveforms
         self.position_manager.set_info(self.nchannels, self.nclusters, 
                                        geometrical_positions=self.geometrical_positions,
-                                       # spatial_arrangement=spatial_arrangement,
-                                       # superposition=superposition,
-                                       # box_size=box_size,
-                                       # probe_scale=probe_scale
                                        )
         
         # update the highlight manager
@@ -720,7 +716,7 @@ class WaveformPaintManager(PlotPaintManager):
         # average waveforms
         size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples_avg, self.data_manager.npoints_avg)
         cluster = self.data_manager.clusters_full_avg
-        cluster_colors = self.data_manager.cluster_colors
+        cluster_colors = self.data_manager.cluster_colors_array
         cmap_index = cluster_colors[cluster]
         
         self.set_data(visual='waveforms_avg', 

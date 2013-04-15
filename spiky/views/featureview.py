@@ -1,26 +1,33 @@
-import numpy as np
-import numpy.random as rdn
-import collections
+"""Feature View: show spikes as 2D points in feature space."""
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
+from collections import Counter
 import operator
 import time
+
+import numpy as np
+import numpy.random as rdn
 from matplotlib.path import Path
 
 from galry import *
-from common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
-from widgets import VisualizationWidget
-# import spiky.colors as scolors
+from spiky.io.tools import get_array
+from spiky.views.common import HighlightManager, SpikyBindings
+from spiky.views.widgets import VisualizationWidget
 from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
 import spiky
-# import spiky.tools as stools
-# import spiky.gui.signals as ssignals
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
-           'FeatureSelectionBindings', # 'FeatureEnum'
+           'FeatureSelectionBindings',
            'FeatureWidget',
            ]
 
 
+# -----------------------------------------------------------------------------
+# Shaders
+# -----------------------------------------------------------------------------
 VERTEX_SHADER = """
     // move the vertex to its position
     vec3 position = vec3(0, 0, 0);
@@ -73,6 +80,10 @@ FRAGMENT_SHADER = """
     }
 """
 
+
+# -----------------------------------------------------------------------------
+# Utility functions
+# -----------------------------------------------------------------------------
 def polygon_contains_points(polygon, points):
     """Returns the points within a polygon.
     
@@ -93,15 +104,24 @@ def polygon_contains_points(polygon, points):
         return matplotlib.nxutils.points_inside_poly(points, polygon)
 
 
+# -----------------------------------------------------------------------------
+# Data manager
+# -----------------------------------------------------------------------------
 class FeatureDataManager(Manager):
     projection = [None, None]
     
     # Initialization methods
     # ----------------------
-    def set_data(self, features=None, fetdim=None, clusters=None,
-                nchannels=None, nextrafet=None, clusters_ordered=None,
-                cluster_colors=None, clusters_unique=None,
-                 masks=None, spike_ids=None, spikes_rel=None):
+    def set_data(self,
+                 features,
+                 masks=None,
+                 clusters=None,
+                 clusters_selected=None,
+                 cluster_colors=None,
+                 fetdim=None,
+                 nchannels=None,
+                 nextrafet=None,
+                 ):
         
         assert fetdim is not None
         
@@ -111,36 +131,23 @@ class FeatureDataManager(Manager):
         self.nextrafet = nextrafet
         self.npoints = features.shape[0]
         self.features = features
-        self.spike_ids = spike_ids
-        self.spikes_rel = spikes_rel
-        # self.colormap = colormap
+        self.masks = masks
+        self.clusters = clusters
         
-        # data organizer: reorder data according to clusters
-        # self.data_organizer = SpikeDataOrganizer(features,
-                                                # clusters=clusters,
-                                                # cluster_colors=cluster_colors,
-                                                # clusters_unique=clusters_unique,
-                                                # clusters_ordered=clusters_ordered,
-                                                # masks=masks,
-                                                # nchannels=self.nchannels,
-                                                # spike_ids=spike_ids)
+        self.features_array = get_array(self.features)
+        self.masks_array = get_array(self.masks)
+        self.clusters_array = get_array(self.clusters)
+        self.cluster_colors = get_array(cluster_colors)
         
-        # get reordered data
-        # self.permutation = self.data_organizer.permutation
-        self.features_reordered = self.data_organizer.data_reordered
-        self.nclusters = self.data_organizer.nclusters
-        self.clusters = self.data_organizer.clusters
-        self.masks = self.data_organizer.masks
-        self.cluster_colors = self.data_organizer.cluster_colors
-        self.clusters_unique = self.data_organizer.clusters_unique
-        self.clusters_depth = self.data_organizer.clusters_depth
-        self.clusters_full_depth = self.data_organizer.clusters_depth
-        self.clusters_rel = self.data_organizer.clusters_rel
-        self.cluster_sizes = self.data_organizer.cluster_sizes
-        # self.cluster_sizes_cum = self.data_organizer.cluster_sizes_cum
-        self.cluster_sizes_dict = self.data_organizer.cluster_sizes_dict
+        # Relative indexing.
+        self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
+        self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
         
-        # self.clusters_full = self.clusters
+        self.clusters_unique = sorted(clusters_selected)
+        self.nclusters = len(Counter(clusters))
+        self.masks_full = self.masks_array.T.ravel()
+        self.clusters_full_depth = self.clusters_rel_ordered
+        self.clusters_full = self.clusters_rel
         
         # prepare GPU data
         self.data = np.empty((self.nspikes, 2), dtype=np.float32)
@@ -160,42 +167,34 @@ class FeatureDataManager(Manager):
         """Set the projection axes."""
         if channel < self.nchannels:
             i = channel * self.fetdim + feature
-            self.masks_full = self.masks[:,channel]
+            self.masks_full = self.masks_array[:,channel]
         # handle extra feature, with channel being directly the feature index
         else:
-            # print self.nchannels * self.fetdim + self.nextrafet - 1, channel
             i = min(self.nchannels * self.fetdim + self.nextrafet - 1,
                     channel - self.nchannels + self.nchannels * self.fetdim)
-            # print channel, i
-            # i = channel
-        self.data[:, coord] = self.features_reordered[:, i].ravel()
+        self.data[:, coord] = self.features_array[:, i].ravel()
         
         if do_update:
-            # self.data_normalizer = DataNormalizer(self.data)
-            # self.normalized_data = self.data_normalizer.normalize(symmetric=True)
-            self.normalized_data = self.data
             self.projection[coord] = (channel, feature)
             # show the selection polygon only if the projection axes correspond
             self.selection_manager.set_selection_polygon_visibility(
               (self.projection[0] == self.selection_manager.projection[0]) & \
                (self.projection[1] == self.selection_manager.projection[1]))
         
-    def automatic_projection(self):
-        """Set the best projections depending on the selected clusters."""
-        # TODO
-        log_info("TODO: automatic projection")
-        
-        
+
+# -----------------------------------------------------------------------------
+# Visual
+# -----------------------------------------------------------------------------
 class FeatureVisual(Visual):
     def initialize(self, npoints=None, 
-                    nclusters=None, cluster_depth=None,
+                    nclusters=None,
+                    cluster_depth=None,
                     position0=None,
                     mask=None,
                     cluster=None,
                     highlight=None,
                     selection=None,
                     cluster_colors=None,
-                    # colormap=None
                     ):
         
         self.primitive_type = 'POINTS'
@@ -205,9 +204,6 @@ class FeatureVisual(Visual):
         
         self.add_attribute("mask", vartype="float", ndim=1, data=mask)
         self.add_varying("vmask", vartype="float", ndim=1)
-        
-        
-        # self.add_attribute("cluster", vartype="int", ndim=1, data=cluster)
         
         self.add_attribute("highlight", vartype="int", ndim=1, data=highlight)
         self.add_varying("vhighlight", vartype="int", ndim=1)
@@ -246,12 +242,8 @@ class FeatureVisual(Visual):
         FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_OFFSET%', "%.5f" % offset)
         FRAGMENT_SHADER = FRAGMENT_SHADER.replace('%CMAP_STEP%', "%.5f" % dx)
         
-        # self.add_fragment_header(FSH)
-
-        
         # necessary so that the navigation shader code is updated
         self.is_position_3D = True
-        
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
@@ -259,7 +251,7 @@ class FeatureVisual(Visual):
         
 class FeaturePaintManager(PlotPaintManager):
     def update_points(self):
-        self.set_data(position0=self.data_manager.normalized_data,
+        self.set_data(position0=self.data_manager.data,
             mask=self.data_manager.masks_full, visual='features')
         
     def initialize(self):
@@ -267,7 +259,7 @@ class FeaturePaintManager(PlotPaintManager):
         
         self.add_visual(FeatureVisual, name='features',
             npoints=self.data_manager.npoints,
-            position0=self.data_manager.normalized_data,
+            position0=self.data_manager.data,
             mask=self.data_manager.masks_full,
             cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
@@ -275,19 +267,14 @@ class FeaturePaintManager(PlotPaintManager):
             cluster_colors=self.data_manager.cluster_colors,
             nclusters=self.data_manager.nclusters,
             cluster_depth=self.data_manager.clusters_full_depth,
-            # colormap=self.data_manager.colormap,
             )
         
         self.add_visual(AxesVisual, name='grid')
         
-        self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
-            color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
-            depth=-.99, is_static=True)
-        
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            # background=(0., 0., 0., 1.),
+            background_transparent=False,
             posoffset=(.05, -.05),
-            letter_spacing=200.,
+            letter_spacing=350.,
             depth=-1,
             visible=False)
         
@@ -297,13 +284,10 @@ class FeaturePaintManager(PlotPaintManager):
         cluster_colors = self.data_manager.cluster_colors
         cmap_index = cluster_colors[cluster]
     
-        # print self.data_manager.clusters_full_depth
-    
         self.set_data(visual='features', 
             size=self.data_manager.npoints,
-            position0=self.data_manager.normalized_data,
+            position0=self.data_manager.data,
             mask=self.data_manager.masks_full,
-            # cluster=self.data_manager.clusters_rel,
             highlight=self.highlight_manager.highlight_mask,
             selection=self.selection_manager.selection_mask,
             nclusters=self.data_manager.nclusters,
@@ -314,17 +298,19 @@ class FeaturePaintManager(PlotPaintManager):
     def toggle_mask(self):
         self.toggle_mask_value = 1 - self.toggle_mask_value
         self.set_data(visual='features', toggle_mask=self.toggle_mask_value)
-            
 
+
+# -----------------------------------------------------------------------------
+# Highlight/Selection manager
+# -----------------------------------------------------------------------------
 class FeatureHighlightManager(HighlightManager):
     def initialize(self):
         super(FeatureHighlightManager, self).initialize()
         self.highlight_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.highlighted_spikes = []
-        self.spike_ids = self.data_manager.spike_ids
-        self.spikes_rel = self.data_manager.spikes_rel
+        # self.spike_ids = self.data_manager.spike_ids
+        # self.spikes_rel = self.data_manager.spikes_rel
         
-    # @profile
     def find_enclosed_spikes(self, enclosing_box):
         x0, y0, x1, y1 = enclosing_box
         
@@ -346,9 +332,7 @@ class FeatureHighlightManager(HighlightManager):
         spkindices = np.nonzero(indices)[0]
         spkindices = np.unique(spkindices)
         return spkindices
-        # return self.spike_ids[spkindices]
         
-    # @profile
     def set_highlighted_spikes(self, spikes, do_emit=True):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
@@ -359,10 +343,10 @@ class FeatureHighlightManager(HighlightManager):
         else:
             do_update = True
             self.highlight_mask[:] = 0
-            spikes_rel = self.spikes_rel[spikes]
+            # spikes_rel = self.spikes_rel[spikes]
             # from absolue indices to relative indices
             # spikes_rel = np.digitize(spikes, self.spike_ids) - 1
-            self.highlight_mask[spikes_rel] = 1
+            # self.highlight_mask[spikes_rel] = 1
         
         if do_update:
             
@@ -380,13 +364,11 @@ class FeatureHighlightManager(HighlightManager):
         
         self.highlighted_spikes = spikes
         
-    # @profile
     def highlighted(self, box):
         spikes = self.find_enclosed_spikes(box)
         # from relative indices to absolute indices
         self.set_highlighted_spikes(self.spike_ids[spikes])
         
-    # @profile
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
@@ -515,6 +497,9 @@ class FeatureSelectionManager(Manager):
         self.is_selection_pending = False
 
 
+# -----------------------------------------------------------------------------
+# Interaction
+# -----------------------------------------------------------------------------
 class FeatureInteractionManager(PlotInteractionManager):
     def initialize(self):
         self.constrain_navigation = False
@@ -776,7 +761,11 @@ class FeatureSelectionBindings(FeatureBindings):
         self.set_base_cursor('CrossCursor')
         self.set_selection()
      
-     
+ 
+
+# -----------------------------------------------------------------------------
+# Top-level widget
+# -----------------------------------------------------------------------------
 class FeatureView(GalryWidget):
     def initialize(self):
         self.activate3D = True
@@ -789,18 +778,19 @@ class FeatureView(GalryWidget):
                 interaction_manager=FeatureInteractionManager)
         # connect the AutomaticProjection signal to the
         # AutomaticProjection
-        self.connect_events(ssignals.SIGNALS.AutomaticProjection,
-                            'AutomaticProjection')
+        # self.connect_events(ssignals.SIGNALS.AutomaticProjection,
+                            # 'AutomaticProjection')
     
     def set_data(self, *args, **kwargs):
+        if not kwargs.get('clusters_selected'):
+            return
         self.data_manager.set_data(*args, **kwargs)
+        
+        # update?
         if self.initialized:
-            log_debug("Updating data for features")
             self.paint_manager.update()
             self.updateGL()
-        else:
-            log_debug("Initializing data for features")
-    
+
     
     # Signals-related methods
     # -----------------------
@@ -822,8 +812,8 @@ class FeatureWidget(VisualizationWidget):
                       # colormap=self.dh.colormap,
                       cluster_colors=self.dh.cluster_colors,
                       masks=self.dh.masks,
-                      spike_ids=self.dh.spike_ids,
-                      spikes_rel=self.dh.spikes_rel,
+                      # spike_ids=self.dh.spike_ids,
+                      # spikes_rel=self.dh.spikes_rel,
                       )
         return self.view
         

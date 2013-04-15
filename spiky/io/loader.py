@@ -17,6 +17,7 @@ from selection import select, get_spikes_in_clusters
 from spiky.utils.logger import debug, info, warn
 from spiky.utils.colors import COLORS_COUNT
 
+
 # -----------------------------------------------------------------------------
 # File loading functions
 # -----------------------------------------------------------------------------
@@ -48,10 +49,10 @@ def read_features(filename_fet, nchannels, fetdim, freq):
     
     # HACK: There are either 1 or 5 dimensions more than fetdim*nchannels
     # we can't be sure so we first try 1, if it does not work we try 5.
-    for nextradim in [1, 5]:
+    for nextrafet in [1, 5]:
         try:
             features = features.reshape((-1,
-                                         fetdim * nchannels + nextradim))
+                                         fetdim * nchannels + nextrafet))
             # if the features array could be reshape, directly break the loop
             break
         except ValueError:
@@ -162,7 +163,6 @@ class KlustersLoader(object):
         fetdim = self.metadata.get('fetdim')
         freq = self.metadata.get('freq')
         
-        
         # Read probe.
         try:
             self.probe = read_probe(self.filename_probe)
@@ -247,6 +247,13 @@ class KlustersLoader(object):
             self.waveforms = np.zeros((nspikes, nsamples, nchannels))
         # Convert to Pandas.
         self.waveforms = pd.Panel(self.waveforms, dtype=np.float32)
+    
+        # Save data set parameters.
+        self.nsamples = nsamples
+        self.nchannels = nchannels
+        self.fetdim = fetdim
+        self.freq = freq
+        self.nextrafet = self.features.shape[1] - nchannels * fetdim
     
     def save(self):
         pass
