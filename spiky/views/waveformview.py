@@ -876,7 +876,9 @@ class WaveformHighlightManager(HighlightManager):
     def emit(self, spikes):
         spikes = np.array(spikes, dtype=np.int32)
         spikes_abs = self.waveform_indices[spikes]
-        # ssignals.emit(self.parent, 'HighlightSpikes', spikes_abs)
+        # emit signal
+        # log.debug("Highlight {0:d} spikes.".format(len(spikes_abs)))
+        self.parent.spikesHighlighted.emit(spikes_abs)
 
 
 class WaveformInfoManager(Manager):
@@ -1094,10 +1096,15 @@ class WaveformBindings(SpikyBindings):
 # Top-level widget
 # -----------------------------------------------------------------------------
 class WaveformView(GalryWidget):
-    # Raised when a cluster/channel box is selected. The parameters are 
-    # (cluster, channel)
+    # Signals
+    # -------
+    # Raise (cluster, channel) when a box is selected.
     boxSelected = QtCore.pyqtSignal(int, int)
+    # Raise the list of highlighted spike absolute indices.
+    spikesHighlighted = QtCore.pyqtSignal(np.ndarray)
     
+    # Initialization
+    # --------------
     def initialize(self):
         self.constrain_ratio = False
         self.activate3D = True
@@ -1122,8 +1129,8 @@ class WaveformView(GalryWidget):
             self.updateGL()
 
         
-    # Signals-related methods
-    # -----------------------
+    # Public methods
+    # --------------
     def highlight_spikes(self, spikes):
         self.highlight_manager.set_highlighted_spikes(spikes)
         self.updateGL()

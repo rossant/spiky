@@ -75,16 +75,16 @@ class Logger(object):
         self._logger.addHandler(self.handler)
         
     def debug(self, msg):
-        self._logger.debug(msg)
+        self._logger.debug(get_caller() + msg)
         
     def info(self, msg):
-        self._logger.info(msg)
+        self._logger.info(get_caller() + msg)
         
     def warn(self, msg):
-        self._logger.warn(msg)
+        self._logger.warn(get_caller() + msg)
         
     def exception(self, msg):
-        self._logger.exception(msg)
+        self._logger.exception(get_caller() + msg)
 
 
 class StringLogger(Logger):

@@ -32,9 +32,11 @@ fetdim = 3
 def create_waveforms(nspikes, nsamples, nchannels):
     t = np.linspace(-np.pi, np.pi, nsamples)
     t = t.reshape((1, -1, 1))
+    # Sinus shaped random waveforms.
     return (np.array(rnd.randint(size=(nspikes, nsamples, nchannels),
-        low=-32768 // 5, high=32768 // 5), dtype=np.int16) +
-            np.array((32768 * 4) // 5 * np.cos(t), dtype=np.int16))
+        low=-32768 // 2, high=32768 // 2), dtype=np.int16) -
+            np.array(32768 // 2 * (.5 + .5 * rnd.rand()) * np.cos(t),
+            dtype=np.int16))
     
 def create_features(nspikes, nchannels, fetdim):
     return np.array(rnd.randint(size=(nspikes, nchannels * fetdim + 1),
