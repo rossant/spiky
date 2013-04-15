@@ -56,7 +56,7 @@ VERTEX_SHADER = """
     vhighlight = highlight;
     vmask = mask;
 """
-        
+
 FRAGMENT_SHADER = """
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     
@@ -77,7 +77,7 @@ FRAGMENT_SHADER = """
     }
     out_color.w = .25 + .5 * vmask;
 """
-        
+
 FRAGMENT_SHADER_AVERAGE = """
     float index = %CMAP_OFFSET% + cmap_vindex * %CMAP_STEP%;
     out_color = texture1D(cmap, index);
@@ -528,8 +528,8 @@ class WaveformDataManager(Manager):
         self.clusters_rel_ordered_avg = np.argsort(self.clusters_selected)[self.clusters_rel_avg]
         
         return data_thickened
-        
-        
+
+
 # -----------------------------------------------------------------------------
 # Visuals
 # -----------------------------------------------------------------------------
@@ -615,13 +615,13 @@ class WaveformVisual(Visual):
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
 
-        
+
 class AverageWaveformVisual(WaveformVisual):
     def initialize(self, *args, **kwargs):
         super(AverageWaveformVisual, self).initialize(*args, **kwargs)
         self.primitive_type = 'TRIANGLE_STRIP'
-        
-    
+
+
 class WaveformPaintManager(PlotPaintManager):
     def get_uniform_value(self, name):
         if name == "box_size":
@@ -738,8 +738,8 @@ class WaveformPaintManager(PlotPaintManager):
         self.auto_update_uniforms('box_size', 'box_size_margin',
             "channel_positions"
             )
-    
-    
+
+
 # -----------------------------------------------------------------------------
 # Interactivity
 # -----------------------------------------------------------------------------

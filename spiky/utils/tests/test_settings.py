@@ -5,8 +5,6 @@
 # -----------------------------------------------------------------------------
 import sys
 
-from nose import with_setup
-
 import spiky
 import spiky.utils.globalpaths as paths
 
@@ -41,7 +39,6 @@ def teardown():
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-# @with_setup(setup, teardown)
 def test_settings():
     import spiky.utils.settings as stg
     SETTINGS = stg.SETTINGS

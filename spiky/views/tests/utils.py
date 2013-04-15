@@ -3,12 +3,44 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
+import os
+
 from galry import QtGui, QtCore, show_window
+
+from spiky.io.loader import KlustersLoader
 
 
 # -----------------------------------------------------------------------------
 # Utility functions
 # -----------------------------------------------------------------------------
+def get_data():
+    """Return a dictionary with data variables, after the fixture setup
+    has been called."""
+    # Mock data folder.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                '../../io/tests/mockdata')
+    
+    # Load data files.
+    xmlfile = os.path.join(dir, 'test.xml')
+    l = KlustersLoader(xmlfile)
+    
+    # Get full data sets.
+    clusters_selected = [1, 3, 10]
+    l.select(clusters=clusters_selected)
+    
+    data = dict(
+        clusters_selected=clusters_selected,
+        features=l.get_features(),
+        masks=l.get_masks(),
+        waveforms=l.get_waveforms(),
+        clusters=l.get_clusters(),
+        cluster_colors=l.get_cluster_colors(),
+        spiketimes=l.get_spiketimes(),
+        geometrical_positions=l.get_probe(),
+    )
+    
+    return data
+
 def show_view(view_class, **kwargs):
     # Display a view.
     class TestWindow(QtGui.QMainWindow):

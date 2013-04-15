@@ -8,7 +8,6 @@ import os
 import numpy as np
 import numpy.random as rnd
 import pandas as pd
-from nose import with_setup
 import shutil
 
 from spiky.io.tests.mock_data import (setup, teardown,
@@ -21,7 +20,6 @@ from spiky.io.tools import check_dtype, check_shape
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-# @with_setup(setup, teardown)
 def test_klusters_loader():
     # Open the mock data.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')

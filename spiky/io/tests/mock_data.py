@@ -9,7 +9,6 @@ import numpy as np
 import numpy.random as rnd
 import pandas as pd
 import shutil
-from nose import with_setup
 
 from spiky.utils.colors import COLORS_COUNT
 from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
