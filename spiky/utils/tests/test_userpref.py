@@ -7,34 +7,44 @@ import sys
 
 from nose import with_setup
 
-# Use a special directory to avoid conflicts with the actual user
-# preferences.
-import spiky.utils.globalpaths
-spiky.utils.globalpaths.APPNAME = 'spiky_test'
+import spiky
+import spiky.utils.globalpaths as paths
 
-from spiky.utils.globalpaths import (APPNAME, delete_file, delete_folder,
-    ensure_folder_exists)
-from spiky.utils.userpref import USERPREF, FOLDER, FILEPATH, load, save
-
+APPNAME_ORIGINAL = paths.APPNAME
 
 # -----------------------------------------------------------------------------
 # Fixtures
 # -----------------------------------------------------------------------------
 def setup():
+    # HACK: monkey patch
+    paths.APPNAME = APPNAME_ORIGINAL + '_test'
+    reload(spiky.utils.settings)
+    import spiky.utils.userpref as pref
+    
     userpref = """field1 = 123"""
-    ensure_folder_exists(FOLDER)
-    save(FILEPATH, userpref, appname=APPNAME)
+    paths.ensure_folder_exists(pref.FOLDER)
+    pref.save(pref.FILEPATH, userpref, appname=pref.APPNAME)
     
 def teardown():
-    delete_file(FILEPATH)
-    delete_folder(FOLDER)
-
+    import spiky.utils.userpref as pref
+    
+    # print pref.FILEPATH
+    # print pref.FOLDER
+    paths.delete_file(pref.FILEPATH)
+    paths.delete_folder(pref.FOLDER)
+    
+    # HACK: cancel monkey patch
+    paths.APPNAME = APPNAME_ORIGINAL
+    
+    reload(spiky.utils.userpref)
 
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-@with_setup(setup, teardown)
+# @with_setup(setup, teardown)
 def test_userpref():
-    USERPREF._load_once()
-    assert USERPREF['field1'] == 123    
+    import spiky.utils.userpref as pref
+    
+    pref.USERPREF._load_once()
+    assert pref.USERPREF['field1'] == 123    
     

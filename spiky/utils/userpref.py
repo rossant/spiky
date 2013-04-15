@@ -7,7 +7,7 @@ import cPickle
 import os
 
 from spiky.utils.globalpaths import (get_global_path, get_app_folder, APPNAME)
-from spiky.utils.logger import exception
+import spiky.utils.logger as log
 from spiky.utils.settings import ensure_folder_exists
 
 
@@ -25,7 +25,7 @@ def load(filepath, appname=''):
     try:
         exec(preferences_string, {}, preferences)
     except Exception as e:
-        exception("An exception occurred in the user preferences file.")
+        log.exception("An exception occurred in the user preferences file.")
     return preferences
     
 def save(filepath, preferences="", appname=''):
@@ -35,7 +35,6 @@ def save(filepath, preferences="", appname=''):
             preferences))
     return preferences
 
-    
 
 # -----------------------------------------------------------------------------
 # User preferences
@@ -78,8 +77,8 @@ class UserPreferences(object):
         
     def __getitem__(self, key):
         return self.get(key)
-        
-        
+
+
 # -----------------------------------------------------------------------------
 # Global variables
 # -----------------------------------------------------------------------------
@@ -87,4 +86,5 @@ FILENAME = 'preferences.py'
 FOLDER = get_app_folder()
 FILEPATH = get_global_path(FILENAME)
 USERPREF = UserPreferences(appname=APPNAME, folder=FOLDER, filepath=FILEPATH)
+
 

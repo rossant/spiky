@@ -7,34 +7,45 @@ import sys
 
 from nose import with_setup
 
-# Use a special directory to avoid conflicts with the actual user
-# preferences.
-import spiky.utils.globalpaths
-spiky.utils.globalpaths.APPNAME = 'spiky_test'
+import spiky
+import spiky.utils.globalpaths as paths
 
-from spiky.utils.globalpaths import (delete_file, delete_folder, 
-    ensure_folder_exists)
-from spiky.utils.settings import SETTINGS, FILEPATH, FOLDER, load, save
+APPNAME_ORIGINAL = paths.APPNAME
 
 
 # -----------------------------------------------------------------------------
 # Fixtures
 # -----------------------------------------------------------------------------
 def setup():
+    # HACK: monkey patch
+    paths.APPNAME = APPNAME_ORIGINAL + '_test'
+    reload(spiky.utils.settings)
+    import spiky.utils.settings as stg
+    
     settings = {'field1': 'value1', 'field2': 123}
-    ensure_folder_exists(FOLDER)
-    save(FILEPATH, settings)
+    paths.ensure_folder_exists(stg.FOLDER)
+    stg.save(stg.FILEPATH, settings)
     
 def teardown():
-    delete_file(FILEPATH)
-    delete_folder(FOLDER)
+    import spiky.utils.settings as stg
+    
+    paths.delete_file(stg.FILEPATH)
+    paths.delete_folder(stg.FOLDER)
+    
+    # HACK: cancel monkey patch
+    paths.APPNAME = APPNAME_ORIGINAL
+    
+    reload(spiky.utils.settings)
 
 
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-@with_setup(setup, teardown)
+# @with_setup(setup, teardown)
 def test_settings():
+    import spiky.utils.settings as stg
+    SETTINGS = stg.SETTINGS
+    
     assert SETTINGS['field1'] == 'value1'
     assert SETTINGS['field2'] == 123
     SETTINGS['field2'] = 456
@@ -45,7 +56,4 @@ def test_settings():
     assert SETTINGS['field1'] == 'value1'
     assert SETTINGS['field2'] == 456
     assert SETTINGS['field3'].get('key') == 789
-    
-    import time
-    time.sleep(2)
     

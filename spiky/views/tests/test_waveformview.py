@@ -22,7 +22,7 @@ from spiky.views.tests import show_view
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-@with_setup(setup, teardown)
+# @with_setup(setup, teardown)
 def test_waveformview():
     
     # Mock data folder.

@@ -21,7 +21,7 @@ from spiky.io.tools import check_dtype, check_shape
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-@with_setup(setup, teardown)
+# @with_setup(setup, teardown)
 def test_klusters_loader():
     # Open the mock data.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')

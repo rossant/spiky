@@ -1,9 +1,10 @@
-"""Define global variables with different useful paths."""
+"""Define global variables with useful paths."""
 
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
 import os
+import shutil
 
 
 # -----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ def delete_folder(folderpath):
     """Delete a folder."""
     if os.path.exists(folderpath):
         if os.path.isdir(folderpath):
+            # shutil.rmtree(folderpath)
             os.rmdir(folderpath)
 
 
@@ -36,7 +38,9 @@ def get_app_folder(appname=None):
         appname = APPNAME
     return os.path.expanduser(os.path.join('~', '.' + appname))
 
-def get_global_path(filename, folder=None):
+def get_global_path(filename, folder=None, appname=None):
+    if appname is None:
+        appname = APPNAME
     if folder is None:
-        folder = get_app_folder(APPNAME)
+        folder = get_app_folder(appname)
     return os.path.join(folder, filename)

@@ -7,6 +7,8 @@ import os
 import sys
 import logging
 
+from spiky.utils.globalpaths import APPNAME
+
 
 # -----------------------------------------------------------------------------
 # Stream classes
@@ -31,18 +33,23 @@ class StringStream(object):
 # -----------------------------------------------------------------------------
 class Logger(object):
     """Save logging information to a stream."""
-    def __init__(self, fmt=None, stream=None):
+    def __init__(self, fmt=None, stream=None, level=None):
         if stream is None:
             stream = sys.stdout
         if fmt is None:
             fmt = '%(asctime)s  %(message)s'
+        if level is None:
+            level = logging.INFO
         self.stream = stream
         formatter = logging.Formatter(fmt, datefmt='%Y-%m-%d %H:%M:%S')
         handler = logging.StreamHandler(self.stream)
         handler.setFormatter(formatter)
-        self._logger = logging.getLogger('spiky')
+        self._logger = logging.getLogger(APPNAME)
         self._logger.addHandler(handler)
-        self._logger.setLevel(logging.INFO)
+        self._logger.setLevel(level)
+        
+    def set_level(self, level):
+        self._logger.setLevel(level)
         
     def debug(self, msg):
         self._logger.debug(msg)
