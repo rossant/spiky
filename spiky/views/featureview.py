@@ -12,7 +12,7 @@ from widgets import VisualizationWidget
 from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
 import spiky
 # import spiky.tools as stools
-import spiky.gui.signals as ssignals
+# import spiky.gui.signals as ssignals
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',

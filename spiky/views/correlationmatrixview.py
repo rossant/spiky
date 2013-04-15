@@ -5,7 +5,7 @@ from matplotlib.colors import hsv_to_rgb
 from widgets import VisualizationWidget
 # import spiky.colors as scolors
 from spiky.utils.colors import COLORMAP
-import spiky.gui.signals as ssignals
+# import spiky.gui.signals as ssignals
 
 
 def colormap(x, col0=None, col1=None):
@@ -142,7 +142,7 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         
         pair = np.unique(np.array([cx, cy]))
         
-        ssignals.emit(self, 'ClusterSelectionToChange', pair)
+        # ssignals.emit(self, 'ClusterSelectionToChange', pair)
         
     def show_closest_cluster(self, parameter):
         nclu = self.data_manager.nclusters

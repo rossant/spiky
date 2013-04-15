@@ -5,7 +5,7 @@ from widgets import VisualizationWidget
 # import spiky.colors as scolors
 from spiky.utils.colors import COLORMAP
 # import spiky.tools as stools
-import spiky.gui.signals as ssignals
+# import spiky.gui.signals as ssignals
 
 VERTEX_SHADER = """
     //vec3 color = vec3(1, 1, 1);
@@ -345,7 +345,8 @@ class CorrelogramsWidget(VisualizationWidget):
                       cluster_colors=self.dh.cluster_colors)
 
     def initialize_connections(self):
-        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+        # ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
+        pass
     
     def slotClusterSelectionChanged(self, sender, clusters):
         self.update_view()

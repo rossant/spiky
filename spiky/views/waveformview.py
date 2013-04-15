@@ -1,4 +1,4 @@
-
+"""Waveform View: show waveforms on all channels."""
 
 # -----------------------------------------------------------------------------
 # Imports
@@ -11,17 +11,14 @@ import operator
 import time
 
 from galry import (Manager, PlotPaintManager, PlotInteractionManager, Visual,
-    GalryWidget, QtGui, show_window, enforce_dtype, RectanglesVisual,
+    GalryWidget, QtGui, QtCore, show_window, enforce_dtype, RectanglesVisual,
     TextVisual)
 from spiky.io.tools import get_array
 from spiky.io.selection import get_spikes_in_clusters, select, get_indices
-from spiky.views.common import HighlightManager, SpikyBindings#, SpikeDataOrganizer
+from spiky.views.common import HighlightManager, SpikyBindings
 from spiky.views.widgets import VisualizationWidget
-# import spiky.tools as stools
-# import spiky.colors as scolors
 from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
-import spiky.gui.signals as ssignals
-from spiky.utils.colors import COLORMAP
+import spiky.utils.logger as log
 
 
 __all__ = ['WaveformView']
@@ -879,7 +876,7 @@ class WaveformHighlightManager(HighlightManager):
     def emit(self, spikes):
         spikes = np.array(spikes, dtype=np.int32)
         spikes_abs = self.waveform_indices[spikes]
-        ssignals.emit(self.parent, 'HighlightSpikes', spikes_abs)
+        # ssignals.emit(self.parent, 'HighlightSpikes', spikes_abs)
 
 
 class WaveformInfoManager(Manager):
@@ -892,9 +889,10 @@ class WaveformInfoManager(Manager):
         r, g, b = COLORMAP[color,:]
         color = (r, g, b, .75)
         
-        text = "Channel {0:d}, cluster {1:d}".format(
+        text = "cluster {0:d}, channel {1:d}".format(
+            self.data_manager.clusters_unique[cluster_rel],
             channel,
-            self.data_manager.clusters_unique[cluster_rel])
+            )
         
         self.paint_manager.set_data(coordinates=(xd, yd), color=color,
             text=text,
@@ -908,8 +906,11 @@ class WaveformInteractionManager(PlotInteractionManager):
         xp, yp = self.get_processor('navigation').get_data_coordinates(xp, yp)
         # find closest channel
         channel, cluster_rel = self.position_manager.find_box(xp, yp)
-        # emit the ChannelSelection signal
-        ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, -1)
+        cluster = self.data_manager.clusters_unique[cluster_rel]
+        # emit the boxSelected signal
+        log.debug("Select cluster {0:d}, channel {1:d}".
+            format(cluster, channel))
+        self.parent.boxSelected.emit(cluster, channel)
     
     def initialize(self):
         self.register('ToggleSuperposition', self.toggle_superposition)
@@ -1093,6 +1094,10 @@ class WaveformBindings(SpikyBindings):
 # Top-level widget
 # -----------------------------------------------------------------------------
 class WaveformView(GalryWidget):
+    # Raised when a cluster/channel box is selected. The parameters are 
+    # (cluster, channel)
+    boxSelected = QtCore.pyqtSignal(int, int)
+    
     def initialize(self):
         self.constrain_ratio = False
         self.activate3D = True

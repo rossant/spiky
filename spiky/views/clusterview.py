@@ -6,7 +6,7 @@ from collections import OrderedDict
 # from signals import *
 # from colors import COLORMAP
 from spiky.utils.settings import SETTINGS
-import spiky.gui.signals as ssignals
+# import spiky.gui.signals as ssignals
 from spiky.utils.colors import COLORMAP
 
 
@@ -599,7 +599,7 @@ class ClusterTreeView(QtGui.QTreeView):
                     clusters_unique.append(clu)
             clusters_unique = np.array(clusters_unique, dtype=np.int32)
             
-            ssignals.emit(self, "ClusterSelectionToChange", clusters_unique)
+            # ssignals.emit(self, "ClusterSelectionToChange", clusters_unique)
         
     def select(self, cluster):
         """Select a cluster.
@@ -722,8 +722,8 @@ class ClusterWidget(QtGui.QWidget):
         self.initialize_connections()
         
     def initialize_connections(self):
-        
-        ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
+        # ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
+        pass
         
     def slotClusterSelectionToChange(self, sender, clusters):
         # mark the clusters as selected without sending signals
@@ -819,10 +819,12 @@ class ClusterWidget(QtGui.QWidget):
     # Change methods
     # --------------
     def add_group(self):
-        ssignals.emit(self, "AddGroupRequested")
+        # ssignals.emit(self, "AddGroupRequested")
+        pass
         
     def remove_groups(self):
-        ssignals.emit(self, "RemoveGroupsRequested", np.array(self.view.selected_groups()))
+        # ssignals.emit(self, "RemoveGroupsRequested", np.array(self.view.selected_groups()))
+        pass
         
     def rename_group(self):
         groups = self.view.selected_groups()
@@ -832,8 +834,8 @@ class ClusterWidget(QtGui.QWidget):
             name = group.name()
             text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
                     QtGui.QLineEdit.Normal, name)
-            if ok:
-                ssignals.emit(self, "RenameGroupRequested", groupidx, text)
+            # if ok:
+                # ssignals.emit(self, "RenameGroupRequested", groupidx, text)
     
     def change_color(self):
         items = self.view.selected_items()
@@ -862,10 +864,10 @@ class ClusterWidget(QtGui.QWidget):
         # emit signal
         groups = np.array(self.view.selected_groups())
         clusters = np.array(self.view.selected_clusters())
-        if len(groups) > 0:
-            ssignals.emit(self, "ChangeGroupColorRequested", groups, i)
-        if len(clusters) > 0:
-            ssignals.emit(self, "ChangeClusterColorRequested", clusters, i)
+        # if len(groups) > 0:
+            # ssignals.emit(self, "ChangeGroupColorRequested", groups, i)
+        # if len(clusters) > 0:
+            # ssignals.emit(self, "ChangeClusterColorRequested", clusters, i)
     
     
     # Save and restore geometry
