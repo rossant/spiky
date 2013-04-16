@@ -11,7 +11,9 @@ import numpy as np
 import numpy.random as rdn
 from matplotlib.path import Path
 
-from galry import *
+from galry import (Manager, PlotPaintManager, PlotInteractionManager, Visual,
+    GalryWidget, QtGui, QtCore, show_window, enforce_dtype, RectanglesVisual,
+    TextVisual, PlotVisual, AxesVisual)
 from spiky.io.selection import get_indices
 from spiky.io.tools import get_array
 from spiky.views.common import HighlightManager, SpikyBindings
@@ -19,11 +21,6 @@ from spiky.views.widgets import VisualizationWidget
 from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
 import spiky.utils.logger as log
 import spiky
-
-
-__all__ = ['FeatureView', 'FeatureNavigationBindings',
-           'FeatureSelectionBindings',
-           ]
 
 
 # -----------------------------------------------------------------------------
@@ -134,6 +131,7 @@ class FeatureDataManager(Manager):
         self.features = features
         self.masks = masks
         self.clusters = clusters
+        self.feature_indices = get_indices(self.features)
         
         self.features_array = get_array(self.features)
         self.masks_array = get_array(self.masks)
@@ -307,8 +305,7 @@ class FeaturePaintManager(PlotPaintManager):
 class FeatureHighlightManager(HighlightManager):
     def initialize(self):
         super(FeatureHighlightManager, self).initialize()
-        self.features = self.data_manager.features
-        self.features_indices = get_indices(self.features)
+        self.feature_indices = self.data_manager.feature_indices
         self.highlight_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.highlighted_spikes = []
         
@@ -334,7 +331,7 @@ class FeatureHighlightManager(HighlightManager):
         spkindices = np.unique(spkindices)
         return spkindices
         
-    def set_highlighted_spikes(self, spikes, do_emit=True):
+    def set_highlighted_spikes(self, spikes):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
         if len(spikes) == 0:
@@ -367,14 +364,13 @@ class FeatureHighlightManager(HighlightManager):
 
     def emit(self, spikes):
         spikes = np.array(spikes, dtype=np.int32)
-        spikes_abs = self.features_indices[spikes]
+        spikes_abs = self.feature_indices[spikes]
         # emit signal
-        log.debug("Highlight {0:d} spikes.".format(len(spikes_abs)))
+        # log.debug("Highlight {0:d} spikes.".format(len(spikes_abs)))
         self.parent.spikesHighlighted.emit(spikes_abs)
         
 
 class FeatureSelectionManager(Manager):
-    
     selection_polygon_color = (1., 1., 1., .5)
     points = np.zeros((100, 2))
     npoints = 0
@@ -392,11 +388,11 @@ class FeatureSelectionManager(Manager):
                                     primitive_type='LINE_LOOP',
                                     visible=False,
                                     name='selection_polygon')
-                
+        self.feature_indices = self.data_manager.feature_indices
         self.selection_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.selected_spikes = []
         
-    def set_selected_spikes(self, spikes, do_emit=True):
+    def set_selected_spikes(self, spikes):
         """Update spike colors to mark transiently selected spikes with
         a special color."""
         if len(spikes) == 0:
@@ -409,26 +405,24 @@ class FeatureSelectionManager(Manager):
             self.selection_mask[spikes] = 1
         
         if do_update:
-            
-            # emit the SelectionSpikes signal
-            if do_emit:
-                if len(spikes) > 0:
-                    aspikes = self.data_manager.spike_ids[spikes]
-                else:
-                    aspikes = spikes
-                ssignals.emit(self.parent, 'SelectSpikes', aspikes)
-            
             self.paint_manager.set_data(
                 selection=self.selection_mask, visual='features')
         
         self.selected_spikes = spikes
     
+    def emit(self, spikes):
+        spikes = np.array(spikes, dtype=np.int32)
+        spikes_abs = self.feature_indices[spikes]
+        # emit signal
+        # log.debug("Select {0:d} spikes.".format(len(spikes_abs)))
+        self.parent.spikesSelected.emit(spikes_abs)
+        
     def find_enclosed_spikes(self, polygon=None):
         """Find the indices of the spikes inside the polygon (in 
         transformed coordinates)."""
         if polygon is None:
             polygon = self.polygon()
-        features = self.data_manager.normalized_data
+        features = self.data_manager.data
         masks = self.data_manager.masks_full
         # indices = (masks > 0) & polygon_contains_points(polygon, features)
         indices = polygon_contains_points(polygon, features)
@@ -440,6 +434,7 @@ class FeatureSelectionManager(Manager):
         """Select spikes enclosed in the selection polygon."""
         spikes = self.find_enclosed_spikes(polygon)
         self.set_selected_spikes(spikes)
+        self.emit(spikes)
    
     def add_point(self, point):
         """Add a point in the selection polygon."""
@@ -702,37 +697,30 @@ class FeatureBindings(SpikyBindings):
     def set_switch_mode(self):
         self.set('KeyPress', 'SwitchInteractionMode', key='N')
         
-        
-class FeatureNavigationBindings(FeatureBindings):
-    def initialize(self):
-        self.set_highlight()
-        self.set_toggle_mask()
-        self.set_neighbor_channel()
-        self.set_neighbor_feature()
-        self.set_switch_mode()
-        self.set_clusterinfo()
-
-
-class FeatureSelectionBindings(FeatureBindings):
     def set_selection(self):
         # selection
         self.set('Move',
                  'SelectionPointPending',
+                 key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (p["mouse_position"][0],
                                          p["mouse_position"][1],))
         self.set('LeftClick',
                  'AddSelectionPoint',
+                 key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
         self.set('RightClick',
                  'EndSelectionPoint',
+                 key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
         self.set('DoubleClick',
                  'CancelSelectionPoint',
+                 key_modifier=QtCore.Qt.Key_Control,
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
     
+# class FeatureNavigationBindings(FeatureBindings):
     def initialize(self):
         self.set_highlight()
         self.set_toggle_mask()
@@ -740,9 +728,20 @@ class FeatureSelectionBindings(FeatureBindings):
         self.set_neighbor_feature()
         self.set_switch_mode()
         self.set_clusterinfo()
-        
-        self.set_base_cursor('CrossCursor')
         self.set_selection()
+
+
+# class FeatureSelectionBindings(FeatureBindings):
+    # def initialize(self):
+        # self.set_highlight()
+        # self.set_toggle_mask()
+        # self.set_neighbor_channel()
+        # self.set_neighbor_feature()
+        # self.set_switch_mode()
+        # self.set_clusterinfo()
+        
+        # self.set_base_cursor('CrossCursor')
+        # self.set_selection()
 
 
 # -----------------------------------------------------------------------------
@@ -751,12 +750,13 @@ class FeatureSelectionBindings(FeatureBindings):
 class FeatureView(GalryWidget):
     # Raise the list of highlighted spike absolute indices.
     spikesHighlighted = QtCore.pyqtSignal(np.ndarray)
+    spikesSelected = QtCore.pyqtSignal(np.ndarray)
     
     # Initialization
     # --------------
     def initialize(self):
         self.activate3D = True
-        self.set_bindings(FeatureNavigationBindings, FeatureSelectionBindings)
+        self.set_bindings(FeatureBindings)
         self.set_companion_classes(
                 paint_manager=FeaturePaintManager,
                 data_manager=FeatureDataManager,

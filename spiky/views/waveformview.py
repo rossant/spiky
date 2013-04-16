@@ -422,6 +422,7 @@ class WaveformDataManager(Manager):
         self.clusters = clusters
         self.cluster_colors = cluster_colors
         self.masks = masks
+        self.waveform_indices = get_indices(self.waveforms)
         
         # Prepare GPU data.
         self.data = self.prepare_waveform_data()
@@ -754,8 +755,8 @@ class WaveformHighlightManager(HighlightManager):
         self.nspikes = data_manager.nspikes
         self.npoints = data_manager.npoints
         self.waveforms = self.data_manager.waveforms
-        self.waveform_indices = get_indices(self.waveforms)
         self.waveforms_array = self.data_manager.waveforms_array
+        self.waveform_indices = self.data_manager.waveform_indices
         self.highlighted_spikes = []
         self.highlight_mask = np.zeros(self.npoints, dtype=np.int32)
         self.highlighting = False
