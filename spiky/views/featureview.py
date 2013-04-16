@@ -106,8 +106,6 @@ def polygon_contains_points(polygon, points):
 # Data manager
 # -----------------------------------------------------------------------------
 class FeatureDataManager(Manager):
-    projection = [None, None]
-    
     # Initialization methods
     # ----------------------
     def set_data(self,
@@ -151,35 +149,14 @@ class FeatureDataManager(Manager):
         # prepare GPU data
         self.data = np.empty((self.nspikes, 2), dtype=np.float32)
         
-        if self.projection[0] is None or self.projection[1] is None:
-            self.set_projection(0, 0, 0, False)
-            self.set_projection(1, 0, 1)
-        else:
-            self.set_projection(0, self.projection[0][0], self.projection[0][1], False)
-            self.set_projection(1, self.projection[1][0], self.projection[1][1])
-            
+        # set initial projection
+        self.projection_manager.set_data()
+        self.projection_manager.reset_projection()
+        
         # update the highlight manager
         self.highlight_manager.initialize()
         self.selection_manager.initialize()
 
-    def set_projection(self, coord, channel, feature, do_update=True):
-        """Set the projection axes."""
-        if channel < self.nchannels:
-            i = channel * self.fetdim + feature
-            self.masks_full = self.masks_array[:,channel]
-        # handle extra feature, with channel being directly the feature index
-        else:
-            i = min(self.nchannels * self.fetdim + self.nextrafet - 1,
-                    channel - self.nchannels + self.nchannels * self.fetdim)
-        self.data[:, coord] = self.features_array[:, i].ravel()
-        
-        if do_update:
-            self.projection[coord] = (channel, feature)
-            # show the selection polygon only if the projection axes correspond
-            self.selection_manager.set_selection_polygon_visibility(
-              (self.projection[0] == self.selection_manager.projection[0]) & \
-               (self.projection[1] == self.selection_manager.projection[1]))
-        
 
 # -----------------------------------------------------------------------------
 # Visual
@@ -478,7 +455,7 @@ class FeatureSelectionManager(Manager):
                 visual='selection_polygon')
         self.select_spikes()
         # record the projection axes corresponding to the current selection
-        self.projection = list(self.data_manager.projection)
+        self.projection = list(self.projection_manager.projection)
         self.is_selection_pending = False
         
     def cancel_selection(self):
@@ -491,6 +468,68 @@ class FeatureSelectionManager(Manager):
         self.is_selection_pending = False
 
 
+# -----------------------------------------------------------------------------
+# Projection
+# -----------------------------------------------------------------------------
+class FeatureProjectionManager(Manager):
+    def set_data(self):
+        self.projection = [None, None]
+        self.nchannels = self.data_manager.nchannels
+        self.fetdim = self.data_manager.fetdim
+        self.nextrafet = self.data_manager.nextrafet
+        self.nchannels = self.data_manager.nchannels
+        
+    def set_projection(self, coord, channel, feature, do_update=True):
+        """Set the projection axes."""
+        if channel < self.nchannels:
+            i = channel * self.fetdim + feature
+            self.data_manager.masks_full = self.data_manager.masks_array[:,channel]
+        # handle extra feature, with channel being directly the feature index
+        else:
+            i = min(self.nchannels * self.fetdim + self.nextrafet - 1,
+                    channel - self.nchannels + self.nchannels * self.fetdim)
+        self.data_manager.data[:, coord] = self.data_manager.features_array[:, i].ravel()
+        
+        if do_update:
+            self.projection[coord] = (channel, feature)
+            # show the selection polygon only if the projection axes correspond
+            self.selection_manager.set_selection_polygon_visibility(
+              (self.projection[0] == self.selection_manager.projection[0]) & \
+              (self.projection[1] == self.selection_manager.projection[1]))
+        
+    def reset_projection(self):
+        if self.projection[0] is None or self.projection[1] is None:
+            self.set_projection(0, 0, 0, False)
+            self.set_projection(1, 0, 1)
+        else:
+            self.set_projection(0, self.projection[0][0], self.projection[0][1], False)
+            self.set_projection(1, self.projection[1][0], self.projection[1][1])
+
+    def select_neighbor_channel(self, coord, channel_dir):
+        # current channel and feature in the given coordinate
+        proj = self.projection[coord]
+        if proj is None:
+            proj = (0, coord)
+        channel, feature = proj
+        # next or previous channel
+        channel = np.mod(channel + channel_dir, self.data_manager.nchannels + 
+            self.data_manager.nextrafet)
+        self.set_projection(coord, channel, feature, do_update=True)
+        
+    def select_neighbor_feature(self, parameter):
+        coord, feature_dir = parameter
+        # current channel and feature in the given coordinate
+        proj = self.projection_manager.projection[coord]
+        if proj is None:
+            proj = (0, coord)
+        channel, feature = proj
+        # next or previous feature
+        feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
+        self.set_projection(coord, channel, feature, do_update=True)
+            
+    def get_projection(self, coord):
+        return self.projection[coord]
+            
 # -----------------------------------------------------------------------------
 # Interaction
 # -----------------------------------------------------------------------------
@@ -535,7 +574,10 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.register('SelectNeighborFeature', self.select_neighbor_feature)
         
         self.register('ShowClosestCluster', self.show_closest_cluster)
-        
+    
+    
+    # Highlighting
+    # ------------
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
@@ -545,6 +587,9 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.highlight_manager.highlight(parameter)
         self.cursor = 'CrossCursor'
         
+        
+    # Selection
+    # ---------
     def selection_point_pending(self, parameter):
         self.selection_manager.point_pending(parameter)
         
@@ -557,43 +602,49 @@ class FeatureInteractionManager(PlotInteractionManager):
     def selection_cancel(self, parameter):
         self.selection_manager.cancel_selection()
 
-    def toggle_mask(self, parameter):
-        self.paint_manager.toggle_mask()
         
+    # Projection
+    # ----------
     def select_neighbor_channel(self, parameter):
-        # print self.data_manager.projection
         coord, channel_dir = parameter
-        # current channel and feature in the given coordinate
-        proj = self.data_manager.projection[coord]
-        if proj is None:
-            proj = (0, coord)
-        channel, feature = proj
-        # next or previous channel
-        channel = np.mod(channel + channel_dir, self.data_manager.nchannels + self.data_manager.nextrafet)
-        # select projection
-        # self.select_projection((coord, channel, feature))
-        ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, feature)
-            
+        
+        self.projection_manager.select_neighbor_channel(coord, channel_dir)
+        channel, feature = self.projection_manager.get_projection(coord)
+        
+        log.debug(("Projection changed to channel {0:d} and "
+                   "feature {1:d} on axis {2:s}").format(
+                        channel, feature, 'xy'[coord]))
+        self.parent.projectionChanged.emit(coord, channel, feature)
+        
+        self.paint_manager.update_points()
+        self.paint_manager.updateGL()
+        
     def select_neighbor_feature(self, parameter):
-        # print self.data_manager.projection
         coord, feature_dir = parameter
-        # current channel and feature in the given coordinate
-        proj = self.data_manager.projection[coord]
-        if proj is None:
-            proj = (0, coord)
-        channel, feature = proj
-        # next or previous feature
-        feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
-        # select projection
-        # self.select_projection((coord, channel, feature))
-        ssignals.emit(self.parent, 'ProjectionToChange', coord, channel, feature)
+        
+        self.projection_manager.select_neighbor_channel(coord, channel_dir)
+        channel, feature = self.projection_manager.get_projection(coord)
+        
+        log.debug(("Projection changed to channel {0:d} and "
+                   "feature {1:d} on axis {2:s}").format(
+                        channel, feature, 'xy'[coord]))
+        self.parent.projectionChanged.emit(coord, channel, feature)
+        
+        self.paint_manager.update_points()
+        self.paint_manager.updateGL()
             
     def select_projection(self, parameter):
         """Select a projection for the given coordinate."""
-        self.data_manager.set_projection(*parameter)  # coord, channel, feature
+        self.projection_manager.set_projection(*parameter)  # coord, channel, feature
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
-
+    
+    
+    # Misc
+    # ----
+    def toggle_mask(self, parameter):
+        self.paint_manager.toggle_mask()
+        
     def show_closest_cluster(self, parameter):
         
         self.cursor = None
@@ -731,19 +782,6 @@ class FeatureBindings(SpikyBindings):
         self.set_selection()
 
 
-# class FeatureSelectionBindings(FeatureBindings):
-    # def initialize(self):
-        # self.set_highlight()
-        # self.set_toggle_mask()
-        # self.set_neighbor_channel()
-        # self.set_neighbor_feature()
-        # self.set_switch_mode()
-        # self.set_clusterinfo()
-        
-        # self.set_base_cursor('CrossCursor')
-        # self.set_selection()
-
-
 # -----------------------------------------------------------------------------
 # Top-level widget
 # -----------------------------------------------------------------------------
@@ -751,6 +789,7 @@ class FeatureView(GalryWidget):
     # Raise the list of highlighted spike absolute indices.
     spikesHighlighted = QtCore.pyqtSignal(np.ndarray)
     spikesSelected = QtCore.pyqtSignal(np.ndarray)
+    projectionChanged = QtCore.pyqtSignal(int, int, int)
     
     # Initialization
     # --------------
@@ -760,6 +799,7 @@ class FeatureView(GalryWidget):
         self.set_companion_classes(
                 paint_manager=FeaturePaintManager,
                 data_manager=FeatureDataManager,
+                projection_manager=FeatureProjectionManager,
                 info_manager=FeatureInfoManager,
                 highlight_manager=FeatureHighlightManager,
                 selection_manager=FeatureSelectionManager,
