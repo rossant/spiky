@@ -6,7 +6,8 @@
 import numpy as np
 import pandas as pd
 
-from spiky.io.selection import select, get_spikes_in_clusters, to_array
+from spiky.io.selection import (select, select_pairs, get_spikes_in_clusters,
+    to_array)
 
 
 # -----------------------------------------------------------------------------
@@ -38,6 +39,12 @@ def test_select_numpy():
     assert np.array_equal(select(clusters, [9, 11]), [0, 0])
     assert np.array_equal(select(clusters, [10, 99]), [1, 0])
     assert np.array_equal(select(clusters, [20, 25, 25]), [1, 1, 1])
+
+def test_select_pairs():
+    indices = [10, 20, 25]
+    clusters = {(i, j): (i + j) for i in xrange(30) for j in xrange(30) if i <= j}
+    pairs_selected = select_pairs(clusters, indices)
+    assert len(pairs_selected) == 6
 
 def test_select_pandas():
     indices = [10, 20, 25]

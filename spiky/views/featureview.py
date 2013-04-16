@@ -159,7 +159,7 @@ class FeatureDataManager(Manager):
 
 
 # -----------------------------------------------------------------------------
-# Visual
+# Visuals
 # -----------------------------------------------------------------------------
 class FeatureVisual(Visual):
     def initialize(self, npoints=None, 

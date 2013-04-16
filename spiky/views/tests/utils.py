@@ -33,6 +33,7 @@ def get_data():
         features=l.get_features(),
         masks=l.get_masks(),
         waveforms=l.get_waveforms(),
+        correlograms=l.get_correlograms(),
         clusters=l.get_clusters(),
         cluster_colors=l.get_cluster_colors(),
         spiketimes=l.get_spiketimes(),
@@ -41,6 +42,7 @@ def get_data():
         nsamples=l.nsamples,
         fetdim=l.fetdim,
         nextrafet=l.nextrafet,
+        ncorrbins=l.ncorrbins,
     )
     
     return data

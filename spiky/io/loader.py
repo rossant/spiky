@@ -13,7 +13,7 @@ import pandas as pd
 
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
     load_binary, load_pickle)
-from selection import select, get_spikes_in_clusters
+from selection import select, select_pairs, get_spikes_in_clusters
 from spiky.utils.logger import debug, info, warn
 from spiky.utils.colors import COLORS_COUNT
 
@@ -248,6 +248,12 @@ class KlustersLoader(object):
         # Convert to Pandas.
         self.waveforms = pd.Panel(self.waveforms, dtype=np.float32)
     
+        # Create empty correlograms. 
+        # TODO: compute them in an external process
+        cluster_max = self.clusters.max()
+        self.correlograms = {}
+        self.ncorrbins = 50
+    
         # Save data set parameters.
         self.nsamples = nsamples
         self.nchannels = nchannels
@@ -310,8 +316,17 @@ class KlustersLoader(object):
         return select(self.clusters, spikes)
     
     def get_cluster_colors(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
         return select(self.cluster_colors, clusters)
     
+    def get_correlograms(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
+        if spikes is None:
+            spikes = self.spikes_selected
+        return select_pairs(self.correlograms, clusters)
+        
     def get_masks(self, spikes=None, full=None, clusters=None):
         if clusters is not None:
             spikes = get_spikes_in_clusters(clusters, self.clusters)
@@ -332,6 +347,15 @@ class KlustersLoader(object):
     
     def get_probe(self):
         return self.probe
+    
+    
+    # Setters
+    # -------
+    def set_correlograms(self, correlograms):
+        self.correlograms.update(correlograms)
+        
+    # def invalidate_correlograms(self, cluster_indices):
+        
     
     
     # Access to the data: clusters

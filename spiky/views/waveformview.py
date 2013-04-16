@@ -408,6 +408,7 @@ class WaveformDataManager(Manager):
         self.clusters_array = get_array(clusters)
         self.cluster_colors_array = get_array(cluster_colors)
         
+        
         # Relative indexing.
         self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
         self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
@@ -420,7 +421,7 @@ class WaveformDataManager(Manager):
         self.nclusters = len(Counter(clusters))
         self.waveforms = waveforms
         self.clusters = clusters
-        self.cluster_colors = cluster_colors
+        # self.cluster_colors = cluster_colors
         self.masks = masks
         self.waveform_indices = get_indices(self.waveforms)
         
@@ -881,7 +882,7 @@ class WaveformInfoManager(Manager):
         
         channel, cluster_rel = self.position_manager.find_box(xd, yd)
         # i = self.position_manager.nclusters * channel + cluster_rel
-        color = self.data_manager.cluster_colors[cluster_rel]
+        color = self.data_manager.cluster_colors_array[cluster_rel]
         
         r, g, b = COLORMAP[color,:]
         color = (r, g, b, .75)

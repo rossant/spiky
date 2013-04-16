@@ -77,6 +77,21 @@ def select(data, indices=None):
     else:
         return select_pandas(data, indices)
 
+def select_pairs(data, indices=None, conjunction='and'):
+    """Select all items in data where at least one of the key index is in 
+    indices.
+    
+    """
+    if indices is None:
+        return data
+    assert isinstance(data, dict)
+    if conjunction == 'and':
+        return {(i, j): data[(i, j)] for (i, j) in data.keys() 
+            if i in indices and j in indices}
+    elif conjunction == 'or':
+        return {(i, j): data[(i, j)] for (i, j) in data.keys() 
+            if i in indices and j in indices}
+        
 def get_spikes_in_clusters(clusters_selected, clusters, return_indices=False):
     spike_indices = np.in1d(clusters, clusters_selected)
     if not return_indices:

@@ -21,6 +21,7 @@ from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
 nspikes = 1000
 nclusters = 20
 nsamples = 20
+ncorrbins = 50
 nchannels = 32
 fetdim = 3
 
@@ -49,6 +50,10 @@ def create_cluster_colors(maxcluster):
     
 def create_masks(nspikes, nchannels, fetdim):
     return rnd.rand(nspikes, nchannels * fetdim + 1) < .1
+    
+def create_correlograms(nclusters, ncorrbins):
+    return {(i, j): np.random.rand(ncorrbins) for i in xrange(nclusters)
+        for j in xrange(nclusters) if i <= j}
     
 def create_xml(nchannels, nsamples, fetdim):
     channels = '\n'.join(["<channel>{0:d}</channel>".format(i) 
