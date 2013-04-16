@@ -854,9 +854,7 @@ class WaveformHighlightManager(HighlightManager):
 
     def highlighted(self, box):
         # Get selected spikes (relative indices).
-        spikes = self.find_enclosed_spikes(box) 
-        # Vertex indices to highlight.
-        indices = self.find_indices_from_spikes(spikes)
+        spikes = self.find_enclosed_spikes(box)
         # Set highlighted spikes.
         self.set_highlighted_spikes(spikes)
         # Emit the HighlightSpikes signal.
@@ -905,10 +903,10 @@ class WaveformInteractionManager(PlotInteractionManager):
         # find closest channel
         channel, cluster_rel = self.position_manager.find_box(xp, yp)
         cluster = self.data_manager.clusters_unique[cluster_rel]
-        # emit the boxSelected signal
+        # emit the boxClicked signal
         log.debug("Select cluster {0:d}, channel {1:d}".
             format(cluster, channel))
-        self.parent.boxSelected.emit(cluster, channel)
+        self.parent.boxClicked.emit(cluster, channel)
     
     def initialize(self):
         self.register('ToggleSuperposition', self.toggle_superposition)
@@ -1095,7 +1093,7 @@ class WaveformView(GalryWidget):
     # Signals
     # -------
     # Raise (cluster, channel) when a box is selected.
-    boxSelected = QtCore.pyqtSignal(int, int)
+    boxClicked = QtCore.pyqtSignal(int, int)
     # Raise the list of highlighted spike absolute indices.
     spikesHighlighted = QtCore.pyqtSignal(np.ndarray)
     

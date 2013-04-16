@@ -12,16 +12,17 @@ import numpy.random as rdn
 from matplotlib.path import Path
 
 from galry import *
+from spiky.io.selection import get_indices
 from spiky.io.tools import get_array
 from spiky.views.common import HighlightManager, SpikyBindings
 from spiky.views.widgets import VisualizationWidget
 from spiky.utils.colors import COLORMAP, HIGHLIGHT_COLORMAP
+import spiky.utils.logger as log
 import spiky
 
 
 __all__ = ['FeatureView', 'FeatureNavigationBindings',
            'FeatureSelectionBindings',
-           'FeatureWidget',
            ]
 
 
@@ -247,8 +248,8 @@ class FeatureVisual(Visual):
         
         self.add_vertex_main(VERTEX_SHADER)
         self.add_fragment_main(FRAGMENT_SHADER)
-        
-        
+
+
 class FeaturePaintManager(PlotPaintManager):
     def update_points(self):
         self.set_data(position0=self.data_manager.data,
@@ -306,10 +307,10 @@ class FeaturePaintManager(PlotPaintManager):
 class FeatureHighlightManager(HighlightManager):
     def initialize(self):
         super(FeatureHighlightManager, self).initialize()
+        self.features = self.data_manager.features
+        self.features_indices = get_indices(self.features)
         self.highlight_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
         self.highlighted_spikes = []
-        # self.spike_ids = self.data_manager.spike_ids
-        # self.spikes_rel = self.data_manager.spikes_rel
         
     def find_enclosed_spikes(self, enclosing_box):
         x0, y0, x1, y1 = enclosing_box
@@ -321,7 +322,7 @@ class FeatureHighlightManager(HighlightManager):
         xmin, xmax = min(x0, x1), max(x0, x1)
         ymin, ymax = min(y0, y1), max(y0, y1)
 
-        features = self.data_manager.normalized_data
+        features = self.data_manager.data
         masks = self.data_manager.masks_full
 
         indices = (
@@ -343,36 +344,34 @@ class FeatureHighlightManager(HighlightManager):
         else:
             do_update = True
             self.highlight_mask[:] = 0
-            # spikes_rel = self.spikes_rel[spikes]
-            # from absolue indices to relative indices
-            # spikes_rel = np.digitize(spikes, self.spike_ids) - 1
-            # self.highlight_mask[spikes_rel] = 1
+            if len(spikes) > 0:
+                self.highlight_mask[spikes] = 1
         
         if do_update:
-            
-            # emit the HighlightSpikes signal
-            if do_emit:
-                ssignals.emit(self.parent, 'HighlightSpikes', spikes)
-                    # self.spike_ids[np.array(spikes, dtype=np.int32)])
-            
             self.paint_manager.set_data(
                 highlight=self.highlight_mask, visual='features')
-        
-        # self.HighlightSpikes = QtCore.pyqtSignal(np.ndarray)
-        
-        # self.parent.emit(SpikySignals.HighlightSpikes, spikes)
         
         self.highlighted_spikes = spikes
         
     def highlighted(self, box):
-        spikes = self.find_enclosed_spikes(box)
-        # from relative indices to absolute indices
-        self.set_highlighted_spikes(self.spike_ids[spikes])
+        # Get selected spikes (relative indices).
+        spikes = self.find_enclosed_spikes(box) 
+        # Set highlighted spikes.
+        self.set_highlighted_spikes(spikes)
+        # Emit the HighlightSpikes signal.
+        self.emit(spikes)
         
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
 
+    def emit(self, spikes):
+        spikes = np.array(spikes, dtype=np.int32)
+        spikes_abs = self.features_indices[spikes]
+        # emit signal
+        log.debug("Highlight {0:d} spikes.".format(len(spikes_abs)))
+        self.parent.spikesHighlighted.emit(spikes_abs)
+        
 
 class FeatureSelectionManager(Manager):
     
@@ -500,6 +499,27 @@ class FeatureSelectionManager(Manager):
 # -----------------------------------------------------------------------------
 # Interaction
 # -----------------------------------------------------------------------------
+class FeatureInfoManager(Manager):
+    def show_closest_cluster(self, xd, yd):
+        # find closest spike
+        dist = (self.data_manager.data[:, 0] - xd) ** 2 + \
+                (self.data_manager.data[:, 1] - yd) ** 2
+        ispk = dist.argmin()
+        cluster = self.data_manager.clusters_rel[ispk]
+        
+        color = self.data_manager.cluster_colors[cluster]
+        
+        r, g, b = COLORMAP[color,:]
+        color = (r, g, b, .75)
+        
+        text = "cluster {0:d}".format(self.data_manager.clusters_unique[cluster])
+        
+        self.paint_manager.set_data(coordinates=(xd, yd), color=color,
+            text=text,
+            visible=True,
+            visual='clusterinfo')
+        
+
 class FeatureInteractionManager(PlotInteractionManager):
     def initialize(self):
         self.constrain_navigation = False
@@ -513,7 +533,6 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.register('CancelSelectionPoint', self.selection_cancel)
         
         self.register('SelectProjection', self.select_projection)
-        self.register('AutomaticProjection', self.automatic_projection)
 
         self.register('ToggleMask', self.toggle_mask)
 
@@ -542,9 +561,6 @@ class FeatureInteractionManager(PlotInteractionManager):
         
     def selection_cancel(self, parameter):
         self.selection_manager.cancel_selection()
-
-    def automatic_projection(self, parameter):
-        self.data_manager.automatic_projection()
 
     def toggle_mask(self, parameter):
         self.paint_manager.toggle_mask()
@@ -598,42 +614,9 @@ class FeatureInteractionManager(PlotInteractionManager):
         if self.data_manager.data.size == 0:
             return
             
-        # find closest spike
-        dist = (self.data_manager.data[:, 0] - xd) ** 2 + \
-                (self.data_manager.data[:, 1] - yd) ** 2
-        ispk = dist.argmin()
-        cluster = self.data_manager.clusters_rel[ispk]
-        
-        # print cluster
-        # print self.data_manager.cluster_colors
-        
-        color = self.data_manager.cluster_colors[cluster]
-        # x, y = self.data_manager.data[ispk, :]
-        # coordinates = nav.get_window_coordinates(*coordinates)
-        
-        # x += .05
-        # y += .05
-        
-        r, g, b = COLORMAP[color,:]
-        color = (r, g, b, .75)
-        
-        text = str(self.data_manager.clusters_unique[cluster])
-        
-        # print text, color, np.array(coordinates).reshape((1, -1))
-        # print
-        
-        # update clusterinfo visual
-        rect = (x+.00, y-.02, x+.07, y-.08)
-        self.paint_manager.set_data(coordinates=rect, 
-            visible=True,
-            visual='clusterinfo_bg')
-            
-        self.paint_manager.set_data(coordinates=(xd, yd), color=color,
-            text=text,
-            visible=True,
-            visual='clusterinfo')
-        
-
+        self.info_manager.show_closest_cluster(xd, yd)
+    
+    
 class FeatureBindings(SpikyBindings):
     def set_zoombox_keyboard(self):
         """Set zoombox bindings with the keyboard."""
@@ -760,26 +743,27 @@ class FeatureSelectionBindings(FeatureBindings):
         
         self.set_base_cursor('CrossCursor')
         self.set_selection()
-     
- 
+
 
 # -----------------------------------------------------------------------------
 # Top-level widget
 # -----------------------------------------------------------------------------
 class FeatureView(GalryWidget):
+    # Raise the list of highlighted spike absolute indices.
+    spikesHighlighted = QtCore.pyqtSignal(np.ndarray)
+    
+    # Initialization
+    # --------------
     def initialize(self):
         self.activate3D = True
         self.set_bindings(FeatureNavigationBindings, FeatureSelectionBindings)
         self.set_companion_classes(
                 paint_manager=FeaturePaintManager,
                 data_manager=FeatureDataManager,
+                info_manager=FeatureInfoManager,
                 highlight_manager=FeatureHighlightManager,
                 selection_manager=FeatureSelectionManager,
                 interaction_manager=FeatureInteractionManager)
-        # connect the AutomaticProjection signal to the
-        # AutomaticProjection
-        # self.connect_events(ssignals.SIGNALS.AutomaticProjection,
-                            # 'AutomaticProjection')
     
     def set_data(self, *args, **kwargs):
         if not kwargs.get('clusters_selected'):
@@ -792,273 +776,20 @@ class FeatureView(GalryWidget):
             self.updateGL()
 
     
-    # Signals-related methods
-    # -----------------------
+    # Public methods
+    # --------------
     def highlight_spikes(self, spikes):
         self.highlight_manager.set_highlighted_spikes(spikes, False)
         self.updateGL()
-
-        
-class FeatureWidget(VisualizationWidget):
-    def create_view(self, dh):
-        self.dh = dh
-        self.view = FeatureView(getfocus=False)
-        self.view.set_data(fetdim=self.dh.fetdim,
-                      features=self.dh.features,
-                      clusters=self.dh.clusters,
-                      clusters_ordered=self.dh.clusters_ordered,
-                      nchannels=self.dh.nchannels,
-                      nextrafet=self.dh.nextrafet,
-                      # colormap=self.dh.colormap,
-                      cluster_colors=self.dh.cluster_colors,
-                      masks=self.dh.masks,
-                      # spike_ids=self.dh.spike_ids,
-                      # spikes_rel=self.dh.spikes_rel,
-                      )
-        return self.view
-        
-    def update_view(self, dh=None):
-        if dh is not None:
-            self.dh = dh
-        self.view.set_data(fetdim=self.dh.fetdim,
-                      features=self.dh.features,
-                      clusters=self.dh.clusters,
-                      nchannels=self.dh.nchannels,
-                      nextrafet=self.dh.nextrafet,
-                      cluster_colors=self.dh.cluster_colors,
-                      clusters_unique=self.dh.clusters_unique,
-                      clusters_ordered=self.dh.clusters_ordered,
-                      masks=self.dh.masks,
-                      spike_ids=self.dh.spike_ids,
-                      spikes_rel=self.dh.spikes_rel,
-                      )
-        self.update_nspikes_viewer(self.dh.nspikes, 0)
-        self.update_feature_widget()
-
-    def create_toolbar(self):
-        toolbar = QtGui.QToolBar(self)
-        toolbar.setObjectName("toolbar")
-        toolbar.setIconSize(QtCore.QSize(32, 32))
-        
-        # navigation toolbar
-        toolbar.addAction(spiky.get_icon('hand'), "Move (press I to switch)",
-            self.set_navigation)
-        toolbar.addAction(spiky.get_icon('selection'), "Selection (press I to switch)",
-            self.set_selection)
-            
-        # toolbar.addSeparator()
-            
-        # autoprojection
-        # toolbar.addAction(spiky.get_icon('hand'), "Move (press I to switch)",
-            # self.main_window.autoproj_action)
-        
-        toolbar.addSeparator()
-        
-        return toolbar
-        
-    def initialize_connections(self):
-        ssignals.SIGNALS.ProjectionChanged.connect(self.slotProjectionChanged, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.ClusterSelectionChanged.connect(self.slotClusterSelectionChanged, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.HighlightSpikes.connect(self.slotHighlightSpikes, QtCore.Qt.UniqueConnection)
-        ssignals.SIGNALS.SelectSpikes.connect(self.slotSelectSpikes, QtCore.Qt.UniqueConnection)
-        
-    def slotHighlightSpikes(self, sender, spikes):
-        self.update_nspikes_viewer(self.dh.nspikes, len(spikes))
-        if sender != self.view:
-            self.view.highlight_spikes(spikes)
-        
-    def slotSelectSpikes(self, sender, spikes):
-        self.update_nspikes_viewer(self.dh.nspikes, len(spikes))
-        
-    def slotClusterSelectionChanged(self, sender, clusters):
-        self.update_view()
-        
-    def slotProjectionChanged(self, sender, coord, channel, feature):
-        """Process the ProjectionChanged signal."""
-        
-        if self.view.data_manager.projection is None:
-            return
-            
-        # feature == -1 means that it should be automatically selected as
-        # a function of the current projection
-        if feature < 0:
-            # current channel and feature in the other coordinate
-            ch_fet = self.view.data_manager.projection[1 - coord]
-            if ch_fet is not None:
-                other_channel, other_feature = ch_fet
-            else:
-                other_channel, other_feature = 0, 1
-            fetdim = self.dh.fetdim
-            # first dimension: we force to 0
-            if coord == 0:
-                feature = 0
-            # other dimension: 0 if different channel, or next feature if the same
-            # channel
-            else:
-                # same channel case
-                if channel == other_channel:
-                    feature = np.mod(other_feature + 1, fetdim)
-                # different channel case
-                else:
-                    feature = 0
-        
-        # print sender
-        log_debug("Projection changed in coord %s, channel=%d, feature=%d" \
-            % (('X', 'Y')[coord], channel, feature))
-        # record the new projection
-        self.projection[coord] = (channel, feature)
-        
-        # prevent the channelbox to raise signals when we change its state
-        # programmatically
-        self.channel_box[coord].blockSignals(True)
-        # update the channel box
-        self.set_channel_box(coord, channel)
-        # update the feature button
-        self.set_feature_button(coord, feature)
-        # reactive signals for the channel box
-        self.channel_box[coord].blockSignals(False)
-        
-        # update the view
-        self.view.process_interaction('SelectProjection', 
-                                      (coord, channel, feature))
-        
-    def set_channel_box(self, coord, channel):
-        """Select the adequate line in the channel selection combo box."""
-        self.channel_box[coord].setCurrentIndex(channel)
-        
-    def set_feature_button(self, coord, feature):
-        """Push the corresponding button."""
-        if feature < len(self.feature_buttons[coord]):
-            self.feature_buttons[coord][feature].setChecked(True)
-        
-    def select_feature(self, coord, fet=0):
-        """Select channel coord, feature fet."""
-        # raise the ProjectionToChange signal, and keep the previously
-        # selected channel
-        ssignals.emit(self, "ProjectionToChange", coord, self.projection[coord][0], fet)
-        
-    def select_channel(self, channel, coord=0):
-        """Raise the ProjectionToChange signal when the channel is changed."""
-        # print type(channel)
-        # return
-        # if isinstance(channel, basestring):
-        if channel.startswith('Extra'):
-            channel = channel[6:]
-            extra = True
-        else:
-            extra = False
-        # try:
-        channel = int(channel)
-        if extra:
-            channel += self.dh.nchannels #* self.dh.fetdim
-        ssignals.emit(self, "ProjectionToChange", coord, channel,
-                 self.projection[coord][1])
-        
-    def _select_feature_getter(self, coord, fet):
-        """Return the callback function for the feature selection."""
-        return lambda *args: self.select_feature(coord, fet)
-        
-    def _select_channel_getter(self, coord):
-        """Return the callback function for the channel selection."""
-        return lambda channel: self.select_channel(channel, coord)
-        
-    def create_feature_widget(self, coord=0):
-        # coord => (channel, feature)
-        self.projection = [(0, 0), (0, 1)]
-        
-        gridLayout = QtGui.QGridLayout()
-        gridLayout.setSpacing(0)
-        # HACK: pyside does not have this function
-        if hasattr(gridLayout, 'setMargin'):
-            gridLayout.setMargin(0)
-        
-        # channel selection
-        comboBox = QtGui.QComboBox(self)
-        comboBox.setEditable(True)
-        comboBox.setInsertPolicy(QtGui.QComboBox.NoInsert)
-        comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
-        comboBox.addItems(["Extra %d" % i for i in xrange(self.dh.nextrafet)])
-        comboBox.editTextChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
-        # comboBox.currentIndexChanged.connect(self._select_channel_getter(coord), QtCore.Qt.UniqueConnection)
-        # comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
-        self.channel_box[coord] = comboBox
-        gridLayout.addWidget(comboBox, 0, 0, 1, self.dh.fetdim)
-        
-        # create 3 buttons for selecting the feature
-        widths = [30] * self.dh.fetdim
-        labels = ['PC%d' % i for i in xrange(1, self.dh.fetdim + 1)]
-        
-        # ensure exclusivity of the group of buttons
-        pushButtonGroup = QtGui.QButtonGroup(self)
-        for i in xrange(len(labels)):
-            # selecting feature i
-            pushButton = QtGui.QPushButton(labels[i], self)
-            pushButton.setCheckable(True)
-            if coord == i:
-                pushButton.setChecked(True)
-            pushButton.setMaximumSize(QtCore.QSize(widths[i], 20))
-            pushButton.clicked.connect(self._select_feature_getter(coord, i), QtCore.Qt.UniqueConnection)
-            pushButtonGroup.addButton(pushButton, i)
-            self.feature_buttons[coord][i] = pushButton
-            gridLayout.addWidget(pushButton, 1, i)
-        
-        return gridLayout
-        
-    def create_nspikes_viewer(self):
-        self.nspikes_viewer = QtGui.QLabel("", self)
-        return self.nspikes_viewer
-        
-    def get_nspikes_text(self, nspikes, nspikes_highlighted):
-        return "Spikes: %d. Highlighted: %d." % (nspikes, nspikes_highlighted)
-        
-    def update_nspikes_viewer(self, nspikes, nspikes_highlighted):
-        text = self.get_nspikes_text(nspikes, nspikes_highlighted)
-        self.nspikes_viewer.setText(text)
-        
-    def update_feature_widget(self):
-        for coord in [0, 1]:
-            comboBox = self.channel_box[coord]
-            # update the channels/features list only if necessary
-            if comboBox.count() != self.dh.nchannels + self.dh.nextrafet:
-                comboBox.blockSignals(True)
-                comboBox.clear()
-                comboBox.addItems(["%d" % i for i in xrange(self.dh.nchannels)])
-                comboBox.addItems(["Extra %d" % i for i in xrange(self.dh.nextrafet)])
-                comboBox.blockSignals(False)
-        
-    def create_controller(self):
-        box = super(FeatureWidget, self).create_controller()
-        
-        # coord => channel combo box
-        self.channel_box = [None, None]
-        # coord => (butA, butB, butC)
-        self.feature_buttons = [[None] * self.dh.fetdim, [None] * self.dh.fetdim]
-        
-        # add navigation toolbar
-        self.toolbar = self.create_toolbar()
-        box.addWidget(self.toolbar)
-
-        # add number of spikes
-        self.nspikes_viewer = self.create_nspikes_viewer()
-        box.addWidget(self.nspikes_viewer)
-        
-        # add feature widget
-        self.feature_widget1 = self.create_feature_widget(0)
-        box.addLayout(self.feature_widget1)
-        
-        # add feature widget
-        self.feature_widget2 = self.create_feature_widget(1)
-        box.addLayout(self.feature_widget2)
-        
-        self.setTabOrder(self.channel_box[0], self.channel_box[1])
-        
-        return box
     
-    def set_navigation(self):
-        self.view.set_interaction_mode(FeatureNavigationBindings)
+    def select_spikes(self, spikes):
+        pass
     
-    def set_selection(self):
-        self.view.set_interaction_mode(FeatureSelectionBindings)
-    
+    def toggle_mask(self):
+        pass
+        
+    def set_projection(self, coord, channel, feature):
+        pass
+        
     
         
