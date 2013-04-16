@@ -1,4 +1,4 @@
-"""Unit tests for loader module."""
+"""Unit tests for correlograms view."""
 
 # -----------------------------------------------------------------------------
 # Imports

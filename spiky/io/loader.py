@@ -211,6 +211,7 @@ class KlustersLoader(object):
             self.clusters[0] = 1
         # Convert to Pandas.
         self.clusters = pd.Series(self.clusters, dtype=np.int32)
+        self.nclusters = len(Counter(self.clusters))
         
         # Read cluster colors.
         # --------------------
@@ -248,11 +249,13 @@ class KlustersLoader(object):
         # Convert to Pandas.
         self.waveforms = pd.Panel(self.waveforms, dtype=np.float32)
     
-        # Create empty correlograms. 
+        # Initialize cluster statistics
+        # -----------------------------
         # TODO: compute them in an external process
         cluster_max = self.clusters.max()
         self.correlograms = {}
         self.ncorrbins = 50
+        self.correlation_matrix = np.zeros((self.nclusters, self.nclusters))
     
         # Save data set parameters.
         self.nsamples = nsamples
@@ -315,18 +318,6 @@ class KlustersLoader(object):
             spikes = self.spikes_selected
         return select(self.clusters, spikes)
     
-    def get_cluster_colors(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        return select(self.cluster_colors, clusters)
-    
-    def get_correlograms(self, spikes=None, clusters=None):
-        if clusters is not None:
-            spikes = get_spikes_in_clusters(clusters, self.clusters)
-        if spikes is None:
-            spikes = self.spikes_selected
-        return select_pairs(self.correlograms, clusters)
-        
     def get_masks(self, spikes=None, full=None, clusters=None):
         if clusters is not None:
             spikes = get_spikes_in_clusters(clusters, self.clusters)
@@ -345,6 +336,25 @@ class KlustersLoader(object):
             spikes = self.spikes_selected
         return select(self.waveforms, spikes)
     
+    
+    # Access to the data: clusters
+    # ----------------------------
+    def get_cluster_colors(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select(self.cluster_colors, clusters)
+    
+    def get_correlograms(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select_pairs(self.correlograms, clusters)
+        
+    def get_correlation_matrix(self):
+        return self.correlation_matrix
+        
+        
+    # Access to the data: misc
+    # ------------------------
     def get_probe(self):
         return self.probe
     
@@ -354,8 +364,11 @@ class KlustersLoader(object):
     def set_correlograms(self, correlograms):
         self.correlograms.update(correlograms)
         
-    # def invalidate_correlograms(self, cluster_indices):
+    def set_correlation_matrix(self, correlation_matrix):
+        self.correlation_matrix = correlation_matrix
         
+    # def invalidate_correlograms(self, cluster_indices):
+        # pass
     
     
     # Access to the data: clusters
@@ -367,11 +380,4 @@ class KlustersLoader(object):
         pass
 
     
-    
-if __name__ == '__main__':
-    
-    filename = "D:\Git\spiky\_test\data\subset41test.clu.1"
-    
-    l = KlustersLoader(filename)
-    print l.metadata
     

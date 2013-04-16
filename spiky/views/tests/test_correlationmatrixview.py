@@ -1,4 +1,4 @@
-"""Unit tests for waveform view."""
+"""Unit tests for correlation matrix view."""
 
 # -----------------------------------------------------------------------------
 # Imports
@@ -9,27 +9,26 @@ import numpy as np
 import numpy.random as rnd
 import pandas as pd
 
-from spiky.io.tests.mock_data import (setup, teardown,
-                            nspikes, nclusters, nsamples, nchannels, fetdim)
+from spiky.io.tests.mock_data import (setup, teardown, create_correlation_matrix,
+        nspikes, nclusters, nsamples, nchannels, fetdim, ncorrbins)
 from spiky.io.loader import KlustersLoader
 from spiky.io.selection import select
 from spiky.io.tools import check_dtype, check_shape
-from spiky.views import WaveformView
+from spiky.views import CorrelationMatrixView
 from spiky.views.tests.utils import show_view, get_data
 
 
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-def test_waveformview():
-    
-    keys = ('waveforms,clusters,cluster_colors,clusters_selected,masks,'
-            'geometrical_positions').split(',')
-           
+def test_correlationmatrixview():
     data = get_data()
-    kwargs = {k: data[k] for k in keys}
+    
+    kwargs = {}
+    kwargs['correlation_matrix'] = create_correlation_matrix(nclusters)
+    kwargs['cluster_colors_full'] = data['cluster_colors_full']
     
     # Show the view.
-    show_view(WaveformView, **kwargs)
+    show_view(CorrelationMatrixView, **kwargs)
     
     

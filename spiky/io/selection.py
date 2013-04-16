@@ -46,8 +46,8 @@ def select(data, indices=None):
     data can be a NumPy or Pandas object.
     
     """
-    # indices=None means select all.
-    if indices is None:
+    # indices=None or 'all' means select all.
+    if indices is None or indices == 'all':
         return data
         
     if not hasattr(indices, '__len__'):
@@ -102,6 +102,8 @@ def get_spikes_in_clusters(clusters_selected, clusters, return_indices=False):
 def get_indices(data):
     if type(data) == np.ndarray:
         return np.arange(data.shape[0], dtype=np.int32)
+    elif type(data) == pd.Series:
+        return data.index
     elif type(data) == pd.DataFrame:
         return data.index
     elif type(data) == pd.Panel:

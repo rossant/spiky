@@ -1,13 +1,25 @@
-from galry import *
-from common import *
+"""Correlation matrix View: show correlation matrix."""
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
+import numpy as np
 import numpy.random as rdn
+from galry import (Manager, PaintManager, PlotInteractionManager, Visual,
+    GalryWidget, QtGui, QtCore, QtOpenGL, enforce_dtype, RectanglesVisual,
+    TextVisual, TextureVisual)
 from matplotlib.colors import hsv_to_rgb
-from widgets import VisualizationWidget
-# import spiky.colors as scolors
+    
+from spiky.io.selection import get_indices
+from spiky.io.tools import get_array
 from spiky.utils.colors import COLORMAP
-# import spiky.gui.signals as ssignals
+from spiky.views.common import HighlightManager, SpikyBindings
+from spiky.views.widgets import VisualizationWidget
 
 
+# -----------------------------------------------------------------------------
+# Utility functions
+# -----------------------------------------------------------------------------
 def colormap(x, col0=None, col1=None):
     """Colorize a 2D grayscale array.
     
@@ -52,48 +64,53 @@ def colormap(x, col0=None, col1=None):
     
     return y
     
-    
+
+# -----------------------------------------------------------------------------
+# Data manager
+# -----------------------------------------------------------------------------
 class CorrelationMatrixDataManager(Manager):
-    def set_data(self, matrix=None, 
-        # clusters_unique=None, cluster_colors=None
-        clusters_info=None,
+    def set_data(self, correlation_matrix=None,
+        cluster_colors_full=None
+        # clusters_info=None,
         ):
-        if matrix.size == 0:
-            matrix = -np.ones((2, 2))
-        elif matrix.shape[0] == 1:
-            matrix = -np.ones((2, 2))
-        n = matrix.shape[0]
+        
+        if correlation_matrix.size == 0:
+            correlation_matrix = -np.ones((2, 2))
+        elif correlation_matrix.shape[0] == 1:
+            correlation_matrix = -np.ones((2, 2))
+        n = correlation_matrix.shape[0]
         # remove diagonal
-        # matrix[range(n), range(n)] = -1
+        # correlation_matrix[range(n), range(n)] = -1
         
-        self.texture = colormap(matrix)[::-1, :, :]
-        self.matrix = matrix
+        self.texture = colormap(correlation_matrix)[::-1, :, :]
+        self.correlation_matrix = correlation_matrix
         
-        clusters_info = clusters_info['clusters_info']
-        clusters_unique = sorted(clusters_info.keys())
-        cluster_colors = [clusters_info[c]['color'] for c in clusters_unique]
         
-        self.clusters_unique = clusters_unique
-        self.cluster_colors = cluster_colors
-        self.nclusters = len(clusters_unique)
+        # Hide some clusters.
+        # if n >= 3:
+            # tex0 = self.texture.copy()
+            # for clu in clusters_hidden:
+                # self.texture[clu, :, :] = tex0[clu, :, :] * .25
+                # self.texture[:, clu, :] = tex0[:, clu, :] * .25
+        
+        
+        self.clusters_unique = get_indices(cluster_colors_full)
+        self.cluster_colors = cluster_colors_full
+        self.nclusters = len(self.clusters_unique)
     
     
+# -----------------------------------------------------------------------------
+# Visuals
+# -----------------------------------------------------------------------------
 class CorrelationMatrixPaintManager(PaintManager):
     def initialize(self):
         self.add_visual(TextureVisual,
             texture=self.data_manager.texture, name='correlation_matrix')
 
-        # self.add_visual(RectanglesVisual, coordinates=(0.,0.,0.,0.),
-            # color=(0.,0.,0.,1.), name='clusterinfo_bg', visible=False,
-            # depth=-.99,
-            # is_static=True
-            # )
-        
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            # background=(0., 0., 0., 1.),
-            # color
+            background_transparent=False,
             posoffset=(.12, -.28),
-            letter_spacing=250.,
+            letter_spacing=350.,
             depth=-1,
             visible=False)
         
@@ -101,7 +118,10 @@ class CorrelationMatrixPaintManager(PaintManager):
         self.set_data(
             texture=self.data_manager.texture, visual='correlation_matrix')
         
-        
+
+# -----------------------------------------------------------------------------
+# Interaction
+# -----------------------------------------------------------------------------
 class CorrelationMatrixInteractionManager(PlotInteractionManager):
     def initialize(self):
         self.register('ShowClosestCluster', self.show_closest_cluster)
@@ -168,11 +188,11 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         cx = self.data_manager.clusters_unique[cx_rel]
         cy = self.data_manager.clusters_unique[cy_rel]
         
-        if ((cx_rel >= self.data_manager.matrix.shape[0]) or
-            (cy_rel >= self.data_manager.matrix.shape[1])):
+        if ((cx_rel >= self.data_manager.correlation_matrix.shape[0]) or
+            (cy_rel >= self.data_manager.correlation_matrix.shape[1])):
             return
             
-        val = self.data_manager.matrix[cx_rel, cy_rel]
+        val = self.data_manager.correlation_matrix[cx_rel, cy_rel]
         # val2 = self.data_manager.texture[cx_rel, cy_rel, :]
         # print type(val), val
         # if type(val) is float:
@@ -223,47 +243,27 @@ class CorrelationMatrixBindings(SpikyBindings):
         self.set_clusterinfo()
         self.set_selectcluster()
     
-    
+
+# -----------------------------------------------------------------------------
+# Top-level module
+# -----------------------------------------------------------------------------
 class CorrelationMatrixView(GalryWidget):
     def initialize(self):
         self.set_bindings(CorrelationMatrixBindings)
-        # self.constrain_ratio = True
-        # self.constrain_navigation = True
         self.set_companion_classes(
             paint_manager=CorrelationMatrixPaintManager,
             interaction_manager=CorrelationMatrixInteractionManager,
             data_manager=CorrelationMatrixDataManager,)
     
     def set_data(self, *args, **kwargs):
+        # if not kwargs.get('clusters_selected'):
+            # return
         self.data_manager.set_data(*args, **kwargs)
-    
+        
+        # update?
         if self.initialized:
-            log_debug("Updating data for correlograms")
             self.paint_manager.update()
             self.updateGL()
-        else:
-            log_debug("Initializing data for correlograms")
-    
-    
-class CorrelationMatrixWidget(VisualizationWidget):
-    def create_view(self, dh):
-        self.dh = dh
-        view = CorrelationMatrixView(getfocus=False)
-        view.set_data(
-                      matrix=dh.correlation_matrix,
-                      clusters_info=self.dh.clusters_info,
-                      # clusters_unique=self.dh.clusters_unique,
-                      # cluster_colors=dh.cluster_colors
-                      )
-        return view
-        
-    def update_view(self, dh=None):
-        if dh is not None:
-            self.dh = dh
-        self.view.set_data(
-                      matrix=dh.correlation_matrix,
-                      clusters_info=self.dh.clusters_info,
-                      # clusters_unique=self.dh.clusters_unique,
-                      # cluster_colors=dh.cluster_colors
-                      )
 
+    
+    
