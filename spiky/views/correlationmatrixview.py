@@ -13,6 +13,7 @@ from matplotlib.colors import hsv_to_rgb
 from spiky.io.selection import get_indices
 from spiky.io.tools import get_array
 from spiky.utils.colors import COLORMAP
+import spiky.utils.logger as log
 from spiky.views.common import HighlightManager, SpikyBindings
 from spiky.views.widgets import VisualizationWidget
 
@@ -122,21 +123,12 @@ class CorrelationMatrixPaintManager(PaintManager):
 # -----------------------------------------------------------------------------
 # Interaction
 # -----------------------------------------------------------------------------
-class CorrelationMatrixInteractionManager(PlotInteractionManager):
+class CorrelationMatrixInfoManager(Manager):
     def initialize(self):
-        self.register('ShowClosestCluster', self.show_closest_cluster)
-        self.register('SelectPair', self.select_pair)
-        self.register(None, self.hide_closest_cluster)
-            
-    def get_closest_cluster(self, parameter):
+        pass
+        
+    def get_closest_cluster(self, xd, yd):
         nclu = self.data_manager.nclusters
-        
-        nav = self.get_processor('navigation')
-        
-        # window coordinates
-        x, y = parameter
-        # data coordinates
-        xd, yd = nav.get_data_coordinates(x, y)
         
         cy = int((xd + 1) / 2. * nclu)
         cx = int((yd + 1) / 2. * nclu)
@@ -145,41 +137,10 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         cy_rel = np.clip(cy, 0, nclu - 1)
         
         return cx_rel, cy_rel
-            
-    def hide_closest_cluster(self, parameter):
-        self.paint_manager.set_data(visible=False, visual='clusterinfo')
-        # self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
-        self.cursor = None
         
-    def select_pair(self, parameter):
+    def show_closest_cluster(self, xd, yd):
         
-        self.cursor = 'ArrowCursor'
-        
-        cx_rel, cy_rel = self.get_closest_cluster(parameter)
-        
-        cx = self.data_manager.clusters_unique[cx_rel]
-        cy = self.data_manager.clusters_unique[cy_rel]
-        
-        pair = np.unique(np.array([cx, cy]))
-        
-        # ssignals.emit(self, 'ClusterSelectionToChange', pair)
-        
-    def show_closest_cluster(self, parameter):
-        nclu = self.data_manager.nclusters
-        
-        if nclu == 0:
-            return
-            
-        self.cursor = 'ArrowCursor'
-        
-        nav = self.get_processor('navigation')
-        
-        # window coordinates
-        x, y = parameter
-        # data coordinates
-        xd, yd = nav.get_data_coordinates(x, y)
-        
-        cx_rel, cy_rel = self.get_closest_cluster(parameter)
+        cx_rel, cy_rel = self.get_closest_cluster(xd, yd)
         
         color1 = self.data_manager.cluster_colors[cy_rel]
         r, g, b = COLORMAP[color1,:]
@@ -193,29 +154,60 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
             return
             
         val = self.data_manager.correlation_matrix[cx_rel, cy_rel]
-        # val2 = self.data_manager.texture[cx_rel, cy_rel, :]
-        # print type(val), val
-        # if type(val) is float:
-            # val = "%.3f" % float
-        # else:
-            # val = str(val)
+        
         text = "%d / %d : %.3f" % (cx, cy, val)
         
-        # print cx, cy, val
-        # print val, val2
-        
-        # text = "%d / %d" % (cx, cy)
-        
-        # update clusterinfo visual
-        # rect = (x-.24, y-.04, x+.44, y-.21)
-        # self.paint_manager.set_data(coordinates=rect, 
-            # visible=True,
-            # visual='clusterinfo_bg')
-            
-        self.paint_manager.set_data(coordinates=(xd, yd), #color=color1,
+        self.paint_manager.set_data(coordinates=(xd, yd), 
             text=text,
             visible=True,
             visual='clusterinfo')
+        
+    
+class CorrelationMatrixInteractionManager(PlotInteractionManager):
+    def initialize(self):
+        self.register('ShowClosestCluster', self.show_closest_cluster)
+        self.register('SelectPair', self.select_pair)
+        self.register(None, self.hide_closest_cluster)
+            
+    def hide_closest_cluster(self, parameter):
+        self.paint_manager.set_data(visible=False, visual='clusterinfo')
+        self.cursor = None
+        
+    def select_pair(self, parameter):
+        
+        self.cursor = 'ArrowCursor'
+        
+        nav = self.get_processor('navigation')
+        
+        # window coordinates
+        x, y = parameter
+        # data coordinates
+        xd, yd = nav.get_data_coordinates(x, y)
+        
+        cx_rel, cy_rel = self.info_manager.get_closest_cluster(xd, yd)
+        
+        cx = self.data_manager.clusters_unique[cx_rel]
+        cy = self.data_manager.clusters_unique[cy_rel]
+        
+        # Emit signal.
+        log.debug("Selected clusters {0:d} and {1:d}.".format(cx, cy))
+        self.parent.pairSelected.emit(cx, cy)
+        
+    def show_closest_cluster(self, parameter):
+        nclu = self.data_manager.nclusters
+        
+        if nclu == 0:
+            return
+            
+        self.cursor = 'ArrowCursor'
+        nav = self.get_processor('navigation')
+        
+        # window coordinates
+        x, y = parameter
+        # data coordinates
+        xd, yd = nav.get_data_coordinates(x, y)
+        
+        self.info_manager.show_closest_cluster(xd, yd)
         
         
 class CorrelationMatrixBindings(SpikyBindings):
@@ -248,10 +240,15 @@ class CorrelationMatrixBindings(SpikyBindings):
 # Top-level module
 # -----------------------------------------------------------------------------
 class CorrelationMatrixView(GalryWidget):
+    
+    # Raise the list of highlighted spike absolute indices.
+    pairSelected = QtCore.pyqtSignal(int, int)
+    
     def initialize(self):
         self.set_bindings(CorrelationMatrixBindings)
         self.set_companion_classes(
             paint_manager=CorrelationMatrixPaintManager,
+            info_manager=CorrelationMatrixInfoManager,
             interaction_manager=CorrelationMatrixInteractionManager,
             data_manager=CorrelationMatrixDataManager,)
     
