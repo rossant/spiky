@@ -359,6 +359,8 @@ def get_stats(Fet1, Fet2, spikes_in_clusters, masks):
     masked[masks == 0] = 1
     nmasked = np.sum(masked, axis=0)
     nu = np.sum(Fet2 * masked, axis=0) / nmasked
+    # Handle nmasked == 0.
+    nu[np.isnan(nu)] = 0
     nu = nu.reshape((1, -1))
     sigma2 = np.sum(((Fet2 - nu) * masked) ** 2, axis=0) / nmasked
     sigma2 = sigma2.reshape((1, -1))
@@ -390,6 +392,10 @@ def get_stats(Fet1, Fet2, spikes_in_clusters, masks):
         # the eta just for the current cluster
         etac = np.take(eta, MyPoints, axis=0)
         d = np.sum(etac, axis=0) / nmasked
+        
+        # Handle nmasked == 0
+        d[np.isnan(d)] = 0    
+        
         # add diagonal
         CovMat += np.diag(d)
         CovMatinv = np.linalg.inv(CovMat)
