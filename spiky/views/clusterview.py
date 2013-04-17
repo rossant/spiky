@@ -4,6 +4,7 @@
 # Imports
 # -----------------------------------------------------------------------------
 import pprint
+import inspect
 from collections import OrderedDict
 
 import pandas as pd
@@ -11,8 +12,9 @@ import numpy as np
 import numpy.random as rnd
 from galry import QtGui, QtCore
 
-from spiky.utils.settings import SETTINGS
 from spiky.utils.colors import COLORMAP
+import spiky.utils.logger as log
+from spiky.utils.settings import SETTINGS
 
 
 # Generic classes
@@ -63,20 +65,17 @@ class TreeModel(QtCore.QAbstractItemModel):
         self.root_item = TreeItem()
         self.headers = headers
         
-    def add_node(self, item_class=None, parent=None, **kwargs):
+    def add_node(self, item_class=None, item=None, parent=None, **kwargs):
         """Add a node in the tree.
         
-        Arguments:
-          * data: an OrderedDict instance.
-          * parent=None: the parent of the node. If Node, parent is the root
-            item.
         
         """
         if parent is None:
             parent = self.root_item
-        if item_class is None:
-            item_class = TreeItem
-        item = item_class(parent=parent, **kwargs)
+        if item is None:
+            if item_class is None:
+                item_class = TreeItem
+            item = item_class(parent=parent, **kwargs)
         
         row = parent.rowCount()
         item.index = self.createIndex(row, 0, item)
@@ -199,21 +198,17 @@ class TreeModel(QtCore.QAbstractItemModel):
 # Specific item classes
 # ---------------------
 class ClusterItem(TreeItem):
-    def __init__(self, parent=None, clusteridx=None, color=None, #name=None,
+    def __init__(self, parent=None, clusteridx=None, color=None, 
             spkcount=None):
         if color is None:
             color = 0 #(1., 1., 1.)
         data = OrderedDict()
         # different columns fields
-        # data['name'] = str(name)
         data['spkcount'] = spkcount
         data['color'] = color
         # the index is the last column
         data['clusteridx'] = clusteridx
         super(ClusterItem, self).__init__(parent=parent, data=data)
-
-    # def name(self):
-        # return self.item_data['name']
 
     def spkcount(self):
         return self.item_data['spkcount']
@@ -245,6 +240,9 @@ class GroupItem(TreeItem):
     def spkcount(self):
         return self.item_data['spkcount']
 
+    def set_spkcount(self, count):
+        self.item_data['spkcount'] = count
+        
     def groupidx(self):
         return self.item_data['groupidx']
         
@@ -343,10 +341,6 @@ class ClusterGroupManager(TreeModel):
         items."""
         item = index.internalPointer()
         
-        # default
-        # if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
-            # return item.data(index.column())
-        
         col = index.column()
         # group item
         if type(item) == GroupItem:
@@ -389,13 +383,8 @@ class ClusterGroupManager(TreeModel):
         # default
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
             return item.data(col)
-        
-        # all text in black
-        # if role == QtCore.Qt.ForegroundRole:
-            # return QtGui.QBrush(QtGui.QColor(0, 0, 0, 255))
           
     def setData(self, index, data, role=None):
-        # print index, data, role, index.isValid()
         if role is None:
             role = QtCore.Qt.EditRole
         if index.isValid() and role == QtCore.Qt.EditRole:
@@ -414,15 +403,15 @@ class ClusterGroupManager(TreeModel):
     def flags(self, index):
         if not index.isValid():
             return QtCore.Qt.ItemIsEnabled
-        # editable: only groups, and first column
-        # if isinstance(index.internalPointer(), GroupItem) and index.column() == 0:
-            # return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
-                   # QtCore.Qt.ItemIsEditable | \
-                   # QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
-        # else:
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
                QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
-        
+    
+    def update_group_sizes(self):
+        for group in self.get_groups():
+            spkcount = np.sum([cluster.spkcount() 
+                for cluster in self.get_clusters_in_group(group.groupidx())])
+            group.set_spkcount(spkcount)
+    
     
     # Tree methods
     # ------------
@@ -442,7 +431,7 @@ class ClusterGroupManager(TreeModel):
             group = groups[0]
             self.remove_node(group)
         else:
-            log_warn("group %d does not exist" % groupidx)
+            log.warn("group %d does not exist" % groupidx)
         
     def add_cluster(self, parent=None, **kwargs):
         cluster = self.add_node(item_class=ClusterItem, parent=parent, 
@@ -450,7 +439,7 @@ class ClusterGroupManager(TreeModel):
         return cluster
     
     def drag(self, target, sources):
-        # get source ClusterItem nodes
+        # Get source ClusterItem nodes.
         source_items = []
         nodes = self.all_nodes()
         for node in nodes:
@@ -458,22 +447,30 @@ class ClusterGroupManager(TreeModel):
                 and node not in source_items:
                 source_items.append(node)
         
-        # get the groupidx if the target is a group
+        # Get the groupidx if the target is a group,
         if type(target) == GroupItem:
             groupidx = target.groupidx()
-        # else, if it is a cluster, take the corresponding group
+        # else, if it is a cluster, take the corresponding group.
         elif type(target) == ClusterItem:
             groupidx = self.get_groupidx(target.clusteridx())
         else:
-            # empty target
+            # Empty target.
             return
             
-        # clusters to move
+        # Clusters to move.
         clusters = np.array([source.clusteridx() for source in source_items])
-        clusters = np.array([source.clusteridx() for source in source_items])
-        # emit signals
-        ssignals.emit(self, "MoveClustersRequested", clusters, groupidx)
         
+        # Move clusters.
+        for node in source_items:
+            self.add_node(ClusterItem, parent=self.get_group(groupidx),
+                clusteridx=node.clusteridx(),
+                color=node.color(),
+                spkcount=node.spkcount())
+            self.remove_node(node, parent=node.parent())
+        
+        # Update group sizes.
+        self.update_group_sizes()
+    
     
     # Getter methods
     # --------------
@@ -513,7 +510,7 @@ class ClusterGroupManager(TreeModel):
         return None
           
         
-class ClusterTreeView(QtGui.QTreeView):
+class ClusterView(QtGui.QTreeView):
     class ClusterDelegate(QtGui.QStyledItemDelegate):
         def paint(self, painter, option, index):
             """Disable the color column so that the color remains the same even
@@ -523,8 +520,17 @@ class ClusterTreeView(QtGui.QTreeView):
             if index.column() >= 1:
                 if option.state and QtGui.QStyle.State_Selected:
                     option.state = option.state and QtGui.QStyle.State_Off
-            super(ClusterTreeView.ClusterDelegate, self).paint(painter, option, index)
+            super(ClusterView.ClusterDelegate, self).paint(painter, option, index)
     
+    def __init__(self, parent, getfocus=None):
+        super(ClusterView, self).__init__(parent)
+        # Capture keyboard events.
+        if getfocus:
+            self.setFocusPolicy(QtCore.Qt.WheelFocus)
+    
+    
+    # Data methods
+    # ------------
     def set_model(self, model):
         # Capture keyboard events.
         # getfocus = False
@@ -562,22 +568,38 @@ class ClusterTreeView(QtGui.QTreeView):
         # self.setRootIsDecorated(False)
         self.setItemDelegate(self.ClusterDelegate())
     
+    def set_data(self, 
+        cluster_colors=None,
+        cluster_groups=None,
+        group_colors=None,
+        group_names=None,
+        cluster_sizes=None,):
+        self.model = ClusterGroupManager(
+                          cluster_colors=cluster_colors,
+                          cluster_groups=cluster_groups,
+                          group_colors=group_colors,
+                          group_names=group_names,
+                          cluster_sizes=cluster_sizes)
+        
+        self.set_model(self.model)
+        
     
     # Cluster methods
     # ---------------
     def get_clusters(self):
-        return self.model().get_clusters()
+        return self.model.get_clusters()
     
     def get_cluster(self, clusteridx):
-        return self.model().get_cluster(clusteridx)
+        return self.model.get_cluster(clusteridx)
     
     
     # Selection methods
     # -----------------
     def selectionChanged(self, selected, deselected):
-        super(ClusterTreeView, self).selectionChanged(selected, deselected)
+        super(ClusterView, self).selectionChanged(selected, deselected)
         can_signal_selection = getattr(self, 'can_signal_selection', True)
-        can_signal_selection = can_signal_selection and getattr(self.model(), 'can_signal_selection', True)
+        can_signal_selection = can_signal_selection and getattr(self.model, 
+            'can_signal_selection', True)
         
         if can_signal_selection:
             # emit the ClusterSelectionToChange signal
@@ -586,7 +608,8 @@ class ClusterTreeView(QtGui.QTreeView):
             allclusters = []
             # groups first
             for group in groups:
-                allclusters.extend([cl.clusteridx() for cl in self.model().get_clusters_in_group(group)])
+                allclusters.extend([cl.clusteridx()
+                    for cl in self.model.get_clusters_in_group(group)])
                 
             # add clusters that are not in the selected groups, and
             # remove the others
@@ -693,36 +716,42 @@ class ClusterTreeView(QtGui.QTreeView):
         elif ctrl or shift or alt:
             return
         if key in self.keys_accepted:
-            return super(ClusterTreeView, self).keyPressEvent(e)
-        
-# ClusterView = ClusterTreeView
-class ClusterView(QtGui.QWidget):
-    def __init__(self, parent,
-        getfocus=True):
-        super(ClusterView, self).__init__(parent)
-        
-        self.view = ClusterTreeView()
-        vbox = QtGui.QVBoxLayout()
-        vbox.addWidget(self.view, stretch=100)
-        self.setLayout(vbox)
-        
-    def set_data(self, 
-        cluster_colors=None,
-        cluster_groups=None,
-        group_colors=None,
-        group_names=None,
-        cluster_sizes=None,):
-        self.model = ClusterGroupManager(
-                          cluster_colors=cluster_colors,
-                          cluster_groups=cluster_groups,
-                          group_colors=group_colors,
-                          group_names=group_names,
-                          cluster_sizes=cluster_sizes)
-        
-        self.view.set_model(self.model)
+            return super(ClusterView, self).keyPressEvent(e)
         
     def sizeHint(self):
         return QtCore.QSize(300, 600)
+        
+        
+        
+        
+# # ClusterView = ClusterTreeView
+# class ClusterView(QtGui.QWidget):
+    # def __init__(self, parent,
+        # getfocus=True):
+        # super(ClusterView, self).__init__(parent)
+        
+        # self.view = ClusterTreeView()
+        # vbox = QtGui.QVBoxLayout()
+        # vbox.addWidget(self.view, stretch=100)
+        # self.setLayout(vbox)
+        
+    # def set_data(self, 
+        # cluster_colors=None,
+        # cluster_groups=None,
+        # group_colors=None,
+        # group_names=None,
+        # cluster_sizes=None,):
+        # self.model = ClusterGroupManager(
+                          # cluster_colors=cluster_colors,
+                          # cluster_groups=cluster_groups,
+                          # group_colors=group_colors,
+                          # group_names=group_names,
+                          # cluster_sizes=cluster_sizes)
+        
+        # self.view.set_model(self.model)
+        
+    # def sizeHint(self):
+        # return QtCore.QSize(300, 600)
         
         
         # # Capture keyboard events.
