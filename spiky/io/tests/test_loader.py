@@ -4,6 +4,7 @@
 # Imports
 # -----------------------------------------------------------------------------
 import os
+from collections import Counter
 
 import numpy as np
 import numpy.random as rnd
@@ -32,12 +33,14 @@ def test_klusters_loader():
     waveforms = l.get_waveforms()
     clusters = l.get_clusters()
     spiketimes = l.get_spiketimes()
+    nclusters = len(Counter(clusters))
     
     probe = l.get_probe()
     cluster_colors = l.get_cluster_colors()
     cluster_groups = l.get_cluster_groups()
     group_colors = l.get_group_colors()
     group_names = l.get_group_names()
+    cluster_sizes = l.get_cluster_sizes()
     
     maxcluster = clusters.max()
     
@@ -54,6 +57,7 @@ def test_klusters_loader():
     assert check_shape(cluster_groups, (maxcluster + 1,))
     assert check_shape(group_colors, (3,))
     assert check_shape(group_names, (3,))
+    assert check_shape(cluster_sizes, (nclusters,))
     
     
     # Check the data type of the data sets.
@@ -70,6 +74,7 @@ def test_klusters_loader():
     assert check_dtype(cluster_groups, np.int32)
     assert check_dtype(group_colors, np.int32)
     assert check_dtype(group_names, object)
+    assert check_dtype(cluster_sizes, np.int32)
     
     
     # Check selection.

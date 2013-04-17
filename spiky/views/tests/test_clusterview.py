@@ -21,10 +21,13 @@ from spiky.views.tests.utils import show_view, get_data
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-def tefrst_clusterview():
+def test_clusterview():
+    keys = ('cluster_groups,group_colors,group_names,'
+            'cluster_sizes').split(',')
     data = get_data()
+    kwargs = {k: data[k] for k in keys}
     
-    kwargs = {}
+    kwargs['cluster_colors'] = data['cluster_colors_full']
     
     # Show the view.
     show_view(ClusterView, **kwargs)

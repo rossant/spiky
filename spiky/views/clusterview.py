@@ -1,17 +1,18 @@
+"""Cluster View: show all clusters and groups."""
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
 import pprint
+from collections import OrderedDict
+
+import pandas as pd
 import numpy as np
 import numpy.random as rnd
-from galry import *
-from collections import OrderedDict
-# from signals import *
-# from colors import COLORMAP
+from galry import QtGui, QtCore
+
 from spiky.utils.settings import SETTINGS
-# import spiky.gui.signals as ssignals
 from spiky.utils.colors import COLORMAP
-
-
-# __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
-           # 'ClusterTreeView', 'ClusterWidget']
 
 
 # Generic classes
@@ -256,7 +257,8 @@ class GroupItem(TreeItem):
 class ClusterGroupManager(TreeModel):
     headers = ['Cluster', 'Spikes', 'Color']
     
-    def __init__(self, info=None):
+    def __init__(self, cluster_colors=None, cluster_groups=None,
+        group_colors=None, group_names=None, cluster_sizes=None):
         """Initialize the tree model.
         
         Arguments:
@@ -267,63 +269,67 @@ class ClusterGroupManager(TreeModel):
         
         """
         super(ClusterGroupManager, self).__init__(self.headers)
-        self.from_dict(info)
+        self.load(cluster_colors=cluster_colors,
+                  cluster_groups=cluster_groups,
+                  group_colors=group_colors,
+                  group_names=group_names,
+                  cluster_sizes=cluster_sizes)
         
     
     # I/O methods
     # -----------
-    def from_dict(self, info):
+    def load(self, cluster_colors=None, cluster_groups=None,
+        group_colors=None, group_names=None, cluster_sizes=None):
         # go through all groups
-        for groupidx, groupinfo in info['groups_info'].iteritems():
+        for groupidx, groupname in group_names.iteritems():
             # add group
-            spkcount = np.sum([cl['spkcount'] for cl in info['clusters_info'].values() if cl['groupidx'] == groupidx])
-            groupitem = self.add_group(groupidx=groupidx, name=groupinfo['name'],
-                color=groupinfo['color'], spkcount=spkcount)
+            spkcount = np.sum(cluster_sizes[cluster_groups == groupidx])
+            groupitem = self.add_group(groupidx=groupidx, name=groupname,
+                color=group_colors[groupidx], spkcount=spkcount)
         
         # go through all clusters
-        for clusteridx, clusterinfo in info['clusters_info'].iteritems():
+        for clusteridx, color in cluster_colors.iteritems():
             # cluster = info.clusters_info[clusteridx]
             # add cluster
             clusteritem = self.add_cluster(
                 clusteridx=clusteridx,
                 # name=info.names[clusteridx],
-                color=clusterinfo['color'],
-                spkcount=clusterinfo['spkcount'],
+                color=color,
+                spkcount=cluster_sizes[clusteridx],
                 # assign the group as a parent of this cluster
-                parent=self.get_group(clusterinfo['groupidx']))
+                parent=self.get_group(cluster_groups[clusteridx]))
     
-    def to_dict(self):
-        dic = {'groups_info': {}, 'clusters_info': {}}
+    def save(self):
+        
         groups = self.get_groups()
         allclusters = self.get_clusters()
-        # dic['groups'] = np.zeros(len(allclusters), dtype=np.int32)
+        
+        ngroups = len(groups)
+        nclusters = len(allclusters)
+        
+        # Initialize objects.
+        cluster_colors = pd.Series(np.zeros(nclusters, dtype=np.int32))
+        cluster_groups = pd.Series(np.zeros(nclusters, dtype=np.int32))
+        group_colors = pd.Series(np.zeros(ngroups, dtype=np.int32))
+        group_names = pd.Series(np.zeros(ngroups, dtype=np.str_))
+        
+        # Loop through all groups.
         for group in groups:
             groupidx = group.groupidx()
             clusters = self.get_clusters_in_group(groupidx)
-            # group spike count
-            spkcount = np.array([cluster.spkcount() for cluster in clusters]).sum()
             # set the group info object
-            dic['groups_info'][groupidx] = {
-                    'groupidx': groupidx,
-                    'name': group.name(),
-                    'color': group.color(),
-                    'spkcount': spkcount,
-                }
-            # assign the group to all the clusters in the group
-            # dic['groups'][clusters] = groupidx
+            group_colors[groupidx] = group.color()
+            group_names[groupidx] = group.name()
+            # Loop through clusters in the current group.
             for cluster in clusters:
                 clusteridx = cluster.clusteridx()
-                dic['clusters_info'][clusteridx] = {
-                        'clusteridx': clusteridx,
-                        'groupidx': groupidx,
-                        'color': cluster.color(),
-                        'spkcount': cluster.spkcount(),
-                    }
+            cluster_colors[clusteridx] = cluster.color()
+            cluster_groups[clusteridx] = groupidx
         
-        # DEBUG
-        # pprint.pprint(dic)
-        
-        return dic
+        return dict(cluster_colors=cluster_colors,
+                    cluster_groups=cluster_groups,
+                    group_colors=group_colors,
+                    group_names=group_names)
     
     
     # Data methods
@@ -689,11 +695,35 @@ class ClusterTreeView(QtGui.QTreeView):
         if key in self.keys_accepted:
             return super(ClusterTreeView, self).keyPressEvent(e)
         
-ClusterView = ClusterTreeView
-# class ClusterWidget(QtGui.QWidget):
-    # def __init__(self, main_window, dh, getfocus=True):
-        # super(ClusterWidget, self).__init__()
-        # self.dh = dh
+# ClusterView = ClusterTreeView
+class ClusterView(QtGui.QWidget):
+    def __init__(self, parent,
+        getfocus=True):
+        super(ClusterView, self).__init__(parent)
+        
+        self.view = ClusterTreeView()
+        vbox = QtGui.QVBoxLayout()
+        vbox.addWidget(self.view, stretch=100)
+        self.setLayout(vbox)
+        
+    def set_data(self, 
+        cluster_colors=None,
+        cluster_groups=None,
+        group_colors=None,
+        group_names=None,
+        cluster_sizes=None,):
+        self.model = ClusterGroupManager(
+                          cluster_colors=cluster_colors,
+                          cluster_groups=cluster_groups,
+                          group_colors=group_colors,
+                          group_names=group_names,
+                          cluster_sizes=cluster_sizes)
+        
+        self.view.set_model(self.model)
+        
+    def sizeHint(self):
+        return QtCore.QSize(300, 600)
+        
         
         # # Capture keyboard events.
         # if getfocus:

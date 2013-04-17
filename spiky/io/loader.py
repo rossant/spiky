@@ -368,15 +368,18 @@ class KlustersLoader(object):
             clusters = self.clusters_selected
         return select(self.cluster_groups, clusters)
     
-    def get_group_colors(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        return select(self.group_colors, clusters)
+    def get_group_colors(self, groups=None):
+        return select(self.group_colors, groups)
     
-    def get_group_names(self, clusters=None):
+    def get_group_names(self, groups=None):
+        return select(self.group_names, groups)
+    
+    def get_cluster_sizes(self, clusters=None):
         if clusters is None:
             clusters = self.clusters_selected
-        return select(self.group_names, clusters)
+        counter = Counter(self.clusters)
+        sizes = pd.Series(counter, dtype=np.int32)
+        return select(sizes, clusters)
     
     
     # Access to the data: stats

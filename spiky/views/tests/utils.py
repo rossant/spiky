@@ -34,12 +34,21 @@ def get_data():
         masks=l.get_masks(),
         waveforms=l.get_waveforms(),
         correlograms=l.get_correlograms(),
-        correlation_matrix=l.get_correlation_matrix(),
         clusters=l.get_clusters(),
+        
         cluster_colors=l.get_cluster_colors(),
         cluster_colors_full=l.get_cluster_colors('all'),
+        
+        cluster_groups=l.get_cluster_groups('all'),
+        group_colors=l.get_group_colors('all'),
+        group_names=l.get_group_names('all'),
+        cluster_sizes=l.get_cluster_sizes('all'),
+        
         spiketimes=l.get_spiketimes(),
         geometrical_positions=l.get_probe(),
+        
+        correlation_matrix=l.get_correlation_matrix(),
+        
         nchannels=l.nchannels,
         nsamples=l.nsamples,
         fetdim=l.fetdim,
