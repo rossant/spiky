@@ -10,8 +10,8 @@ from spiky.utils.settings import SETTINGS
 from spiky.utils.colors import COLORMAP
 
 
-__all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
-           'ClusterTreeView', 'ClusterWidget']
+# __all__ = ['ClusterGroupManager', 'ClusterItem', 'GroupItem',
+           # 'ClusterTreeView', 'ClusterWidget']
 
 
 # Generic classes
@@ -689,199 +689,199 @@ class ClusterTreeView(QtGui.QTreeView):
         if key in self.keys_accepted:
             return super(ClusterTreeView, self).keyPressEvent(e)
         
-
-class ClusterWidget(QtGui.QWidget):
-    def __init__(self, main_window, dh, getfocus=True):
-        super(ClusterWidget, self).__init__()
-        self.dh = dh
+ClusterView = ClusterTreeView
+# class ClusterWidget(QtGui.QWidget):
+    # def __init__(self, main_window, dh, getfocus=True):
+        # super(ClusterWidget, self).__init__()
+        # self.dh = dh
         
-        # Capture keyboard events.
-        if getfocus:
-            self.setFocusPolicy(QtCore.Qt.WheelFocus)
+        # # Capture keyboard events.
+        # if getfocus:
+            # self.setFocusPolicy(QtCore.Qt.WheelFocus)
         
-        self.main_window = main_window
-        # put the controller and the view vertically
-        vbox = QtGui.QVBoxLayout()
+        # self.main_window = main_window
+        # # put the controller and the view vertically
+        # vbox = QtGui.QVBoxLayout()
         
-        # add context menu
-        self.add_menu()
+        # # add context menu
+        # self.add_menu()
         
-        # add controller
-        # self.controller = QtGui.QPushButton()
-        # vbox.addWidget(self.controller, stretch=1)
+        # # add controller
+        # # self.controller = QtGui.QPushButton()
+        # # vbox.addWidget(self.controller, stretch=1)
         
-        # add the tree view
-        self.view = self.create_tree_view(dh)
-        vbox.addWidget(self.view, stretch=100)
+        # # add the tree view
+        # self.view = self.create_tree_view(dh)
+        # vbox.addWidget(self.view, stretch=100)
         
-        # self.restore_geometry()
+        # # self.restore_geometry()
         
-        # set the VBox as layout of the widget
-        self.setLayout(vbox)
+        # # set the VBox as layout of the widget
+        # self.setLayout(vbox)
         
-        self.initialize_connections()
+        # self.initialize_connections()
         
-    def initialize_connections(self):
-        # ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
-        pass
+    # def initialize_connections(self):
+        # # ssignals.SIGNALS.ClusterSelectionToChange.connect(self.slotClusterSelectionToChange, QtCore.Qt.UniqueConnection)
+        # pass
         
-    def slotClusterSelectionToChange(self, sender, clusters):
-        # mark the clusters as selected without sending signals
-        if sender != self.view:
-            # HACK: loop to select multiple clusters without sending signals
-            self.view.can_signal_selection = False
-            sel_model = self.view.selectionModel()
-            for i, cluster in enumerate(clusters):
-                if i == 0:
-                    mod = sel_model.Clear | sel_model.Select | sel_model.Rows
-                else:
-                    mod = sel_model.Select | sel_model.Rows
-                cl = self.view.get_cluster(cluster)
-                if cl:
-                    cl = cl.index
-                    sel_model.select(cl, mod)
-            self.view.can_signal_selection = True
-            self.view.scrollTo(cl, QtGui.QAbstractItemView.EnsureVisible)
+    # def slotClusterSelectionToChange(self, sender, clusters):
+        # # mark the clusters as selected without sending signals
+        # if sender != self.view:
+            # # HACK: loop to select multiple clusters without sending signals
+            # self.view.can_signal_selection = False
+            # sel_model = self.view.selectionModel()
+            # for i, cluster in enumerate(clusters):
+                # if i == 0:
+                    # mod = sel_model.Clear | sel_model.Select | sel_model.Rows
+                # else:
+                    # mod = sel_model.Select | sel_model.Rows
+                # cl = self.view.get_cluster(cluster)
+                # if cl:
+                    # cl = cl.index
+                    # sel_model.select(cl, mod)
+            # self.view.can_signal_selection = True
+            # self.view.scrollTo(cl, QtGui.QAbstractItemView.EnsureVisible)
                 
-    def add_menu(self):
+    # def add_menu(self):
         
-        self.create_color_dialog()
+        # self.create_color_dialog()
         
-        self.change_color_action = QtGui.QAction("Change color", self)
-        self.change_color_action.triggered.connect(self.change_color, QtCore.Qt.UniqueConnection)
+        # self.change_color_action = QtGui.QAction("Change color", self)
+        # self.change_color_action.triggered.connect(self.change_color, QtCore.Qt.UniqueConnection)
         
-        self.add_group_action = QtGui.QAction("Add group", self)
-        self.add_group_action.triggered.connect(self.add_group, QtCore.Qt.UniqueConnection)
+        # self.add_group_action = QtGui.QAction("Add group", self)
+        # self.add_group_action.triggered.connect(self.add_group, QtCore.Qt.UniqueConnection)
         
-        self.rename_group_action = QtGui.QAction("Rename group", self)
-        # self.rename_group_action.setShortcut("F2")
-        self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
+        # self.rename_group_action = QtGui.QAction("Rename group", self)
+        # # self.rename_group_action.setShortcut("F2")
+        # self.rename_group_action.triggered.connect(self.rename_group, QtCore.Qt.UniqueConnection)
         
-        self.remove_group_action = QtGui.QAction("Remove group", self)
-        self.remove_group_action.triggered.connect(self.remove_groups, QtCore.Qt.UniqueConnection)
+        # self.remove_group_action = QtGui.QAction("Remove group", self)
+        # self.remove_group_action.triggered.connect(self.remove_groups, QtCore.Qt.UniqueConnection)
         
-        self.context_menu = QtGui.QMenu(self)
-        self.context_menu.addAction(self.change_color_action)
-        self.context_menu.addAction(self.rename_group_action)
-        self.context_menu.addSeparator()
-        self.context_menu.addAction(self.add_group_action)
-        self.context_menu.addAction(self.remove_group_action)
+        # self.context_menu = QtGui.QMenu(self)
+        # self.context_menu.addAction(self.change_color_action)
+        # self.context_menu.addAction(self.rename_group_action)
+        # self.context_menu.addSeparator()
+        # self.context_menu.addAction(self.add_group_action)
+        # self.context_menu.addAction(self.remove_group_action)
         
-    def create_color_dialog(self):
-        self.color_dialog = QtGui.QColorDialog(self)
-        self.color_dialog.setOptions(QtGui.QColorDialog.DontUseNativeDialog)
-        for i in xrange(48):
-            if i < len(COLORMAP):
-                rgb = COLORMAP[i] * 255
-                # rgb = colors.COLORMAP[i]
-            else:
-                rgb = (255, 255, 255)
-                # rgb = (1., 1., 1.)
-            k = 6 * (np.mod(i, 8)) + i // 8
-            self.color_dialog.setStandardColor(k, QtGui.qRgb(*rgb))
+    # def create_color_dialog(self):
+        # self.color_dialog = QtGui.QColorDialog(self)
+        # self.color_dialog.setOptions(QtGui.QColorDialog.DontUseNativeDialog)
+        # for i in xrange(48):
+            # if i < len(COLORMAP):
+                # rgb = COLORMAP[i] * 255
+                # # rgb = colors.COLORMAP[i]
+            # else:
+                # rgb = (255, 255, 255)
+                # # rgb = (1., 1., 1.)
+            # k = 6 * (np.mod(i, 8)) + i // 8
+            # self.color_dialog.setStandardColor(k, QtGui.qRgb(*rgb))
         
-    def create_tree_view(self, dh):
-        """Create the Tree View widget, and populates it using the data 
-        handler `dh`."""
-        # pass the cluster data to the ClusterView
-        self.model = ClusterGroupManager(dh.clusters_info)
+    # def create_tree_view(self, dh):
+        # """Create the Tree View widget, and populates it using the data 
+        # handler `dh`."""
+        # # pass the cluster data to the ClusterView
+        # self.model = ClusterGroupManager(dh.clusters_info)
         
-        # set the QTreeView options
-        view = ClusterTreeView()
-        view.set_model(self.model)
-        return view
+        # # set the QTreeView options
+        # view = ClusterTreeView()
+        # view.set_model(self.model)
+        # return view
 
-    def update_view(self, dh=None):
-        if dh is not None:
-            self.dh = dh
-        self.model = ClusterGroupManager(self.dh.clusters_info)
-        self.view.set_model(self.model)
+    # def update_view(self, dh=None):
+        # if dh is not None:
+            # self.dh = dh
+        # self.model = ClusterGroupManager(self.dh.clusters_info)
+        # self.view.set_model(self.model)
         
-    def contextMenuEvent(self, event):
-        clusters = self.view.selected_clusters()
-        groups = self.view.selected_groups()
+    # def contextMenuEvent(self, event):
+        # clusters = self.view.selected_clusters()
+        # groups = self.view.selected_groups()
         
-        if len(groups) > 0:
-            self.rename_group_action.setEnabled(True)
-            self.remove_group_action.setEnabled(True)
-        else:
-            self.rename_group_action.setEnabled(False)
-            self.remove_group_action.setEnabled(False)
-            
-        if len(clusters) > 0 or len(groups) > 0:
-            self.change_color_action.setEnabled(True)
-        else:
-            self.change_color_action.setEnabled(False)
-            
-        action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
-    
-    
-    # Change methods
-    # --------------
-    def add_group(self):
-        # ssignals.emit(self, "AddGroupRequested")
-        pass
-        
-    def remove_groups(self):
-        # ssignals.emit(self, "RemoveGroupsRequested", np.array(self.view.selected_groups()))
-        pass
-        
-    def rename_group(self):
-        groups = self.view.selected_groups()
-        if groups:
-            groupidx = groups[0]
-            group = self.model.get_group(groupidx)
-            name = group.name()
-            text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
-                    QtGui.QLineEdit.Normal, name)
-            # if ok:
-                # ssignals.emit(self, "RenameGroupRequested", groupidx, text)
-    
-    def change_color(self):
-        items = self.view.selected_items()
-        if not items:
-            return
-        initial_color = items[0].color()
-        if initial_color >= 0:
-            initial_color = 255 * COLORMAP[initial_color]
-            initial_color = QtGui.QColor(*initial_color)
-            color = QtGui.QColorDialog.getColor(initial_color)
-        else:
-            color = QtGui.QColorDialog.getColor()
-        # return if the user canceled
-        if not color.isValid():
-            return
-        # get the RGB values of the chosen color
-        rgb = np.array(color.getRgbF()[:3]).reshape((1, -1))
-        # test white: in this case, no color
-        if rgb.sum() >= 2.999:
-            nocolor = True
-        else:
-            nocolor = False
-        # take the closest color in the palette
-        i = np.argmin(np.abs(COLORMAP - rgb).sum(axis=1))
-        
-        # emit signal
-        groups = np.array(self.view.selected_groups())
-        clusters = np.array(self.view.selected_clusters())
         # if len(groups) > 0:
-            # ssignals.emit(self, "ChangeGroupColorRequested", groups, i)
-        # if len(clusters) > 0:
-            # ssignals.emit(self, "ChangeClusterColorRequested", clusters, i)
+            # self.rename_group_action.setEnabled(True)
+            # self.remove_group_action.setEnabled(True)
+        # else:
+            # self.rename_group_action.setEnabled(False)
+            # self.remove_group_action.setEnabled(False)
+            
+        # if len(clusters) > 0 or len(groups) > 0:
+            # self.change_color_action.setEnabled(True)
+        # else:
+            # self.change_color_action.setEnabled(False)
+            
+        # action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
     
     
-    # Save and restore geometry
-    # -------------------------
-    def save_geometry(self):
-        SETTINGS.set("clusterWidget/geometry", self.view.saveGeometry())
-        SETTINGS.set("clusterWidget/headerState", self.view.header().saveState())
+    # # Change methods
+    # # --------------
+    # def add_group(self):
+        # # ssignals.emit(self, "AddGroupRequested")
+        # pass
         
-    def restore_geometry(self):
-        g = SETTINGS.get("clusterWidget/geometry")
-        h = SETTINGS.get("clusterWidget/headerState")
-        if g:
-            self.view.restoreGeometry(g)
-        if h:
-            self.view.header().restoreState(h)
+    # def remove_groups(self):
+        # # ssignals.emit(self, "RemoveGroupsRequested", np.array(self.view.selected_groups()))
+        # pass
+        
+    # def rename_group(self):
+        # groups = self.view.selected_groups()
+        # if groups:
+            # groupidx = groups[0]
+            # group = self.model.get_group(groupidx)
+            # name = group.name()
+            # text, ok = QtGui.QInputDialog.getText(self, "Group name", "Rename group:",
+                    # QtGui.QLineEdit.Normal, name)
+            # # if ok:
+                # # ssignals.emit(self, "RenameGroupRequested", groupidx, text)
+    
+    # def change_color(self):
+        # items = self.view.selected_items()
+        # if not items:
+            # return
+        # initial_color = items[0].color()
+        # if initial_color >= 0:
+            # initial_color = 255 * COLORMAP[initial_color]
+            # initial_color = QtGui.QColor(*initial_color)
+            # color = QtGui.QColorDialog.getColor(initial_color)
+        # else:
+            # color = QtGui.QColorDialog.getColor()
+        # # return if the user canceled
+        # if not color.isValid():
+            # return
+        # # get the RGB values of the chosen color
+        # rgb = np.array(color.getRgbF()[:3]).reshape((1, -1))
+        # # test white: in this case, no color
+        # if rgb.sum() >= 2.999:
+            # nocolor = True
+        # else:
+            # nocolor = False
+        # # take the closest color in the palette
+        # i = np.argmin(np.abs(COLORMAP - rgb).sum(axis=1))
+        
+        # # emit signal
+        # groups = np.array(self.view.selected_groups())
+        # clusters = np.array(self.view.selected_clusters())
+        # # if len(groups) > 0:
+            # # ssignals.emit(self, "ChangeGroupColorRequested", groups, i)
+        # # if len(clusters) > 0:
+            # # ssignals.emit(self, "ChangeClusterColorRequested", clusters, i)
+    
+    
+    # # Save and restore geometry
+    # # -------------------------
+    # def save_geometry(self):
+        # SETTINGS.set("clusterWidget/geometry", self.view.saveGeometry())
+        # SETTINGS.set("clusterWidget/headerState", self.view.header().saveState())
+        
+    # def restore_geometry(self):
+        # g = SETTINGS.get("clusterWidget/geometry")
+        # h = SETTINGS.get("clusterWidget/headerState")
+        # if g:
+            # self.view.restoreGeometry(g)
+        # if h:
+            # self.view.header().restoreState(h)
     
     

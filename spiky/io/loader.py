@@ -83,9 +83,15 @@ def read_clusters(filename_clu):
     clusters = clusters[1:]
     return clusters
 
-def read_cluster_colors(filename_clucol):
-    cluster_colors = load_text(filename_clucol, np.int32)
-    return cluster_colors
+def read_cluster_info(filename_clusterinfo):
+    # For each cluster (absolute indexing): color index, and group index
+    cluster_info = load_text(filename_clusterinfo, np.int32)
+    return cluster_info
+    
+def read_group_info(filename_groups):
+    # For each group (absolute indexing): color index, and name
+    group_info = load_text(filename_groups, str)
+    return group_info
     
 def read_masks(filename_mask, fetdim):
     masks_full = load_text(filename_mask, np.float32, skiprows=1)
@@ -137,7 +143,8 @@ class KlustersLoader(object):
         self.filename_xml = find_filename(self.filename, 'xml')
         self.filename_fet = find_filename(self.filename, 'fet')
         self.filename_clu = find_filename(self.filename, 'clu')
-        self.filename_clucol = find_filename(self.filename, 'clucol')
+        self.filename_clusterinfo = find_filename(self.filename, 'clusterinfo')
+        self.filename_groups = find_filename(self.filename, 'groups')
         # fmask or mask file
         self.filename_mask = find_filename(self.filename, 'fmask')
         if not self.filename_mask:
@@ -151,6 +158,7 @@ class KlustersLoader(object):
     def read(self):
         
         # Read metadata.
+        # --------------
         try:
             self.metadata = read_xml(self.filename_xml, self.fileindex)
         except IOError:
@@ -164,6 +172,7 @@ class KlustersLoader(object):
         freq = self.metadata.get('freq')
         
         # Read probe.
+        # -----------
         try:
             self.probe = read_probe(self.filename_probe)
         except IOError:
@@ -171,18 +180,6 @@ class KlustersLoader(object):
             # critical metadata.
             # raise IOError("The XML file is missing.")
             pass
-        
-        # # Read cluster groups.
-        # try:
-            # info = read_clusters_info(self.filename_cluinfo)
-            # clusters_info = info['clusters_info']
-            # groups_info = info['groups_info']
-        # except:
-            # groups_info = {
-                # 0: dict(groupidx=0, name='Noise', color=0, spkcount=0),
-                # 1: dict(groupidx=1, name='Multi-unit', color=1, spkcount=0),
-                # 2: dict(groupidx=2, name='Good', color=2, spkcount=nspikes),
-            # }
         
         
         # Read features.
@@ -213,17 +210,39 @@ class KlustersLoader(object):
         self.clusters = pd.Series(self.clusters, dtype=np.int32)
         self.nclusters = len(Counter(self.clusters))
         
-        # Read cluster colors.
-        # --------------------
+        # Read cluster info.
+        # ------------------
         try:
-            self.cluster_colors = read_cluster_colors(self.filename_clucol)
+            self.cluster_info = read_cluster_info(self.filename_clusterinfo)
         except IOError:
-            warn("The CLUCOL file is missing.")
+            info("The CLUSTERINFO file is missing.")
             maxcluster = self.clusters.max()
-            self.cluster_colors = np.mod(np.arange(maxcluster + 1, 
+            self.cluster_info = np.zeros((maxcluster + 1, 2), dtype=np.int32)
+            self.cluster_info[:, 0] = np.mod(np.arange(maxcluster + 1, 
                 dtype=np.int32), COLORS_COUNT) + 1
+            # First column: color index, second column: group index (2 by
+            # default)
+            self.cluster_info[:, 1] = 2 * np.ones(maxcluster + 1)
         # Convert to Pandas.
-        self.cluster_colors = pd.Series(self.cluster_colors, dtype=np.int32)
+        self.cluster_info = pd.DataFrame(self.cluster_info, dtype=np.int32)
+        self.cluster_colors = self.cluster_info[0].astype(np.int32)
+        self.cluster_groups = self.cluster_info[1].astype(np.int32)
+        
+        # Read group info.
+        # ----------------
+        try:
+            self.group_info = read_group_info(self.filename_groups)
+        except IOError:
+            info("The GROUPS file is missing.")
+            self.group_info = np.zeros((3, 2), dtype=object)
+            self.group_info[:,0] = (#np.array(
+                np.mod(np.arange(3), COLORS_COUNT) + 1)#, dtype=str)
+            self.group_info[:,1] = np.array(['Noise', 'MUA', 'Good'],
+                dtype=object)
+        # Convert to Pandas.
+        self.group_info = pd.DataFrame(self.group_info)
+        self.group_colors = self.group_info[0].astype(np.int32)
+        self.group_names = self.group_info[1].astype(np.str_)
         
         # Read masks.
         # -----------
@@ -344,6 +363,24 @@ class KlustersLoader(object):
             clusters = self.clusters_selected
         return select(self.cluster_colors, clusters)
     
+    def get_cluster_groups(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select(self.cluster_groups, clusters)
+    
+    def get_group_colors(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select(self.group_colors, clusters)
+    
+    def get_group_names(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select(self.group_names, clusters)
+    
+    
+    # Access to the data: stats
+    # -------------------------
     def get_correlograms(self, clusters=None):
         if clusters is None:
             clusters = self.clusters_selected

@@ -115,31 +115,35 @@ def get_array(data):
 # -----------------------------------------------------------------------------
 # Text files related functions
 # -----------------------------------------------------------------------------
-def load_text(file, dtype, skiprows=0):
-    return np.loadtxt(file, dtype=dtype, skiprows=skiprows)
+def load_text(filepath, dtype, skiprows=0):
+    if not filepath:
+        raise IOError("The filepath is empty.")
+    return np.loadtxt(filepath, dtype=dtype, skiprows=skiprows)
 
 
 # Faster load_text version if Pandas is installed.
 if HAS_PANDAS:
-    def load_text(filename, dtype, skiprows=0, delimiter=' '):
-        with open(filename, 'r') as f:
+    def load_text(filepath, dtype, skiprows=0, delimiter=' '):
+        if not filepath:
+            raise IOError("The filepath is empty.")
+        with open(filepath, 'r') as f:
             for _ in xrange(skiprows):
                 f.readline()
             x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
         return x
     
-def save_text(file, data, header=None):
+def save_text(filepath, data, header=None):
     if isinstance(data, basestring):
-        with open(file, 'w') as f:
+        with open(filepath, 'w') as f:
             f.write(data)
     else:
-        np.savetxt(file, data, fmt='%d', newline='\n')
+        np.savetxt(filepath, data, fmt='%d', newline='\n')
         # Write a header.
         if header is not None:
-            with open(file, 'r') as f:
+            with open(filepath, 'r') as f:
                 contents = f.read()
             contents_updated = str(header) + '\n' + contents
-            with open(file, 'w') as f:
+            with open(filepath, 'w') as f:
                 f.write(contents_updated)
         
 
@@ -147,9 +151,9 @@ def save_text(file, data, header=None):
 # -----------------------------------------------------------------------------
 # XML functions
 # -----------------------------------------------------------------------------
-def load_xml(filename, fileindex=1):
+def load_xml(filepath, fileindex=1):
     """Load a XML Klusters file."""
-    tree = ET.parse(filename)
+    tree = ET.parse(filepath)
     root = tree.getroot()
     
     d = {}
