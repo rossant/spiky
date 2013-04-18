@@ -10,6 +10,7 @@ import time
 from galry import QtGui, QtCore, show_window
 
 from spiky.io.loader import KlustersLoader
+from spiky.utils.userpref import USERPREF
 
 
 # -----------------------------------------------------------------------------
@@ -62,11 +63,11 @@ def get_data():
 
 def show_view(view_class, **kwargs):
     
-    operator = kwargs.pop('operator', None)
+    operators = kwargs.pop('operators', None)
     
     # Display a view.
     class TestWindow(QtGui.QMainWindow):
-        operatorStarted = QtCore.pyqtSignal()
+        operatorStarted = QtCore.pyqtSignal(int)
         
         def __init__(self):
             super(TestWindow, self).__init__()
@@ -78,17 +79,30 @@ def show_view(view_class, **kwargs):
             self.show()
             
             # Start "operator" asynchronously in the main thread.
-            if operator:
+            if operators:
+                self.operator_list = operators
                 self.operatorStarted.connect(self.operator)
                 self._thread = threading.Thread(target=self._run_operator)
                 self._thread.start()
             
         def _run_operator(self):
-            self.operatorStarted.emit()
+            for i in xrange(len(self.operator_list)):
+                # Call asynchronously operation #i, after a given delay.
+                if type(self.operator_list[i]) == tuple:
+                    dt = self.operator_list[i][1]
+                else:
+                    # Default delay.
+                    dt = USERPREF['test_operator_delay'] or .5
+                time.sleep(dt)
+                self.operatorStarted.emit(i)
             
-        def operator(self):
-            time.sleep(.1)
-            operator(self)
+        def operator(self, i):
+            # Execute operation #i.
+            if type(self.operator_list[i]) == tuple:
+                fun = self.operator_list[i][0]
+            else:
+                fun = self.operator_list[i]
+            fun(self)
             
         def keyPressEvent(self, e):
             super(TestWindow, self).keyPressEvent(e)
@@ -101,8 +115,8 @@ def show_view(view_class, **kwargs):
             self.view.keyReleaseEvent(e)
                 
         def closeEvent(self, e):
-            # if operator:
-                # self._thread.join()
+            if operators:
+                self._thread.join()
             return super(TestWindow, self).closeEvent(e)
                 
     show_window(TestWindow)

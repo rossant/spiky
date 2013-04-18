@@ -16,8 +16,9 @@ from spiky.utils.globalpaths import APPNAME
 # -----------------------------------------------------------------------------
 def get_log_format(debug=False):
     if debug:
-        return ('%(asctime)s,%(msecs)03d  %(levelname)-7s  P:%(process)-4d  '
-                'T:%(thread)-4d  %(message)s')
+        # return ('%(asctime)s,%(msecs)03d  %(levelname)-7s  P:%(process)-4d  '
+                # 'T:%(thread)-4d  %(message)s')
+        return ('%(asctime)s,%(msecs)03d  %(levelname)-7s  %(message)s')
     else:
         return '%(asctime)s  %(message)s'
 

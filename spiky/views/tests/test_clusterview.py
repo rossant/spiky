@@ -4,6 +4,7 @@
 # Imports
 # -----------------------------------------------------------------------------
 import os
+import time
 
 import numpy as np
 import numpy.random as rnd
@@ -29,10 +30,14 @@ def test_clusterview():
     
     kwargs['cluster_colors'] = data['cluster_colors_full']
     
-    def operator(self):
-        self.view.select([2,4])
-        
-    kwargs['operator'] = operator
+    kwargs['operators'] = [
+        lambda self: self.view.select([2,4]),
+        lambda self: self.view.add_group("MyGroup", [1,2,6]),
+        lambda self: self.view.rename_group(3, "New group"),
+        lambda self: self.view.change_group_color(3, 2),
+        lambda self: self.view.change_cluster_color(1, 4),
+        # lambda self: self.close(),
+    ]
     
     # Show the view.
     show_view(ClusterView, **kwargs)

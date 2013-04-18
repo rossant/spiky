@@ -43,10 +43,6 @@ class TreeItem(object):
     def insertChild(self, child, index):
         self.children.insert(index, child)
         
-    # def swapChildren(self, child0, child1):
-        # self.children[child0.row()], self.children[child1.row()] = (
-            # self.children[child1.row()], self.children[child0.row()])
-        
     def child(self, row):
         return self.children[row]
         
@@ -60,9 +56,6 @@ class TreeItem(object):
         if column >= self.columnCount():
             return None
         return self.item_data.get(self.item_data.keys()[column], None)
-        
-    def setData(self, name, value):
-        self.item_data[name] = value
         
     def row(self):
         if self.parent_item is None:
@@ -116,8 +109,9 @@ class TreeModel(QtCore.QAbstractItemModel):
             child_target_row = child_target.row()
         else:
             child_target_row = parent_target.rowCount()
-        if self.beginMoveRows(parent_source.index, row, row, parent_target.index,
-            child_target_row):
+        canmove = self.beginMoveRows(parent_source.index, row, row,
+            parent_target.index, child_target_row)
+        if canmove:
             parent_target.insertChild(child, child_target_row)
             if parent_target == parent_source:
                 if child_target_row < row:
@@ -141,7 +135,9 @@ class TreeModel(QtCore.QAbstractItemModel):
     def all_nodes(self):
         return self.get_descendants(self.root_item)
         
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=None):
+        if parent is None:
+            parent = self.root_item.index
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
         if not parent.isValid():
@@ -284,6 +280,7 @@ class GroupItem(TreeItem):
 # ------------
 class ClusterGroupManager(TreeModel):
     headers = ['Cluster', 'Spikes', 'Color']
+    clustersMoved = QtCore.pyqtSignal(np.ndarray, int)
     
     def __init__(self, cluster_colors=None, cluster_groups=None,
         group_colors=None, group_names=None, cluster_sizes=None):
@@ -423,13 +420,11 @@ class ClusterGroupManager(TreeModel):
             item = index.internalPointer()
             if index.column() == 0:
                 item.item_data['name'] = data
-                # ssignals.emit(self, 'RenameGroupRequested', item.groupidx(), data)
             elif index.column() == 1:
                 item.item_data['spkcount'] = data
             elif index.column() == 2:
                 item.item_data['color'] = data
             self.dataChanged.emit(index, index)
-            # ssignals.emit(self, "ClusterInfoToUpdate")
             return True
     
     def flags(self, index):
@@ -442,7 +437,7 @@ class ClusterGroupManager(TreeModel):
         for group in self.get_groups():
             spkcount = np.sum([cluster.spkcount() 
                 for cluster in self.get_clusters_in_group(group.groupidx())])
-            group.setData('spkcount', spkcount)
+            self.setData(self.index(group.row(), 1), spkcount)
     
     
     # Action methods
@@ -458,8 +453,9 @@ class ClusterGroupManager(TreeModel):
     def add_group_node(self, **kwargs):
         return self.add_node(item_class=GroupItem, **kwargs)
         
-    def remove_group(self, groupidx):
+    def remove_group(self, group):
         """Remove an empty group. Raise an error if the group is not empty."""
+        groupidx = group.groupidx()
         # check that the group is empty
         if self.get_clusters_in_group(groupidx):
             raise ValueError("group %d is not empty, unable to delete it" % \
@@ -476,15 +472,7 @@ class ClusterGroupManager(TreeModel):
                             **kwargs)
         return cluster
     
-    def drag(self, target, sources):
-        # Get source ClusterItem nodes.
-        source_items = []
-        nodes = self.all_nodes()
-        for node in nodes:
-            if str(node) in sources and type(node) == ClusterItem \
-                and node not in source_items:
-                source_items.append(node)
-        
+    def move_clusters(self, sources, target):
         # Get the groupidx if the target is a group,
         if type(target) == GroupItem:
             groupidx = target.groupidx()
@@ -493,33 +481,46 @@ class ClusterGroupManager(TreeModel):
         elif type(target) == ClusterItem:
             groupidx = self.get_groupidx(target.clusteridx())
         else:
-            # Empty target.
-            return
+            return None
             
-        # Clusters to move.
-        clusters = np.array([source.clusteridx() for source in source_items])
-        
         # Move clusters.
         target_group = self.get_group(groupidx)
-        for node in source_items:
+        for node in sources:
             self.move_node(node, target_group, target)
         
-        # Update group sizes.
         self.update_group_sizes()
+        
     
-    def rename_group(self, groupidx, name):
+    # Drag and drop for moving clusters
+    # ---------------------------------
+    def drag(self, target, sources):
+        # Get source ClusterItem nodes.
+        source_items = [node for node in self.all_nodes() 
+            if (str(node) in sources and type(node) == ClusterItem )]
+        # Find the target group.
+        if type(target) == GroupItem:
+            groupidx = target.groupidx()
+        # else, if it is a cluster, take the corresponding group.
+        elif type(target) == ClusterItem:
+            groupidx = self.get_groupidx(target.clusteridx())
+        # Emit internal signal to let TreeView emit a public signal.
+        self.clustersMoved.emit(np.array([cluster.clusteridx() 
+            for cluster in source_items]), groupidx)
+        # Move clusters.
+        self.move_clusters(source_items, target)
+    
+    def rename_group(self, group, name):
+        self.setData(self.index(group.row(), 0), name)
+        
+    def change_group_color(self, group, color):
+        self.setData(self.index(group.row(), 2), color)
+        
+    def change_cluster_color(self, cluster, color):
+        groupidx = self.get_groupidx(cluster.clusteridx())
         group = self.get_group(groupidx)
-        group.setData('name', name)
+        self.setData(self.index(cluster.row(), 2, parent=group.index), color)
         
-    def change_cluster_color(self, clusteridx, color):
-        item = self.get_cluster(clusteridx)
-        item.setData('color', color)
         
-    def change_group_color(self, groupidx, color):
-        item = self.get_group(groupidx)
-        item.setData('color', color)
-        
-    
     # Getter methods
     # --------------
     def get_groups(self):
@@ -571,9 +572,9 @@ class ClusterView(QtGui.QTreeView):
     clusterColorChanged = QtCore.pyqtSignal(int, int)
     groupColorChanged = QtCore.pyqtSignal(int, int)
     groupRenamed = QtCore.pyqtSignal(int, object)
-    
+
     clustersMoved = QtCore.pyqtSignal(np.ndarray, int)
-    groupsRemoved = QtCore.pyqtSignal(np.ndarray)
+    groupRemoved = QtCore.pyqtSignal(int)
     groupAdded = QtCore.pyqtSignal(int, object)
     
     class ClusterDelegate(QtGui.QStyledItemDelegate):
@@ -591,6 +592,7 @@ class ClusterView(QtGui.QTreeView):
         super(ClusterView, self).__init__(parent)
         # Current item.
         self.current_item = None
+        # self.silent_selection = False
         # Capture keyboard events.
         if getfocus:
             self.setFocusPolicy(QtCore.Qt.WheelFocus)
@@ -635,6 +637,81 @@ class ClusterView(QtGui.QTreeView):
         self.setItemDelegate(self.ClusterDelegate())
         
     
+    # Public methods
+    # --------------
+    def select(self, clusters):
+        """Select multiple clusters from their indices."""
+        selection_model = self.selectionModel()
+        selection = QtGui.QItemSelection()
+        for clusteridx in clusters:
+            cluster = self.model.get_cluster(clusteridx)
+            selection.select(cluster.index, cluster.index)
+        selection_model.select(selection, 
+                selection_model.Current |
+                selection_model.Select | 
+                selection_model.Rows 
+                )
+        if clusters:
+            selection_model.setCurrentIndex(
+                self.model.get_cluster(clusters[-1]).index,
+                QtGui.QItemSelectionModel.NoUpdate)
+    
+    def move_clusters(self, clusters, groupidx):
+        # self.select(clusters)
+        self.model.move_clusters([self.model.get_cluster(clusteridx)
+            for clusteridx in clusters], self.model.get_group(groupidx))
+        # Signal.
+        log.debug("Moving clusters {0:s} to group {1:d}".format(
+            str(clusters), groupidx))
+        self.clustersMoved.emit(np.array(clusters), groupidx)
+    
+    def add_group(self, name, clusters=[]):
+        group = self.model.add_group(name)
+        groupidx = group.groupidx()
+        # Signal.
+        log.debug("Adding group {0:s}.".format(name))
+        self.groupAdded.emit(groupidx, name)
+        # Move the selected clusters to the new group.
+        if clusters:
+            self.move_clusters(clusters, groupidx)
+        self.expandAll()
+        return groupidx
+    
+    def rename_group(self, groupidx, name):
+        self.model.rename_group(self.model.get_group(groupidx), name)
+        # Signal.
+        log.debug("Rename group {0:d} to {1:s}".format(
+            groupidx, name))
+        self.groupRenamed.emit(groupidx, name)
+        
+    def remove_group(self, groupidx):
+        self.model.remove_group(self.model.get_group(groupidx))
+        # Signal.
+        log.debug("Removed group {0:d}.".format(groupidx))
+        self.groupRemoved.emit(groupidx)
+        
+    def change_cluster_color(self, clusteridx, color):
+        self.model.change_cluster_color(self.model.get_cluster(clusteridx), 
+            color)
+        # Signal.
+        log.debug("Changed color of cluster {0:d} to {1:d}".format(
+            clusteridx, color))
+        self.clusterColorChanged.emit(clusteridx, color)
+        
+    def change_group_color(self, groupidx, color):
+        self.model.change_group_color(self.model.get_group(groupidx), color)
+        # Signal.
+        log.debug("Changed color of group {0:d} to {1:d}".format(
+            groupidx, color))
+        self.groupColorChanged.emit(groupidx, color)
+    
+    def move_to_noise(self, clusters):
+        self.move_clusters(clusters, 0)
+    
+    def move_to_mua(self, clusters):
+        self.move_clusters(clusters, 1)
+    
+    
     # Menu methods
     # ------------
     def create_color_dialog(self):
@@ -664,11 +741,22 @@ class ClusterView(QtGui.QTreeView):
         self.remove_group_action = QtGui.QAction("Remove group", self)
         self.remove_group_action.triggered.connect(self.remove_group_callback)
         
+        self.move_to_noise_action = QtGui.QAction("Move to noise", self)
+        self.move_to_noise_action.setShortcut("SHIFT+Delete")
+        self.move_to_noise_action.triggered.connect(self.move_to_noise_callback)
+        
+        self.move_to_mua_action = QtGui.QAction("Move to MUA", self)
+        self.move_to_mua_action.setShortcut("Delete")
+        self.move_to_mua_action.triggered.connect(self.move_to_mua_callback)
+        
         self.context_menu = QtGui.QMenu(self)
         self.context_menu.addAction(self.change_color_action)
-        self.context_menu.addAction(self.rename_group_action)
+        self.context_menu.addSeparator()
+        self.context_menu.addAction(self.move_to_noise_action)
+        self.context_menu.addAction(self.move_to_mua_action)
         self.context_menu.addSeparator()
         self.context_menu.addAction(self.add_group_action)
+        self.context_menu.addAction(self.rename_group_action)
         self.context_menu.addAction(self.remove_group_action)
         
     def contextMenuEvent(self, event):
@@ -677,7 +765,11 @@ class ClusterView(QtGui.QTreeView):
         
         if len(groups) > 0:
             self.rename_group_action.setEnabled(True)
-            self.remove_group_action.setEnabled(True)
+            # First two groups are not removable (noise and MUA).
+            if 0 not in groups and 1 not in groups:
+                self.remove_group_action.setEnabled(True)
+            else:
+                self.remove_group_action.setEnabled(False)
         else:
             self.rename_group_action.setEnabled(False)
             self.remove_group_action.setEnabled(False)
@@ -693,8 +785,8 @@ class ClusterView(QtGui.QTreeView):
         self.current_item = index.internalPointer()
     
     
-    # Color change
-    # ------------
+    # Callback
+    # --------
     def change_color_callback(self, checked):
         item = self.current_item
         initial_color = item.color()
@@ -713,32 +805,22 @@ class ClusterView(QtGui.QTreeView):
         color = np.argmin(np.abs(COLORMAP - rgb).sum(axis=1))
         # Change the color and emit the signal.
         if isinstance(item, ClusterItem):
-            self.model.change_cluster_color(item.clusteridx(), color)
-            self.clusterColorChanged.emit(item.clusteridx(), color)
+            self.change_cluster_color(item.clusteridx(), color)
         elif isinstance(item, GroupItem):
-            self.model.change_group_color(item.groupidx(), color)
-            self.groupColorChanged.emit(item.groupidx(), color)
-        
-    
-    # Group actions
-    # -------------
+            self.change_group_color(item.groupidx(), color)
+            
     def add_group_callback(self, checked):
         text, ok = QtGui.QInputDialog.getText(self, 
             "Group name", "Name group:",
             QtGui.QLineEdit.Normal, "New group")
         if ok:
-            group = self.model.add_group(text)
-            # Emit the signal.
-            self.groupAdded.emit(group.groupidx(), text)
+            self.add_group(text, self.selected_clusters())
         
     def remove_group_callback(self, checked):
         item = self.current_item
         if isinstance(item, GroupItem):
-            self.model.remove_group(item.groupidx())
+            self.remove_group(item.groupidx())
             
-    
-    # Group renaming
-    # --------------
     def rename_group_callback(self, checked):
         group = self.current_item
         if isinstance(group, GroupItem):
@@ -749,9 +831,15 @@ class ClusterView(QtGui.QTreeView):
                 QtGui.QLineEdit.Normal, name)
             if ok:
                 # Rename the group.
-                self.model.rename_group(groupidx, text)
-                # Emit the signal.
-                self.groupRenamed.emit(groupidx, text)
+                self.rename_group(groupidx, text)
+    
+    def move_to_noise_callback(self, checked):
+        clusters = self.selected_clusters()
+        self.move_to_noise(clusters)
+        
+    def move_to_mua_callback(self, checked):
+        clusters = self.selected_clusters()
+        self.move_to_mua(clusters)
     
     
     # Get methods
@@ -771,6 +859,8 @@ class ClusterView(QtGui.QTreeView):
     # -----------------
     def selectionChanged(self, selected, deselected):
         super(ClusterView, self).selectionChanged(selected, deselected)
+        # if silent_selection:
+            # return
         selected_clusters = self.selected_clusters()
         selected_groups = self.selected_groups()
         # All clusters in selected groups minus selected clusters.
@@ -788,23 +878,6 @@ class ClusterView(QtGui.QTreeView):
         # log.debug("Selected {0:d} clusters".format(len(clusters)))
         log.debug("Selected clusters {0:s}".format(str(clusters)))
         self.clustersSelected.emit(np.array(clusters, dtype=np.int32))
-    
-    def select(self, clusters):
-        """Select multiple clusters from their indices."""
-        selection_model = self.selectionModel()
-        selection = QtGui.QItemSelection()
-        for clusteridx in clusters:
-            cluster = self.model.get_cluster(clusteridx)
-            selection.select(cluster.index, cluster.index)
-        selection_model.select(selection, 
-                selection_model.Current |
-                selection_model.Select | 
-                selection_model.Rows 
-                )
-        if clusters:
-            selection_model.setCurrentIndex(
-                self.model.get_cluster(clusters[-1]).index,
-                QtGui.QItemSelectionModel.NoUpdate)
     
     
     # Selected items
