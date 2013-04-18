@@ -102,25 +102,39 @@ class TreeModel(QtCore.QAbstractItemModel):
         parent.removeChild(child)
         self.endRemoveRows()
         
-    def move_node(self, child, parent_target, child_target=None):
-        row = child.row()
-        parent_source = child.parent()
-        if child_target is not None:
-            child_target_row = child_target.row()
-        else:
-            child_target_row = parent_target.rowCount()
-        canmove = self.beginMoveRows(parent_source.index, row, row,
-            parent_target.index, child_target_row)
-        if canmove:
-            parent_target.insertChild(child, child_target_row)
-            if parent_target == parent_source:
-                if child_target_row < row:
-                    row += 1
-                parent_source.removeChildAt(row)
-            else:
-                parent_source.removeChild(child)
-            child.parent_item = parent_target
-            self.endMoveRows()
+    # def move_node(self, child, parent_target, child_target=None):
+        # row = child.row()
+        # parent_source = child.parent()
+        # if child_target is not None:
+            # child_target_row = child_target.row()
+        # else:
+            # child_target_row = parent_target.rowCount()
+        # canmove = self.beginMoveRows(parent_source.index, row, row,
+            # parent_target.index, child_target_row)
+        # if canmove:
+            
+            
+            # if parent is None:
+                # parent = self.root_item
+            # if item is None:
+                # if item_class is None:
+                    # item_class = TreeItem
+            # item = child._(parent=parent, **kwargs)
+            
+            # row = parent.rowCount()
+            # item.index = self.createIndex(row, 0, item)
+            
+            
+            # parent_target.insertChild(child_new, child_target_row)
+            # if parent_target == parent_source:
+                # if child_target_row < row:
+                    # row += 1
+                # parent_source.removeChildAt(row)
+            # else:
+                # parent_source.removeChild(child)
+            # # child.parent_item = parent_target
+            
+            # self.endMoveRows()
     
     def get_descendants(self, parents):
         if type(parents) != list:
@@ -486,9 +500,40 @@ class ClusterGroupManager(TreeModel):
         # Move clusters.
         target_group = self.get_group(groupidx)
         for node in sources:
-            self.move_node(node, target_group, target)
+            self._move_cluster(node, target_group, target)
         
         self.update_group_sizes()
+    
+    def _move_cluster(self, cluster, parent_target, child_target=None):
+        row = cluster.row()
+        parent_source = cluster.parent()
+        # Find the row where the cluster needs to be inserted.
+        if child_target is not None:
+            child_target_row = child_target.row()
+        else:
+            child_target_row = parent_target.rowCount()
+        # Begin moving the row.
+        canmove = self.beginMoveRows(parent_source.index, row, row,
+            parent_target.index, child_target_row)
+        if canmove:
+            # Create a new cluster, clone of the old one.
+            cluster_new = ClusterItem(parent=parent_target,
+                clusteridx=cluster.clusteridx(),
+                spkcount=cluster.spkcount(),
+                color=cluster.color())
+            # Create the index.
+            cluster_new.index = self.createIndex(child_target_row, 
+                0, cluster_new)
+            # Insert the new cluster.
+            parent_target.insertChild(cluster_new, child_target_row)
+            # Remove the old cluster.
+            if parent_target == parent_source:
+                if child_target_row < row:
+                    row += 1
+                parent_source.removeChildAt(row)
+            else:
+                parent_source.removeChild(cluster)
+            self.endMoveRows()
         
     
     # Drag and drop for moving clusters
@@ -503,11 +548,12 @@ class ClusterGroupManager(TreeModel):
         # else, if it is a cluster, take the corresponding group.
         elif type(target) == ClusterItem:
             groupidx = self.get_groupidx(target.clusteridx())
-        # Emit internal signal to let TreeView emit a public signal.
+        # Emit internal signal to let TreeView emit a public signal, and to
+        # effectively move the clusters.
         self.clustersMoved.emit(np.array([cluster.clusteridx() 
             for cluster in source_items]), groupidx)
         # Move clusters.
-        self.move_clusters(source_items, target)
+        # self.move_clusters(source_items, target)
     
     def rename_group(self, group, name):
         self.setData(self.index(group.row(), 0), name)
@@ -592,13 +638,28 @@ class ClusterView(QtGui.QTreeView):
         super(ClusterView, self).__init__(parent)
         # Current item.
         self.current_item = None
-        # self.silent_selection = False
-        # Capture keyboard events.
+        
+        # Focus policy.
         if getfocus:
             self.setFocusPolicy(QtCore.Qt.WheelFocus)
+        else:
+            self.setFocusPolicy(QtCore.Qt.NoFocus)
+        
+        # Capture keyboard events.
+        self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setAllColumnsShowFocus(True)
+        # self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
+        # select full rows
+        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        
+        # self.setRootIsDecorated(False)
+        self.setItemDelegate(self.ClusterDelegate())
+        
         # Create menu.
+        self.create_actions()
         self.create_context_menu()
-    
+        
     
     # Data methods
     # ------------
@@ -616,25 +677,17 @@ class ClusterView(QtGui.QTreeView):
                           group_names=group_names,
                           cluster_sizes=cluster_sizes)
         
-        # Capture keyboard events.
-        self.setFocusPolicy(QtCore.Qt.NoFocus)
-    
         self.setModel(self.model)
-        self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.expandAll()
-        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.setAllColumnsShowFocus(True)
-        # self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
-        # select full rows
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
-        # # set spkcount column size
-        self.header().resizeSection(1, 80)
-        # # set color column size
+        # set spkcount column size
+        self.header().resizeSection(1, 100)
+        # set color column size
         self.header().resizeSection(2, 40)
         
-        # self.setRootIsDecorated(False)
-        self.setItemDelegate(self.ClusterDelegate())
+        # HACK: drag is triggered in the model, so connect it to move_clusters
+        # in this function
+        self.model.clustersMoved.connect(self.move_clusters)
         
     
     # Public methods
@@ -657,7 +710,10 @@ class ClusterView(QtGui.QTreeView):
                 QtGui.QItemSelectionModel.NoUpdate)
     
     def move_clusters(self, clusters, groupidx):
-        # self.select(clusters)
+        if not hasattr(clusters, '__len__'):
+            clusters = [clusters]
+        if len(clusters) == 0:
+            return
         self.model.move_clusters([self.model.get_cluster(clusteridx)
             for clusteridx in clusters], self.model.get_group(groupidx))
         # Signal.
@@ -706,9 +762,13 @@ class ClusterView(QtGui.QTreeView):
         self.groupColorChanged.emit(groupidx, color)
     
     def move_to_noise(self, clusters):
+        if not hasattr(clusters, '__len__'):
+            clusters = [clusters]
         self.move_clusters(clusters, 0)
     
     def move_to_mua(self, clusters):
+        if not hasattr(clusters, '__len__'):
+            clusters = [clusters]
         self.move_clusters(clusters, 1)
     
     
@@ -726,8 +786,7 @@ class ClusterView(QtGui.QTreeView):
             k = 6 * (np.mod(i, 8)) + i // 8
             self.color_dialog.setStandardColor(k, QtGui.qRgb(*rgb))
         
-    def create_context_menu(self):
-        self.create_color_dialog()
+    def create_actions(self):
         
         self.change_color_action = QtGui.QAction("Change color", self)
         self.change_color_action.triggered.connect(self.change_color_callback)
@@ -736,18 +795,30 @@ class ClusterView(QtGui.QTreeView):
         self.add_group_action.triggered.connect(self.add_group_callback)
         
         self.rename_group_action = QtGui.QAction("Rename group", self)
+        self.rename_group_action.setShortcut(QtCore.Qt.Key_F2)
         self.rename_group_action.triggered.connect(self.rename_group_callback)
         
         self.remove_group_action = QtGui.QAction("Remove group", self)
         self.remove_group_action.triggered.connect(self.remove_group_callback)
         
         self.move_to_noise_action = QtGui.QAction("Move to noise", self)
-        self.move_to_noise_action.setShortcut("SHIFT+Delete")
+        self.move_to_noise_action.setShortcut('Shift+Delete')
         self.move_to_noise_action.triggered.connect(self.move_to_noise_callback)
         
         self.move_to_mua_action = QtGui.QAction("Move to MUA", self)
         self.move_to_mua_action.setShortcut("Delete")
         self.move_to_mua_action.triggered.connect(self.move_to_mua_callback)
+        
+        # Add actions to the widget.
+        self.addAction(self.change_color_action)
+        self.addAction(self.add_group_action)
+        self.addAction(self.rename_group_action)
+        self.addAction(self.remove_group_action)
+        self.addAction(self.move_to_noise_action)
+        self.addAction(self.move_to_mua_action)
+        
+    def create_context_menu(self):
+        self.create_color_dialog()
         
         self.context_menu = QtGui.QMenu(self)
         self.context_menu.addAction(self.change_color_action)
@@ -778,6 +849,13 @@ class ClusterView(QtGui.QTreeView):
             self.change_color_action.setEnabled(True)
         else:
             self.change_color_action.setEnabled(False)
+            
+        if len(clusters) > 0:
+            self.move_to_noise_action.setEnabled(True)
+            self.move_to_mua_action.setEnabled(True)
+        else:
+            self.move_to_noise_action.setEnabled(False)
+            self.move_to_mua_action.setEnabled(False)
             
         action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
     
@@ -859,8 +937,6 @@ class ClusterView(QtGui.QTreeView):
     # -----------------
     def selectionChanged(self, selected, deselected):
         super(ClusterView, self).selectionChanged(selected, deselected)
-        # if silent_selection:
-            # return
         selected_clusters = self.selected_clusters()
         selected_groups = self.selected_groups()
         # All clusters in selected groups minus selected clusters.
@@ -911,7 +987,10 @@ class ClusterView(QtGui.QTreeView):
         ctrl = modif & QtCore.Qt.ControlModifier
         shift = modif & QtCore.Qt.ShiftModifier
         alt = modif & QtCore.Qt.AltModifier
-        return super(ClusterView, self).keyPressEvent(e)
+        if (ctrl and key == QtCore.Qt.Key_A):
+            self.select(self.get_cluster_indices())
+        else:
+            return super(ClusterView, self).keyPressEvent(e)
         
     def sizeHint(self):
         return QtCore.QSize(300, 600)

@@ -36,6 +36,7 @@ def test_clusterview():
         lambda self: self.view.rename_group(3, "New group"),
         lambda self: self.view.change_group_color(3, 2),
         lambda self: self.view.change_cluster_color(1, 4),
+        lambda self: self.view.move_to_noise(0),
         # lambda self: self.close(),
     ]
     
