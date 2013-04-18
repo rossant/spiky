@@ -28,6 +28,10 @@ def test_correlationmatrixview():
     kwargs['correlation_matrix'] = create_correlation_matrix(nclusters)
     kwargs['cluster_colors_full'] = data['cluster_colors_full']
     
+    kwargs['operators'] = [
+        lambda self: self.close(),
+    ]
+    
     # Show the view.
     show_view(CorrelationMatrixView, **kwargs)
     

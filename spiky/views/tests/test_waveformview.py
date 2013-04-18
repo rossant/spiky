@@ -29,6 +29,10 @@ def test_waveformview():
     data = get_data()
     kwargs = {k: data[k] for k in keys}
     
+    kwargs['operators'] = [
+        lambda self: self.close(),
+    ]
+    
     # Show the view.
     show_view(WaveformView, **kwargs)
     

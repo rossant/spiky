@@ -30,6 +30,10 @@ def test_correlogramsview():
     
     kwargs['correlograms'] = create_correlograms(nclusters, ncorrbins)
     
+    kwargs['operators'] = [
+        lambda self: self.close(),
+    ]
+    
     # Show the view.
     show_view(CorrelogramsView, **kwargs)
     
