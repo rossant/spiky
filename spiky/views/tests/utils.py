@@ -4,6 +4,8 @@
 # Imports
 # -----------------------------------------------------------------------------
 import os
+import threading
+import time
 
 from galry import QtGui, QtCore, show_window
 
@@ -59,8 +61,13 @@ def get_data():
     return data
 
 def show_view(view_class, **kwargs):
+    
+    operator = kwargs.pop('operator', None)
+    
     # Display a view.
     class TestWindow(QtGui.QMainWindow):
+        operatorStarted = QtCore.pyqtSignal()
+        
         def __init__(self):
             super(TestWindow, self).__init__()
             self.setFocusPolicy(QtCore.Qt.WheelFocus)
@@ -69,6 +76,19 @@ def show_view(view_class, **kwargs):
             self.view.set_data(**kwargs)
             self.setCentralWidget(self.view)
             self.show()
+            
+            # Start "operator" asynchronously in the main thread.
+            if operator:
+                self.operatorStarted.connect(self.operator)
+                self._thread = threading.Thread(target=self._run_operator)
+                self._thread.start()
+            
+        def _run_operator(self):
+            self.operatorStarted.emit()
+            
+        def operator(self):
+            time.sleep(.1)
+            operator(self)
             
         def keyPressEvent(self, e):
             super(TestWindow, self).keyPressEvent(e)
@@ -79,6 +99,11 @@ def show_view(view_class, **kwargs):
         def keyReleaseEvent(self, e):
             super(TestWindow, self).keyReleaseEvent(e)
             self.view.keyReleaseEvent(e)
+                
+        def closeEvent(self, e):
+            # if operator:
+                # self._thread.join()
+            return super(TestWindow, self).closeEvent(e)
                 
     show_window(TestWindow)
     

@@ -37,6 +37,16 @@ class TreeItem(object):
     def removeChild(self, child):
         self.children.remove(child)
 
+    def removeChildAt(self, row):
+        self.children.pop(row)
+        
+    def insertChild(self, child, index):
+        self.children.insert(index, child)
+        
+    # def swapChildren(self, child0, child1):
+        # self.children[child0.row()], self.children[child1.row()] = (
+            # self.children[child1.row()], self.children[child0.row()])
+        
     def child(self, row):
         return self.children[row]
         
@@ -99,18 +109,25 @@ class TreeModel(QtCore.QAbstractItemModel):
         parent.removeChild(child)
         self.endRemoveRows()
         
-    def move_node(self, child, parent_target):
+    def move_node(self, child, parent_target, child_target=None):
         row = child.row()
         parent_source = child.parent()
-        self.beginMoveRows(parent_source.index, row, row, parent_target.index,
-            parent_target.rowCount())
-        # print (child, parent_source, row, row, parent_target,
-            # parent_target.rowCount())
-        parent_target.appendChild(child)
-        parent_source.removeChild(child)
-        child.parent_item = parent_target
-        self.endMoveRows()
-        
+        if child_target is not None:
+            child_target_row = child_target.row()
+        else:
+            child_target_row = parent_target.rowCount()
+        if self.beginMoveRows(parent_source.index, row, row, parent_target.index,
+            child_target_row):
+            parent_target.insertChild(child, child_target_row)
+            if parent_target == parent_source:
+                if child_target_row < row:
+                    row += 1
+                parent_source.removeChildAt(row)
+            else:
+                parent_source.removeChild(child)
+            child.parent_item = parent_target
+            self.endMoveRows()
+    
     def get_descendants(self, parents):
         if type(parents) != list:
             parents = [parents]
@@ -471,6 +488,7 @@ class ClusterGroupManager(TreeModel):
         # Get the groupidx if the target is a group,
         if type(target) == GroupItem:
             groupidx = target.groupidx()
+            target = None
         # else, if it is a cluster, take the corresponding group.
         elif type(target) == ClusterItem:
             groupidx = self.get_groupidx(target.clusteridx())
@@ -482,14 +500,9 @@ class ClusterGroupManager(TreeModel):
         clusters = np.array([source.clusteridx() for source in source_items])
         
         # Move clusters.
+        target_group = self.get_group(groupidx)
         for node in source_items:
-            # self.add_node(ClusterItem, parent=self.get_group(groupidx),
-                # clusteridx=node.clusteridx(),
-                # color=node.color(),
-                # spkcount=node.spkcount())
-            # self.remove_node(node, parent=node.parent())
-            # print node.clusteridx(), target.groupidx()
-            self.move_node(node, target)
+            self.move_node(node, target_group, target)
         
         # Update group sizes.
         self.update_group_sizes()
@@ -545,6 +558,8 @@ class ClusterGroupManager(TreeModel):
         return None
           
         
+# Top-level widget
+# ----------------
 class ClusterView(QtGui.QTreeView):
     # Signals
     # -------
@@ -612,7 +627,7 @@ class ClusterView(QtGui.QTreeView):
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
         # # set spkcount column size
-        # self.header().resizeSection(1, 80)
+        self.header().resizeSection(1, 80)
         # # set color column size
         self.header().resizeSection(2, 40)
         
@@ -769,29 +784,28 @@ class ClusterView(QtGui.QTreeView):
                 if (cluster not in clusters and
                     self.model.get_groupidx(cluster) not in selected_groups)
             ])
-        # Clusters in selected groups.
-        # :
-            # selected_clusters.extend([cluster 
-                # for cluster in self.get_cluster_indices_in_group(group)])
-        # Selected clusters.
-        # Remove selected clusters in selected groups.
-        # for group in self.selected_groups():
-            # selected_clusters.extend([cluster 
-                # for cluster in self.get_clusters_in_group(group)])
         
         # log.debug("Selected {0:d} clusters".format(len(clusters)))
-        # log.debug("Selected {0:d} clusters".format(len(clusters)))
-        print clusters
+        log.debug("Selected clusters {0:s}".format(str(clusters)))
         self.clustersSelected.emit(np.array(clusters, dtype=np.int32))
     
     def select(self, clusters):
-        self.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
-        sel_model = self.selectionModel()
-        for cluster in clusters:
-            cl = self.get_cluster(cluster)
-            if cl:
-                sel_model.select(cl.index, sel_model.Select | sel_model.Rows)
-        
+        """Select multiple clusters from their indices."""
+        selection_model = self.selectionModel()
+        selection = QtGui.QItemSelection()
+        for clusteridx in clusters:
+            cluster = self.model.get_cluster(clusteridx)
+            selection.select(cluster.index, cluster.index)
+        selection_model.select(selection, 
+                selection_model.Current |
+                selection_model.Select | 
+                selection_model.Rows 
+                )
+        if clusters:
+            selection_model.setCurrentIndex(
+                self.model.get_cluster(clusters[-1]).index,
+                QtGui.QItemSelectionModel.NoUpdate)
+    
     
     # Selected items
     # --------------
@@ -818,25 +832,13 @@ class ClusterView(QtGui.QTreeView):
 
     # Event methods
     # -------------
-    keys_accepted = [QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up,
-        QtCore.Qt.Key_Down, QtCore.Qt.Key_Home, QtCore.Qt.Key_End, 
-        QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown]
     def keyPressEvent(self, e):
-        # Disable all keyboard actions with modifiers, to avoid conflicts with
-        # CTRL+arrows in FeatureView
         key = e.key()
         modif = e.modifiers()
         ctrl = modif & QtCore.Qt.ControlModifier
         shift = modif & QtCore.Qt.ShiftModifier
         alt = modif & QtCore.Qt.AltModifier
-        if ctrl and (key == QtCore.Qt.Key_A):
-            # select all
-            self.select_all()
-            return
-        elif ctrl or shift or alt:
-            return
-        if key in self.keys_accepted:
-            return super(ClusterView, self).keyPressEvent(e)
+        return super(ClusterView, self).keyPressEvent(e)
         
     def sizeHint(self):
         return QtCore.QSize(300, 600)

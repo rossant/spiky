@@ -29,7 +29,13 @@ def test_clusterview():
     
     kwargs['cluster_colors'] = data['cluster_colors_full']
     
+    def operator(self):
+        self.view.select([2,4])
+        
+    kwargs['operator'] = operator
+    
     # Show the view.
     show_view(ClusterView, **kwargs)
+    
     
     
