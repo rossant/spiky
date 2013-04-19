@@ -670,6 +670,9 @@ class ClusterView(QtGui.QTreeView):
         group_names=None,
         cluster_sizes=None,):
         
+        if cluster_colors is None:
+            return
+        
         self.model = ClusterGroupManager(
                           cluster_colors=cluster_colors,
                           cluster_groups=cluster_groups,

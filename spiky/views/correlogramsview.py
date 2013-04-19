@@ -97,6 +97,12 @@ class CorrelogramsDataManager(Manager):
     def set_data(self, correlograms=None, cluster_colors=None, baselines=None,
         clusters_selected=None, ncorrbins=None):
         
+        if correlograms is None:
+            correlograms = np.zeros(0)
+            cluster_colors = np.zeros(0)
+            clusters_selected = []
+            ncorrbins = 0            
+        
         self.correlograms_array = get_correlograms_array(correlograms,
             clusters_selected=clusters_selected, ncorrbins=ncorrbins)
         self.ncorrelograms, self.nbins = self.correlograms_array.shape
@@ -341,11 +347,16 @@ class CorrelogramsView(GalryWidget):
             data_manager=CorrelogramsDataManager,)
     
     def set_data(self, *args, **kwargs):
-        if not kwargs.get('clusters_selected'):
-            return
+        # if kwargs.get('clusters_selected', None) is None:
+            # return
         self.data_manager.set_data(*args, **kwargs)
         
         # update?
         if self.initialized:
             self.paint_manager.update()
             self.updateGL()
+
+            
+            
+    def sizeHint(self):
+        return QtCore.QSize(400, 400)

@@ -75,6 +75,10 @@ class CorrelationMatrixDataManager(Manager):
         # clusters_info=None,
         ):
         
+        if correlation_matrix is None:
+            correlation_matrix = np.zeros(0)
+            cluster_colors_full = np.zeros(0)
+        
         if correlation_matrix.size == 0:
             correlation_matrix = -np.ones((2, 2))
         elif correlation_matrix.shape[0] == 1:
@@ -106,7 +110,8 @@ class CorrelationMatrixDataManager(Manager):
 class CorrelationMatrixPaintManager(PaintManager):
     def initialize(self):
         self.add_visual(TextureVisual,
-            texture=self.data_manager.texture, name='correlation_matrix')
+            texture=self.data_manager.texture, 
+            name='correlation_matrix')
 
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             background_transparent=False,
@@ -253,7 +258,7 @@ class CorrelationMatrixView(GalryWidget):
             data_manager=CorrelationMatrixDataManager,)
     
     def set_data(self, *args, **kwargs):
-        # if not kwargs.get('clusters_selected'):
+        # if kwargs.get('correlation_matrix', None) is None:
             # return
         self.data_manager.set_data(*args, **kwargs)
         
@@ -264,3 +269,6 @@ class CorrelationMatrixView(GalryWidget):
 
     
     
+    def sizeHint(self):
+        return QtCore.QSize(300, 400)
+        

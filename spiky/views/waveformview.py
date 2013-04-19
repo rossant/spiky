@@ -393,7 +393,7 @@ class WaveformDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self,
-                 waveforms,
+                 waveforms=None,
                  masks=None,
                  clusters=None,
                  # list of clusters that are selected, the order matters
@@ -402,17 +402,27 @@ class WaveformDataManager(Manager):
                  geometrical_positions=None,
                  ):
                  
+        if waveforms is None:
+            waveforms = np.zeros((0, 1, 1))
+            masks = np.zeros((0, 1))
+            clusters = np.zeros(0, dtype=np.int32)
+            cluster_colors = np.zeros(0, dtype=np.int32)
+            clusters_selected = []
+                 
         # Convert from Pandas into raw NumPy arrays.
         self.waveforms_array = get_array(waveforms)
         self.masks_array = get_array(masks)
         self.clusters_array = get_array(clusters)
         self.cluster_colors_array = get_array(cluster_colors)
         
-        
         # Relative indexing.
-        self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
-        self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
-        
+        if len(clusters_selected) > 0:
+            self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
+            self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
+        else:
+            self.clusters_rel = np.zeros(0, dtype=np.int32)
+            self.clusters_rel_ordered = np.zeros(0, dtype=np.int32)
+            
         self.nspikes, self.nsamples, self.nchannels = self.waveforms_array.shape
         self.npoints = self.waveforms_array.size
         self.geometrical_positions = geometrical_positions
@@ -485,37 +495,37 @@ class WaveformDataManager(Manager):
         X = np.tile(np.linspace(-1., 1., self.nsamples),
                         (self.nchannels * self.nclusters, 1))
         # create Y coordinates
-        # if self.nclusters == 0:
-            # Y = np.array([], dtype=np.float32)
-            # thickness = np.array([], dtype=np.float32)
-        # else:
-        Y = np.vstack(waveforms_avg)
-        thickness = np.vstack(waveforms_std).T.ravel()
+        if self.nclusters == 0:
+            Y = np.array([], dtype=np.float32)
+            thickness = np.array([], dtype=np.float32)
+        else:
+            Y = np.vstack(waveforms_avg)
+            thickness = np.vstack(waveforms_std).T.ravel()
         
         # concatenate data
         data = np.empty((X.size, 2), dtype=np.float32)
         data[:,0] = X.ravel()
         data[:,1] = Y.T.ravel()
         
-        # if self.nclusters > 0:
-        # thicken
-        w = thickness.reshape((-1, 1))
-        n = waveforms_avg.size
-        Y = np.zeros((2 * n, 2))
-        u = np.zeros((n, 2))
-        u[1:,0] = -np.diff(data[:,1])
-        u[1:,1] = data[1,0] - data[0,0]
-        u[0,:] = u[1,:]
-        r = (u[:,0] ** 2 + u[:,1] ** 2) ** .5
-        r[r == 0.] = 1
-        u[:,0] /= r
-        u[:,1] /= r
-        Y[::2,:] = data - w * u
-        Y[1::2,:] = data + w * u
-        data_thickened = Y
-        # else:
-            # n = 0
-            # data_thickened = data
+        if self.nclusters > 0:
+            # thicken
+            w = thickness.reshape((-1, 1))
+            n = waveforms_avg.size
+            Y = np.zeros((2 * n, 2))
+            u = np.zeros((n, 2))
+            u[1:,0] = -np.diff(data[:,1])
+            u[1:,1] = data[1,0] - data[0,0]
+            u[0,:] = u[1,:]
+            r = (u[:,0] ** 2 + u[:,1] ** 2) ** .5
+            r[r == 0.] = 1
+            u[:,0] /= r
+            u[:,1] /= r
+            Y[::2,:] = data - w * u
+            Y[1::2,:] = data + w * u
+            data_thickened = Y
+        else:
+            n = 0
+            data_thickened = data
         
         self.nsamples_avg = self.nsamples * 2
         self.npoints_avg = waveforms_avg.size * 2
@@ -1115,8 +1125,8 @@ class WaveformView(GalryWidget):
                 )
 
     def set_data(self, *args, **kwargs):
-        if not kwargs.get('clusters_selected'):
-            return
+        # if not kwargs.get('clusters_selected'):
+            # return
         self.data_manager.set_data(*args, **kwargs)
         
         # update?
@@ -1130,3 +1140,7 @@ class WaveformView(GalryWidget):
     def highlight_spikes(self, spikes):
         self.highlight_manager.set_highlighted_spikes(spikes)
         self.updateGL()
+
+        
+    def sizeHint(self):
+        return QtCore.QSize(800, 800)

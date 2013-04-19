@@ -109,7 +109,7 @@ class FeatureDataManager(Manager):
     # Initialization methods
     # ----------------------
     def set_data(self,
-                 features,
+                 features=None,
                  masks=None,
                  clusters=None,
                  clusters_selected=None,
@@ -118,6 +118,16 @@ class FeatureDataManager(Manager):
                  nchannels=None,
                  nextrafet=None,
                  ):
+        
+        if features is None:
+            features = np.zeros((0, 2))
+            masks = np.zeros((0, 1))
+            clusters = np.zeros(0, dtype=np.int32)
+            clusters_selected = []
+            cluster_colors = np.zeros(0, dtype=np.int32)
+            fetdim = 2
+            nchannels = 1
+            nextrafet = 0
         
         assert fetdim is not None
         
@@ -137,9 +147,13 @@ class FeatureDataManager(Manager):
         self.cluster_colors = get_array(cluster_colors)
         
         # Relative indexing.
-        self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
-        self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
-        
+        if len(clusters_selected) > 0:
+            self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
+            self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
+        else:
+            self.clusters_rel = np.zeros(0, dtype=np.int32)
+            self.clusters_rel_ordered = np.zeros(0, dtype=np.int32)
+            
         self.clusters_unique = sorted(clusters_selected)
         self.nclusters = len(Counter(clusters))
         self.masks_full = self.masks_array.T.ravel()
@@ -806,8 +820,8 @@ class FeatureView(GalryWidget):
                 interaction_manager=FeatureInteractionManager)
     
     def set_data(self, *args, **kwargs):
-        if not kwargs.get('clusters_selected'):
-            return
+        # if kwargs.get('clusters_selected', None) is None:
+            # return
         self.data_manager.set_data(*args, **kwargs)
         
         # update?
@@ -831,5 +845,9 @@ class FeatureView(GalryWidget):
     def set_projection(self, coord, channel, feature):
         pass
         
+        
+        
+    def sizeHint(self):
+        return QtCore.QSize(600, 600)
     
         
