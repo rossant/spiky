@@ -15,6 +15,7 @@ from galry import QtGui, QtCore
 import spiky.views as vw
 from spiky.io.loader import KlustersLoader
 import spiky.utils.logger as log
+from spiky.utils.persistence import encode_bytearray, decode_bytearray
 from spiky.utils.settings import SETTINGS
 from spiky.utils.globalpaths import APPNAME
 
@@ -42,8 +43,13 @@ class MainWindow(QtGui.QMainWindow):
         # Create the views.
         self.create_views()
         
-        self.show()
+        self.restore_geometry()
         
+        self.show()
+    
+    
+    # View methods.
+    # -------------
     def create_views(self):
         """Create all views at initialization."""
         
@@ -81,7 +87,6 @@ class MainWindow(QtGui.QMainWindow):
             QtCore.Qt.Vertical
             )
         
-            
     def add_view(self, view_class, position=None, **kwargs):
         """Add a widget to the main window."""
         view = view_class(self, getfocus=False)
@@ -110,6 +115,27 @@ class MainWindow(QtGui.QMainWindow):
         
         return dockwidget
         
+    
+    # Geometry.
+    # ---------
+    def save_geometry(self):
+        """Save the arrangement of the whole window."""
+        SETTINGS['main_window_geometry'] = encode_bytearray(
+            self.saveGeometry())
+        SETTINGS['main_window_state'] = encode_bytearray(self.saveState())
+        
+    def restore_geometry(self):
+        """Restore the arrangement of the whole window from a INI file."""
+        g = SETTINGS['main_window_geometry']
+        w = SETTINGS['main_window_state']
+        if g:
+            self.restoreGeometry(decode_bytearray(g))
+        if w:
+            self.restoreState(decode_bytearray(w))
+    
+    
+    # Event handlers.
+    # ---------------
     def keyPressEvent(self, e):
         super(MainWindow, self).keyPressEvent(e)
         for view in self.views.values():
@@ -121,6 +147,8 @@ class MainWindow(QtGui.QMainWindow):
             view.keyReleaseEvent(e)
             
     def closeEvent(self, e):
+        # Save the window geometry when closing the software.
+        self.save_geometry()
         return super(MainWindow, self).closeEvent(e)
             
             

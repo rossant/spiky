@@ -40,7 +40,8 @@ class Settings(object):
     is explicitely requested.
     
     """
-    def __init__(self, appname=None, folder=None, filepath=None):
+    def __init__(self, appname=None, folder=None, filepath=None,
+        autosave=True):
         """The settings file is not loaded here, but only once when a field is
         first accessed."""
         self.appname = appname
@@ -48,7 +49,7 @@ class Settings(object):
         self.filepath = filepath
         self.settings = {}
         self.settings = None
-    
+        self.autosave = autosave
     
     # I/O methods
     # -----------
@@ -70,6 +71,8 @@ class Settings(object):
     def set(self, key, value):
         self._load_once()
         self.settings[key] = value
+        if self.autosave:
+            self.save()
     
     def get(self, key, default=None):
         self._load_once()
