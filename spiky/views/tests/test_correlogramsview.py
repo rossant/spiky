@@ -14,6 +14,7 @@ from spiky.io.tests.mock_data import (setup, teardown, create_correlograms,
 from spiky.io.loader import KlustersLoader
 from spiky.io.selection import select
 from spiky.io.tools import check_dtype, check_shape
+from spiky.utils.userpref import USERPREF
 from spiky.views import CorrelogramsView
 from spiky.views.tests.utils import show_view, get_data
 
@@ -31,7 +32,8 @@ def test_correlogramsview():
     kwargs['correlograms'] = create_correlograms(nclusters, ncorrbins)
     
     kwargs['operators'] = [
-        lambda self: self.close(),
+        lambda self: (self.close() 
+            if USERPREF['test_auto_close'] != False else None),
     ]
     
     # Show the view.

@@ -24,7 +24,7 @@ def get_log_format(debug=False):
 
 def get_caller():
     tb = traceback.extract_stack()[-3]
-    module = os.path.splitext(os.path.basename(tb[0]))[0].ljust(18)
+    module = os.path.splitext(os.path.basename(tb[0]))[0].ljust(24)
     line = str(tb[1]).ljust(4)
     return "L:%s  %s" % (line, module)
 

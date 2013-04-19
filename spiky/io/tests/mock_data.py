@@ -20,6 +20,7 @@ from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
 # Mock parameters.
 nspikes = 1000
 nclusters = 20
+cluster_offset = 2
 nsamples = 20
 ncorrbins = 50
 nchannels = 32
@@ -43,7 +44,9 @@ def create_features(nspikes, nchannels, fetdim):
         low=-32768, high=32768), dtype=np.int16)
     
 def create_clusters(nspikes, nclusters):
-    return rnd.randint(size=nspikes, low=0, high=nclusters)
+    # Add shift in cluster indices to test robustness.
+    return rnd.randint(size=nspikes, low=cluster_offset, 
+        high=nclusters + cluster_offset)
     
 def create_cluster_colors(maxcluster):
     return np.mod(np.arange(maxcluster + 1, dtype=np.int32), COLORS_COUNT) + 1
@@ -55,8 +58,9 @@ def create_correlation_matrix(nclusters):
     return np.random.rand(nclusters, nclusters)
     
 def create_correlograms(nclusters, ncorrbins):
-    return {(i, j): np.random.rand(ncorrbins) for i in xrange(nclusters)
-        for j in xrange(nclusters) if i <= j}
+    return {(i + cluster_offset, j + cluster_offset): 
+        np.random.rand(ncorrbins) for i in xrange(nclusters)
+            for j in xrange(nclusters) if i <= j}
     
 def create_xml(nchannels, nsamples, fetdim):
     channels = '\n'.join(["<channel>{0:d}</channel>".format(i) 

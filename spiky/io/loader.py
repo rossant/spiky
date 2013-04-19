@@ -208,7 +208,11 @@ class KlustersLoader(object):
             self.clusters[0] = 1
         # Convert to Pandas.
         self.clusters = pd.Series(self.clusters, dtype=np.int32)
-        self.nclusters = len(Counter(self.clusters))
+        
+        # Counter clusters.
+        counter = Counter(self.clusters)
+        self.nclusters = len(counter)
+        clusters_unique = sorted(counter.keys())
         
         # Read cluster info.
         # ------------------
@@ -216,7 +220,7 @@ class KlustersLoader(object):
             self.cluster_info = read_cluster_info(self.filename_clusterinfo)
         except IOError:
             info("The CLUSTERINFO file is missing.")
-            maxcluster = self.clusters.max()
+            maxcluster = max(clusters_unique)
             self.cluster_info = np.zeros((maxcluster + 1, 2), dtype=np.int32)
             self.cluster_info[:, 0] = np.mod(np.arange(maxcluster + 1, 
                 dtype=np.int32), COLORS_COUNT) + 1
@@ -225,6 +229,7 @@ class KlustersLoader(object):
             self.cluster_info[:, 1] = 2 * np.ones(maxcluster + 1)
         # Convert to Pandas.
         self.cluster_info = pd.DataFrame(self.cluster_info, dtype=np.int32)
+        self.cluster_info = select(self.cluster_info, clusters_unique)
         self.cluster_colors = self.cluster_info[0].astype(np.int32)
         self.cluster_groups = self.cluster_info[1].astype(np.int32)
         

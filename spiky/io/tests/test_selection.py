@@ -71,6 +71,12 @@ def test_select_pandas():
     # test recursive selection
     assert np.array_equal(to_array(select(select(clusters, [10, 25]), 25)), [1])
 
+def test_select_single():
+    indices = [10, 20, 25]
+    clusters = generate_clusters(indices)
+    
+    print select(clusters, 3)
+    
 def test_select_array():
     # All spikes in cluster 1.
     indices = [10, 20, 25]

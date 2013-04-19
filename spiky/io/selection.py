@@ -14,6 +14,12 @@ def select_numpy(data, spikes):
     """Select a portion of an array with the corresponding spike indices.
     The first axis of data corresponds to the spikes."""
     
+    if not hasattr(spikes, '__len__'):
+        return data[spikes, ...]
+    
+    if type(spikes) == list:
+        spikes = np.array(spikes)
+    
     assert isinstance(data, np.ndarray)
     assert isinstance(spikes, np.ndarray)
     
@@ -26,6 +32,10 @@ def select_numpy(data, spikes):
     return data_selection
 
 def select_pandas(data, spikes, drop_empty_rows=True):
+    
+    if not hasattr(spikes, '__len__'):
+        return np.array(data.ix[spikes]).squeeze()
+        
     try:
         # Remove empty rows.
         data_selected = data.ix[spikes]
@@ -50,8 +60,12 @@ def select(data, indices=None):
     if indices is None or indices == 'all':
         return data
         
+    indices_argument = indices
     if not hasattr(indices, '__len__'):
         indices = [indices]
+        # is_single = True
+    # else:
+        # is_single = False
         
     # Ensure indices is an array of indices or boolean masks.
     if not isinstance(indices, np.ndarray):
@@ -73,9 +87,9 @@ def select(data, indices=None):
     
     # Use NumPy or Pandas version
     if type(data) == np.ndarray:
-        return select_numpy(data, indices)
+        return select_numpy(data, indices_argument)
     else:
-        return select_pandas(data, indices)
+        return select_pandas(data, indices_argument)
 
 def select_pairs(data, indices=None, conjunction='and'):
     """Select all items in data where at least one of the key index is in 

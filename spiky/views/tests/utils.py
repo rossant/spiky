@@ -28,7 +28,7 @@ def get_data():
     l = KlustersLoader(xmlfile)
     
     # Get full data sets.
-    clusters_selected = [1, 3, 10]
+    clusters_selected = [2, 4, 10]
     l.select(clusters=clusters_selected)
     
     data = dict(
@@ -76,6 +76,7 @@ def show_view(view_class, **kwargs):
             self.view = view_class(self, getfocus=False)
             self.view.set_data(**kwargs)
             self.setCentralWidget(self.view)
+            self.move(100, 100)
             self.show()
             
             # Start "operator" asynchronously in the main thread.

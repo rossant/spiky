@@ -19,8 +19,8 @@ def test_string_logger():
     log = str(l)
     logs = log.split('\n')
 
-    assert logs[0][26:] == "test 1"
-    assert logs[1][26:] == "test 2"
+    assert logs[0][32:] == "test 1"
+    assert logs[1][32:] == "test 2"
     
 def test_consoler_logger():
     l = ConsoleLogger(fmt='')

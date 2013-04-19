@@ -12,7 +12,7 @@ import numpy as np
 import numpy.random as rnd
 from galry import QtGui, QtCore
 
-from spiky.io.selection import get_indices
+from spiky.io.selection import get_indices, select
 from spiky.utils.colors import COLORMAP
 import spiky.utils.logger as log
 from spiky.utils.settings import SETTINGS
@@ -320,26 +320,28 @@ class ClusterGroupManager(TreeModel):
     # -----------
     def load(self, cluster_colors=None, cluster_groups=None,
         group_colors=None, group_names=None, cluster_sizes=None):
-        
+
         # Create the tree.
         # go through all groups
         for groupidx, groupname in group_names.iteritems():
             # add group
             spkcount = np.sum(cluster_sizes[cluster_groups == groupidx])
             groupitem = self.add_group_node(groupidx=groupidx, name=groupname,
-                color=group_colors[groupidx], spkcount=spkcount)
+                # color=group_colors[groupidx], spkcount=spkcount)
+                color=select(group_colors, groupidx), spkcount=spkcount)
         
         # go through all clusters
         for clusteridx, color in cluster_colors.iteritems():
-            # cluster = info.clusters_info[clusteridx]
             # add cluster
             clusteritem = self.add_cluster(
                 clusteridx=clusteridx,
                 # name=info.names[clusteridx],
                 color=color,
-                spkcount=cluster_sizes[clusteridx],
+                # spkcount=cluster_sizes[clusteridx],
+                spkcount=select(cluster_sizes, clusteridx),
                 # assign the group as a parent of this cluster
-                parent=self.get_group(cluster_groups[clusteridx]))
+                # parent=self.get_group(cluster_groups[clusteridx]))
+                parent=self.get_group(select(cluster_groups, clusteridx)))
     
     def save(self):
         
@@ -715,6 +717,9 @@ class ClusterView(QtGui.QTreeView):
             selection_model.setCurrentIndex(
                 self.model.get_cluster(clusters[-1]).index,
                 QtGui.QItemSelectionModel.NoUpdate)
+    
+    def unselect(self):
+        self.selectionModel().clear()
     
     def move_clusters(self, clusters, groupidx):
         if not hasattr(clusters, '__len__'):

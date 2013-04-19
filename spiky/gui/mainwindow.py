@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import numpy.random as rnd
 from galry import QtGui, QtCore
+from qtools import inprocess, inthread
 
 import spiky.views as vw
 from spiky.io.loader import KlustersLoader
@@ -19,6 +20,7 @@ import spiky.utils.logger as log
 from spiky.utils.persistence import encode_bytearray, decode_bytearray
 from spiky.utils.settings import SETTINGS
 from spiky.utils.globalpaths import APPNAME
+from spiky.gui.threads import ThreadedTasks
 
 
 # -----------------------------------------------------------------------------
@@ -41,10 +43,13 @@ class MainWindow(QtGui.QMainWindow):
         self.setDockNestingEnabled(True)
         self.setAnimated(False)
         
+        self.loader = None
+        
         # Create the views.
         self.create_views()
         self.create_actions()
         self.create_menu()
+        self.create_threads()
         
         # Show the main window.
         self.set_styles()
@@ -129,6 +134,16 @@ class MainWindow(QtGui.QMainWindow):
         # actions_menu.addAction(self.move_to_noise_action)
     
     
+    # Threads.
+    # --------
+    def create_threads(self):
+        self.tasks = ThreadedTasks()
+        self.tasks.open_task.dataOpened.connect(self.open_done)
+    
+    def join_threads(self):
+         self.tasks.join()
+    
+    
     # View methods.
     # -------------
     def create_views(self):
@@ -204,17 +219,48 @@ class MainWindow(QtGui.QMainWindow):
         return dockwidget
     
     
+    # Update methods.
+    # ---------------
+    def update_cluster_view(self):
+        
+        # self.views['ClusterView'].view.set_data(
+        d = dict(
+            cluster_colors=self.loader.get_cluster_colors('all'),
+            cluster_groups=self.loader.get_cluster_groups('all'),
+            group_colors=self.loader.get_group_colors('all'),
+            group_names=self.loader.get_group_names('all'),
+            cluster_sizes=self.loader.get_cluster_sizes('all'),
+        )
+        print d
+    
+    
     # Callback functions.
     # -------------------
     def open_callback(self):
         folder = SETTINGS['main_window.last_data_dir']
         path = QtGui.QFileDialog.getOpenFileName(self, 
             "Open a file (.clu or other)", folder)[0]
+        # If a file has been selected, open it.
         if path:
-            print path
+            # Launch the loading task in the background asynchronously.
+            self.tasks.open_task.open(path)
+            # Save the folder.
+            folder = os.path.dirname(path)
+            SETTINGS['main_window.last_data_dir'] = folder
+            
+            
         
     def quit_callback(self):
         self.close()
+    
+    
+    # Task callbacks.
+    # ---------------
+    def open_done(self, loader):
+        # Save the loader object.
+        self.loader = loader
+        # Update the views.
+        self.update_cluster_view()
     
     
     # Geometry.
@@ -250,6 +296,9 @@ class MainWindow(QtGui.QMainWindow):
     def closeEvent(self, e):
         # Save the window geometry when closing the software.
         self.save_geometry()
+        
+        self.join_threads()
+        
         for view in self.views.values():
             if hasattr(view.view, 'closeEvent'):
                 view.view.closeEvent(e)

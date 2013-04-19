@@ -147,10 +147,6 @@ class CorrelationMatrixInfoManager(Manager):
         
         cx_rel, cy_rel = self.get_closest_cluster(xd, yd)
         
-        color1 = self.data_manager.cluster_colors[cy_rel]
-        r, g, b = COLORMAP[color1,:]
-        color1 = (r, g, b, .75)
-        
         cx = self.data_manager.clusters_unique[cx_rel]
         cy = self.data_manager.clusters_unique[cy_rel]
         

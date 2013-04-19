@@ -15,7 +15,7 @@ from spiky.io.tests.mock_data import (setup, teardown,
                             nspikes, nclusters, nsamples, nchannels, fetdim)
 from spiky.io.loader import KlustersLoader
 from spiky.io.selection import select
-from spiky.io.tools import check_dtype, check_shape
+from spiky.io.tools import check_dtype, check_shape, get_array
 
 
 # -----------------------------------------------------------------------------
@@ -53,8 +53,8 @@ def test_klusters_loader():
     assert check_shape(spiketimes, (nspikes,))
     
     assert check_shape(probe, (nchannels, 2))
-    assert check_shape(cluster_colors, (maxcluster + 1,))
-    assert check_shape(cluster_groups, (maxcluster + 1,))
+    assert check_shape(cluster_colors, (nclusters,))
+    assert check_shape(cluster_groups, (nclusters,))
     assert check_shape(group_colors, (3,))
     assert check_shape(group_names, (3,))
     assert check_shape(cluster_sizes, (nclusters,))
@@ -80,7 +80,7 @@ def test_klusters_loader():
     # Check selection.
     # ----------------
     index = nspikes / 2
-    waveform = select(waveforms, index).values
+    waveform = select(waveforms, index)
     cluster = clusters[index]
     spikes_in_cluster = np.nonzero(clusters == cluster)[0]
     nspikes_in_cluster = len(spikes_in_cluster)
@@ -102,7 +102,8 @@ def test_klusters_loader():
     # Check waveform sub selection.
     # -----------------------------
     waveforms_selected = l.get_waveforms()
-    assert np.array_equal(select(waveforms_selected, index).values, waveform)
+    assert np.array_equal(get_array(select(waveforms_selected, index)), 
+        get_array(waveform))
     
     
     # Close the loader.
