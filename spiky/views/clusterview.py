@@ -696,8 +696,6 @@ class ClusterView(QtGui.QTreeView):
         # in this function
         self.model.clustersMoved.connect(self.move_clusters)
         
-        self.restore_geometry()
-        
     
     # Public methods
     # --------------

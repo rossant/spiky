@@ -157,8 +157,8 @@ class MainWindow(QtGui.QMainWindow):
             position=QtCore.Qt.LeftDockWidgetArea,)
             
         self.splitDockWidget(
-            self.views['ClusterView'], 
-            self.views['CorrelationMatrixView'], 
+            self.views['ClusterView'].parentWidget(), 
+            self.views['CorrelationMatrixView'].parentWidget(), 
             QtCore.Qt.Vertical
             )
             
@@ -169,8 +169,8 @@ class MainWindow(QtGui.QMainWindow):
             position=QtCore.Qt.RightDockWidgetArea,)
             
         self.splitDockWidget(
-            self.views['WaveformView'], 
-            self.views['FeatureView'], 
+            self.views['WaveformView'].parentWidget(), 
+            self.views['FeatureView'].parentWidget(), 
             QtCore.Qt.Horizontal
             )
             
@@ -178,8 +178,8 @@ class MainWindow(QtGui.QMainWindow):
             position=QtCore.Qt.RightDockWidgetArea,)
             
         self.splitDockWidget(
-            self.views['FeatureView'], 
-            self.views['CorrelogramsView'], 
+            self.views['FeatureView'].parentWidget(), 
+            self.views['CorrelogramsView'].parentWidget(), 
             QtCore.Qt.Vertical
             )
     
@@ -195,7 +195,7 @@ class MainWindow(QtGui.QMainWindow):
         dockwidget = QtGui.QDockWidget(view_class.__name__)
         dockwidget.setObjectName(view_class.__name__)
         dockwidget.setWidget(view)
-        dockwidget.view = view
+        # dockwidget.view = view
         
         # Set dock widget options.
         if closable:
@@ -216,22 +216,23 @@ class MainWindow(QtGui.QMainWindow):
         # Add the dock widget to the main window.
         self.addDockWidget(position, dockwidget)
         
-        return dockwidget
+        # return dockwidget
+        return view
     
     
     # Update methods.
     # ---------------
     def update_cluster_view(self):
-        
-        # self.views['ClusterView'].view.set_data(
-        d = dict(
+        """Update the cluster view using the data stored in the loader
+        object."""
+        data = dict(
             cluster_colors=self.loader.get_cluster_colors('all'),
             cluster_groups=self.loader.get_cluster_groups('all'),
             group_colors=self.loader.get_group_colors('all'),
             group_names=self.loader.get_group_names('all'),
             cluster_sizes=self.loader.get_cluster_sizes('all'),
         )
-        print d
+        self.views['ClusterView'].set_data(**data)
     
     
     # Callback functions.
@@ -300,8 +301,8 @@ class MainWindow(QtGui.QMainWindow):
         self.join_threads()
         
         for view in self.views.values():
-            if hasattr(view.view, 'closeEvent'):
-                view.view.closeEvent(e)
+            if hasattr(view, 'closeEvent'):
+                view.closeEvent(e)
         return super(MainWindow, self).closeEvent(e)
             
             

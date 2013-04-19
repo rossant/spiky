@@ -24,7 +24,6 @@ from spiky.gui.mainwindow import MainWindow
 # Tests
 # -----------------------------------------------------------------------------
 def test_mainwindow():
-    return
     show_window(MainWindow)
     
 if __name__ == '__main__':
