@@ -482,7 +482,7 @@ class ClusterGroupManager(TreeModel):
             group = groups[0]
             self.remove_node(group)
         else:
-            log.warn("group %d does not exist" % groupidx)
+            log.warn("Group %d does not exist0" % groupidx)
         
     def add_cluster(self, parent=None, **kwargs):
         cluster = self.add_node(item_class=ClusterItem, parent=parent, 
@@ -727,7 +727,7 @@ class ClusterView(QtGui.QTreeView):
         self.model.move_clusters([self.model.get_cluster(clusteridx)
             for clusteridx in clusters], self.model.get_group(groupidx))
         # Signal.
-        log.debug("Moving clusters {0:s} to group {1:d}".format(
+        log.debug("Moving clusters {0:s} to group {1:d}.".format(
             str(clusters), groupidx))
         self.clustersMoved.emit(np.array(clusters), groupidx)
     
@@ -746,7 +746,7 @@ class ClusterView(QtGui.QTreeView):
     def rename_group(self, groupidx, name):
         self.model.rename_group(self.model.get_group(groupidx), name)
         # Signal.
-        log.debug("Rename group {0:d} to {1:s}".format(
+        log.debug("Rename group {0:d} to {1:s}.".format(
             groupidx, name))
         self.groupRenamed.emit(groupidx, name)
         
@@ -760,14 +760,14 @@ class ClusterView(QtGui.QTreeView):
         self.model.change_cluster_color(self.model.get_cluster(clusteridx), 
             color)
         # Signal.
-        log.debug("Changed color of cluster {0:d} to {1:d}".format(
+        log.debug("Changed color of cluster {0:d} to {1:d}.".format(
             clusteridx, color))
         self.clusterColorChanged.emit(clusteridx, color)
         
     def change_group_color(self, groupidx, color):
         self.model.change_group_color(self.model.get_group(groupidx), color)
         # Signal.
-        log.debug("Changed color of group {0:d} to {1:d}".format(
+        log.debug("Changed color of group {0:d} to {1:d}.".format(
             groupidx, color))
         self.groupColorChanged.emit(groupidx, color)
     
@@ -961,8 +961,8 @@ class ClusterView(QtGui.QTreeView):
                     self.model.get_groupidx(cluster) not in selected_groups)
             ])
         
-        # log.debug("Selected {0:d} clusters".format(len(clusters)))
-        log.debug("Selected clusters {0:s}".format(str(clusters)))
+        # log.debug("Selected {0:d} clusters.".format(len(clusters)))
+        log.debug("Selected clusters {0:s}.".format(str(clusters)))
         self.clustersSelected.emit(np.array(clusters, dtype=np.int32))
     
     

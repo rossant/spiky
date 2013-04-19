@@ -24,8 +24,23 @@ from spiky.gui.threads import ThreadedTasks
 
 
 # -----------------------------------------------------------------------------
+# Dock widget class
+# -----------------------------------------------------------------------------
+class ViewDockWidget(QtGui.QDockWidget):
+    closed = QtCore.pyqtSignal(object)
+    
+    def closeEvent(self, e):
+        self.closed.emit(self)
+        super(ViewDockWidget, self).closeEvent(e)
+
+
+# -----------------------------------------------------------------------------
 # Main Window
 # -----------------------------------------------------------------------------
+# class EventFilter(QtCore.QObject):
+    # def eventFilter(self, obj, e):
+        # return super(EventFilter, self).eventFilter(obj, e)
+
 class MainWindow(QtGui.QMainWindow):
     
     def __init__(self):
@@ -38,6 +53,7 @@ class MainWindow(QtGui.QMainWindow):
         # Focus options.
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
         self.setMouseTracking(True)
+        # self.installEventFilter(EventFilter(self))
         
         # Dock widgets options.
         self.setDockNestingEnabled(True)
@@ -71,67 +87,69 @@ class MainWindow(QtGui.QMainWindow):
     
     # Actions.
     # --------
+    def add_action(self, name, text, callback=None, shortcut=None):
+        action = QtGui.QAction(text, self)
+        if callback is None:
+            callback = getattr(self, name + '_callback')
+        # if callback:
+        action.triggered.connect(callback)
+        if shortcut:
+            action.setShortcut(shortcut)
+        setattr(self, name + '_action', action)
+        
     def create_actions(self):
+        self.add_action('open', '&Open', shortcut='Ctrl+O')
+        self.add_action('quit', '&Quit', shortcut='Ctrl+Q')
         
-        self.open_action = QtGui.QAction("&Open", self)
-        self.open_action.triggered.connect(self.open_callback)
-        self.open_action.setShortcut('Ctrl+O')
-        
-        self.quit_action = QtGui.QAction("&Quit", self)
-        self.quit_action.triggered.connect(self.quit_callback)
-        self.quit_action.setShortcut('Ctrl+Q')
-        
+        self.add_action('add_feature_view', 'Add FeatureView')
+        self.add_action('add_waveform_view', 'Add WaveformView')
+        self.add_action('add_correlation_matrix_view', 'Add CorrelationMatrixView')
+        self.add_action('add_correlograms_view', 'Add CorrelogramsView')
     
     def create_menu(self):
-        # File menu
-        # ---------
+        # File menu.
         file_menu = self.menuBar().addMenu("&File")
-        
-        # file_menu.addAction(self.open_probe_action)
-        # file_menu.addSeparator()
-        
         file_menu.addAction(self.open_action)
-        # file_menu.addAction(self.save_action)
-        # file_menu.addAction(self.saveas_action)
         file_menu.addSeparator()
-        
-        # open last probe
-        # self.open_last_probefile()
-        
-        # open last file
-        # filename = SETTINGS.get('mainWindow/last_data_file', None)
-        # if filename:
-            # self.open_last_action = QtGui.QAction(filename, self)
-            # self.open_last_action.setShortcut("CTRL+ALT+O")
-            # self.open_last_action.triggered.connect(self.open_last_file, QtCore.Qt.UniqueConnection)
-            # file_menu.addAction(self.open_last_action)
-            # file_menu.addSeparator()
-        
         file_menu.addAction(self.quit_action)
         
+        # Views menu.
+        views_menu = self.menuBar().addMenu("&Views")
+        views_menu.addAction(self.add_feature_view_action)
+        views_menu.addAction(self.add_waveform_view_action)
+        views_menu.addAction(self.add_correlograms_view_action)
+        views_menu.addAction(self.add_correlation_matrix_view_action)
         
-        # Views menu
-        # ----------
-        # views_menu = self.menuBar().addMenu("&Views")
-        # views_menu.addAction(self.cluster_action)
-        # views_menu.addAction(self.waveform_action)
-        # views_menu.addAction(self.correlograms_action)
-        # views_menu.addAction(self.correlationmatrix_action)
-        # views_menu.addSeparator()
-        # views_menu.addAction(self.override_color_action)
+    
+    # Callback functions.
+    # -------------------
+    def open_callback(self, checked):
+        folder = SETTINGS['main_window.last_data_dir']
+        path = QtGui.QFileDialog.getOpenFileName(self, 
+            "Open a file (.clu or other)", folder)[0]
+        # If a file has been selected, open it.
+        if path:
+            # Launch the loading task in the background asynchronously.
+            self.tasks.open_task.open(path)
+            # Save the folder.
+            folder = os.path.dirname(path)
+            SETTINGS['main_window.last_data_dir'] = folder
+            
+    def quit_callback(self, checked):
+        self.close()
+    
+    # Add views callbacks.
+    def add_feature_view_callback(self, checked):
+        self.add_feature_view()
         
+    def add_waveform_view_callback(self, checked):
+        self.add_waveform_view()
         
-        # Actions menu
-        # ------------
-        # actions_menu = self.menuBar().addMenu("&Actions")
-        # actions_menu.addAction(self.undo_action)
-        # actions_menu.addAction(self.redo_action)
-        # actions_menu.addSeparator()
-        # actions_menu.addAction(self.merge_action)
-        # actions_menu.addAction(self.split_action)
-        # actions_menu.addSeparator()
-        # actions_menu.addAction(self.move_to_mua_action)
-        # actions_menu.addAction(self.move_to_noise_action)
+    def add_correlation_matrix_view_callback(self, checked):
+        self.add_correlation_matrix_view()
+        
+    def add_correlograms_view_callback(self, checked):
+        self.add_correlograms_view()
     
     
     # Threads.
@@ -146,44 +164,7 @@ class MainWindow(QtGui.QMainWindow):
     
     # View methods.
     # -------------
-    def create_views(self):
-        """Create all views at initialization."""
-        
-        # Create the default layout.
-        self.views = {}
-        self.views['ClusterView'] = self.add_view(vw.ClusterView,
-            position=QtCore.Qt.LeftDockWidgetArea, closable=False)
-        self.views['CorrelationMatrixView'] = self.add_view(vw.CorrelationMatrixView,
-            position=QtCore.Qt.LeftDockWidgetArea,)
-            
-        self.splitDockWidget(
-            self.views['ClusterView'].parentWidget(), 
-            self.views['CorrelationMatrixView'].parentWidget(), 
-            QtCore.Qt.Vertical
-            )
-            
-        self.views['WaveformView'] = self.add_view(vw.WaveformView,
-            position=QtCore.Qt.RightDockWidgetArea,)
-        
-        self.views['FeatureView'] = self.add_view(vw.FeatureView,
-            position=QtCore.Qt.RightDockWidgetArea,)
-            
-        self.splitDockWidget(
-            self.views['WaveformView'].parentWidget(), 
-            self.views['FeatureView'].parentWidget(), 
-            QtCore.Qt.Horizontal
-            )
-            
-        self.views['CorrelogramsView'] = self.add_view(vw.CorrelogramsView,
-            position=QtCore.Qt.RightDockWidgetArea,)
-            
-        self.splitDockWidget(
-            self.views['FeatureView'].parentWidget(), 
-            self.views['CorrelogramsView'].parentWidget(), 
-            QtCore.Qt.Vertical
-            )
-    
-    def add_view(self, view_class, position=None, 
+    def create_view(self, view_class, position=None, 
         closable=True, **kwargs):
         """Add a widget to the main window."""
         view = view_class(self, getfocus=False)
@@ -192,10 +173,10 @@ class MainWindow(QtGui.QMainWindow):
             position = QtCore.Qt.LeftDockWidgetArea
             
         # Create the dock widget.
-        dockwidget = QtGui.QDockWidget(view_class.__name__)
+        dockwidget = ViewDockWidget(view_class.__name__)
         dockwidget.setObjectName(view_class.__name__)
         dockwidget.setWidget(view)
-        # dockwidget.view = view
+        dockwidget.closed.connect(self.dock_widget_closed)
         
         # Set dock widget options.
         if closable:
@@ -216,8 +197,81 @@ class MainWindow(QtGui.QMainWindow):
         # Add the dock widget to the main window.
         self.addDockWidget(position, dockwidget)
         
-        # return dockwidget
+        # Return the view widget.
         return view
+    
+    def add_cluster_view(self):
+        self.views['ClusterView'].append(self.create_view(vw.ClusterView,
+            position=QtCore.Qt.LeftDockWidgetArea, closable=False))
+        
+    def add_correlation_matrix_view(self):
+        self.views['CorrelationMatrixView'].append(self.create_view(vw.CorrelationMatrixView,
+            position=QtCore.Qt.LeftDockWidgetArea,))
+    
+    def add_waveform_view(self):
+        self.views['WaveformView'].append(self.create_view(vw.WaveformView,
+            position=QtCore.Qt.RightDockWidgetArea,))
+        
+    def add_feature_view(self):
+        self.views['FeatureView'].append(self.create_view(vw.FeatureView,
+            position=QtCore.Qt.RightDockWidgetArea,))
+            
+    def add_correlograms_view(self):
+        self.views['CorrelogramsView'].append(self.create_view(vw.CorrelogramsView,
+            position=QtCore.Qt.RightDockWidgetArea,))
+            
+    def get_view(self, name, index=0):
+        views = self.views[name] 
+        if not views:
+            return None
+        else:
+            return views[index]
+            
+    def create_views(self):
+        """Create all views at initialization."""
+        
+        # Create the default layout.
+        self.views = dict(
+            ClusterView=[],
+            CorrelationMatrixView=[],
+            WaveformView=[],
+            FeatureView=[],
+            CorrelogramsView=[],
+            )
+        
+        self.add_cluster_view()
+        self.add_correlation_matrix_view()
+            
+        self.splitDockWidget(
+            self.get_view('ClusterView').parentWidget(), 
+            self.get_view('CorrelationMatrixView').parentWidget(), 
+            QtCore.Qt.Vertical
+            )
+            
+        self.add_waveform_view()
+        self.add_feature_view()
+            
+        self.splitDockWidget(
+            self.get_view('WaveformView').parentWidget(), 
+            self.get_view('FeatureView').parentWidget(), 
+            QtCore.Qt.Horizontal
+            )
+            
+        self.add_correlograms_view()
+            
+        self.splitDockWidget(
+            self.get_view('FeatureView').parentWidget(), 
+            self.get_view('CorrelogramsView').parentWidget(), 
+            QtCore.Qt.Vertical
+            )
+    
+    def dock_widget_closed(self, dock):
+        for key in self.views.keys():
+            views = self.views[key]
+            for i in xrange(len(views)):
+                if views[i].parent() == dock:
+                    # self.views[view][i] = None
+                    del self.views[key][i]
     
     
     # Update methods.
@@ -232,27 +286,7 @@ class MainWindow(QtGui.QMainWindow):
             group_names=self.loader.get_group_names('all'),
             cluster_sizes=self.loader.get_cluster_sizes('all'),
         )
-        self.views['ClusterView'].set_data(**data)
-    
-    
-    # Callback functions.
-    # -------------------
-    def open_callback(self):
-        folder = SETTINGS['main_window.last_data_dir']
-        path = QtGui.QFileDialog.getOpenFileName(self, 
-            "Open a file (.clu or other)", folder)[0]
-        # If a file has been selected, open it.
-        if path:
-            # Launch the loading task in the background asynchronously.
-            self.tasks.open_task.open(path)
-            # Save the folder.
-            folder = os.path.dirname(path)
-            SETTINGS['main_window.last_data_dir'] = folder
-            
-            
-        
-    def quit_callback(self):
-        self.close()
+        self.get_view('ClusterView').set_data(**data)
     
     
     # Task callbacks.
@@ -284,15 +318,18 @@ class MainWindow(QtGui.QMainWindow):
     
     # Event handlers.
     # ---------------
+    # def force_key_release(self):
+        
+    
     def keyPressEvent(self, e):
         super(MainWindow, self).keyPressEvent(e)
-        for view in self.views.values():
-            view.keyPressEvent(e)
+        for views in self.views.values():
+            [view.keyPressEvent(e) for view in views]
         
     def keyReleaseEvent(self, e):
         super(MainWindow, self).keyReleaseEvent(e)
-        for view in self.views.values():
-            view.keyReleaseEvent(e)
+        for views in self.views.values():
+            [view.keyReleaseEvent(e) for view in views]
             
     def closeEvent(self, e):
         # Save the window geometry when closing the software.
