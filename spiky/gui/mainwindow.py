@@ -43,14 +43,12 @@ class MainWindow(QtGui.QMainWindow):
         
         # Create the views.
         self.create_views()
-        
-        # Set the custom Qt styles.
-        self.set_styles()
-
-        # Restore the geometry right before showing the window.
-        self.restore_geometry()
+        self.create_actions()
+        self.create_menu()
         
         # Show the main window.
+        self.set_styles()
+        self.restore_geometry()
         self.show()
     
     def set_styles(self):
@@ -69,10 +67,66 @@ class MainWindow(QtGui.QMainWindow):
     # Actions.
     # --------
     def create_actions(self):
-        pass
+        
+        self.open_action = QtGui.QAction("&Open", self)
+        self.open_action.triggered.connect(self.open_callback)
+        self.open_action.setShortcut('Ctrl+O')
+        
+        self.quit_action = QtGui.QAction("&Quit", self)
+        self.quit_action.triggered.connect(self.quit_callback)
+        self.quit_action.setShortcut('Ctrl+Q')
+        
     
     def create_menu(self):
-        pass
+        # File menu
+        # ---------
+        file_menu = self.menuBar().addMenu("&File")
+        
+        # file_menu.addAction(self.open_probe_action)
+        # file_menu.addSeparator()
+        
+        file_menu.addAction(self.open_action)
+        # file_menu.addAction(self.save_action)
+        # file_menu.addAction(self.saveas_action)
+        file_menu.addSeparator()
+        
+        # open last probe
+        # self.open_last_probefile()
+        
+        # open last file
+        # filename = SETTINGS.get('mainWindow/last_data_file', None)
+        # if filename:
+            # self.open_last_action = QtGui.QAction(filename, self)
+            # self.open_last_action.setShortcut("CTRL+ALT+O")
+            # self.open_last_action.triggered.connect(self.open_last_file, QtCore.Qt.UniqueConnection)
+            # file_menu.addAction(self.open_last_action)
+            # file_menu.addSeparator()
+        
+        file_menu.addAction(self.quit_action)
+        
+        
+        # Views menu
+        # ----------
+        # views_menu = self.menuBar().addMenu("&Views")
+        # views_menu.addAction(self.cluster_action)
+        # views_menu.addAction(self.waveform_action)
+        # views_menu.addAction(self.correlograms_action)
+        # views_menu.addAction(self.correlationmatrix_action)
+        # views_menu.addSeparator()
+        # views_menu.addAction(self.override_color_action)
+        
+        
+        # Actions menu
+        # ------------
+        # actions_menu = self.menuBar().addMenu("&Actions")
+        # actions_menu.addAction(self.undo_action)
+        # actions_menu.addAction(self.redo_action)
+        # actions_menu.addSeparator()
+        # actions_menu.addAction(self.merge_action)
+        # actions_menu.addAction(self.split_action)
+        # actions_menu.addSeparator()
+        # actions_menu.addAction(self.move_to_mua_action)
+        # actions_menu.addAction(self.move_to_noise_action)
     
     
     # View methods.
@@ -148,6 +202,19 @@ class MainWindow(QtGui.QMainWindow):
         self.addDockWidget(position, dockwidget)
         
         return dockwidget
+    
+    
+    # Callback functions.
+    # -------------------
+    def open_callback(self):
+        folder = SETTINGS['main_window.last_data_dir']
+        path = QtGui.QFileDialog.getOpenFileName(self, 
+            "Open a file (.clu or other)", folder)[0]
+        if path:
+            print path
+        
+    def quit_callback(self):
+        self.close()
     
     
     # Geometry.
