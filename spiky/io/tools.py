@@ -107,9 +107,20 @@ def get_array(data):
     """Get a NumPy array from a NumPy array or a Pandas data object (Series,
     DataFrame or Panel)."""
     if type(data) == np.ndarray:
-        return data
+        if data.dtype == np.int64:
+            return data.astype(np.int32)
+        elif data.dtype == np.float64:
+            return data.astype(np.float32)
+        else:
+            return data
     else:
-        return data.values
+        # Sort the DataFrame by increasing index.
+        # if isinstance(data, pd.DataFrame):
+        return data.sort_index().values
+        # elif isinstance(data, pd.Series):
+            # return data.sort_index().values
+        # else:
+            # return data.values
     
 
 # -----------------------------------------------------------------------------

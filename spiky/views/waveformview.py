@@ -201,13 +201,12 @@ class WaveformPositionManager(Manager):
         # default geometrical position
         if geometrical_positions is None:
             geometrical_positions = linear_positions.copy()
-                         
+        
         # normalize and save channel position
         self.channel_positions['Linear'] = \
             self.normalize_channel_positions('Linear', linear_positions)
         self.channel_positions['Geometrical'] = \
             self.normalize_channel_positions('Geometrical', geometrical_positions)
-              
         
         # set waveform positions
         self.update_arrangement(spatial_arrangement=spatial_arrangement,
@@ -417,8 +416,10 @@ class WaveformDataManager(Manager):
         
         # Relative indexing.
         if len(clusters_selected) > 0:
-            self.clusters_rel = np.digitize(self.clusters_array, sorted(clusters_selected)) - 1
-            self.clusters_rel_ordered = np.argsort(clusters_selected)[self.clusters_rel]
+            self.clusters_rel = np.array(np.digitize(self.clusters_array, 
+                sorted(clusters_selected)) - 1, dtype=np.int32)
+            self.clusters_rel_ordered = (np.argsort(clusters_selected)
+                [self.clusters_rel]).astype(np.int32)
         else:
             self.clusters_rel = np.zeros(0, dtype=np.int32)
             self.clusters_rel_ordered = np.zeros(0, dtype=np.int32)
@@ -582,8 +583,10 @@ class WaveformVisual(Visual):
         self.add_uniform("box_size_margin", vartype="float", ndim=2)
         self.add_uniform("probe_scale", vartype="float", ndim=2)
         self.add_uniform("superimposed", vartype="bool", ndim=1)
+        
+        # HACK: maximum number of channels
         self.add_uniform("channel_positions", vartype="float", ndim=2,
-            size=nchannels)
+            size=1000)
         
         
         ncolors = COLORMAP.shape[0]
@@ -655,7 +658,6 @@ class WaveformPaintManager(PlotPaintManager):
             # return self.data_manager.cluster_colors
         if name == "channel_positions":
             pos = self.position_manager.get_channel_positions()
-            # print pos
             return pos
     
     def auto_update_uniforms(self, *names):
@@ -707,10 +709,15 @@ class WaveformPaintManager(PlotPaintManager):
             visible=False)
         
     def update(self):
-        size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples, self.data_manager.npoints)
+        size, bounds = WaveformVisual.get_size_bounds(
+            self.data_manager.nsamples, self.data_manager.npoints)
         cluster = self.data_manager.clusters_full
         cluster_colors = self.data_manager.cluster_colors_array
         cmap_index = cluster_colors[cluster]
+        
+        box_size = self.get_uniform_value('box_size')
+        box_size_margin = self.get_uniform_value('box_size_margin')
+        channel_positions = self.get_uniform_value('channel_positions')
     
         self.set_data(visual='waveforms', 
             size=size,
@@ -722,9 +729,13 @@ class WaveformPaintManager(PlotPaintManager):
             cluster_depth=self.data_manager.clusters_full_depth,
             cmap_index=cmap_index,
             channel=self.data_manager.channels_full,
-            highlight=self.highlight_manager.highlight_mask)
+            highlight=self.highlight_manager.highlight_mask,
+            # auto update uniforms
+            box_size=box_size,
+            box_size_margin=box_size_margin,
+            channel_positions=channel_positions,
+            )
             
-        
         # average waveforms
         size, bounds = WaveformVisual.get_size_bounds(self.data_manager.nsamples_avg, self.data_manager.npoints_avg)
         cluster = self.data_manager.clusters_full_avg
@@ -741,10 +752,11 @@ class WaveformPaintManager(PlotPaintManager):
             cluster_depth=self.data_manager.clusters_full_depth_avg,
             cmap_index=cluster_colors[self.data_manager.clusters_full_avg],
             channel=self.data_manager.channels_full_avg,
-            highlight=np.zeros(size, dtype=np.int32))
-            
-        self.auto_update_uniforms('box_size', 'box_size_margin',
-            "channel_positions"
+            highlight=np.zeros(size, dtype=np.int32),
+            # auto update uniforms
+            box_size=box_size,
+            box_size_margin=box_size_margin,
+            channel_positions=channel_positions,
             )
 
 

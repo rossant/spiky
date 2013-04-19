@@ -3,6 +3,8 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
+import numpy as np
+
 from qtools import inthread, inprocess
 from qtools import QtGui, QtCore
 
@@ -18,6 +20,13 @@ class OpenTask(QtCore.QObject):
         loader = KlustersLoader(path)
         self.dataOpened.emit(loader)
 
+class SelectTask(QtCore.QObject):
+    clustersSelected = QtCore.pyqtSignal(np.ndarray)
+    
+    def select(self, loader, clusters):
+        loader.select(clusters=clusters)
+        self.clustersSelected.emit(np.array(clusters))
+        
 
 # -----------------------------------------------------------------------------
 # Container
@@ -25,9 +34,11 @@ class OpenTask(QtCore.QObject):
 class ThreadedTasks(QtCore.QObject):
     def __init__(self):
         self.open_task = inthread(OpenTask)()
+        self.select_task = inthread(SelectTask)(impatient=True)
 
     def join(self):
         self.open_task.join()
+        self.select_task.join()
         
     def terminate(self):
         pass

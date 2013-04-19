@@ -37,10 +37,6 @@ class ViewDockWidget(QtGui.QDockWidget):
 # -----------------------------------------------------------------------------
 # Main Window
 # -----------------------------------------------------------------------------
-# class EventFilter(QtCore.QObject):
-    # def eventFilter(self, obj, e):
-        # return super(EventFilter, self).eventFilter(obj, e)
-
 class MainWindow(QtGui.QMainWindow):
     
     def __init__(self):
@@ -124,6 +120,9 @@ class MainWindow(QtGui.QMainWindow):
     # Callback functions.
     # -------------------
     def open_callback(self, checked):
+        # HACK: Force release of Ctrl key.
+        self.force_key_release()
+        
         folder = SETTINGS['main_window.last_data_dir']
         path = QtGui.QFileDialog.getOpenFileName(self, 
             "Open a file (.clu or other)", folder)[0]
@@ -151,12 +150,31 @@ class MainWindow(QtGui.QMainWindow):
     def add_correlograms_view_callback(self, checked):
         self.add_correlograms_view()
     
+    # Clusters callbacks.
+    def clusters_selected_callback(self, clusters):
+        self.tasks.select_task.select(self.loader, clusters)
+    
+    
+    # Task callbacks.
+    # ---------------
+    def open_done(self, loader):
+        # Save the loader object.
+        self.loader = loader
+        # Update the views.
+        self.update_cluster_view()
+        
+    def selection_done(self, clusters):
+        # print len(self.loader.get_features())
+        # print "done", clusters
+        self.update_waveform_view()
+    
     
     # Threads.
     # --------
     def create_threads(self):
         self.tasks = ThreadedTasks()
         self.tasks.open_task.dataOpened.connect(self.open_done)
+        self.tasks.select_task.clustersSelected.connect(self.selection_done)
     
     def join_threads(self):
          self.tasks.join()
@@ -201,8 +219,11 @@ class MainWindow(QtGui.QMainWindow):
         return view
     
     def add_cluster_view(self):
-        self.views['ClusterView'].append(self.create_view(vw.ClusterView,
-            position=QtCore.Qt.LeftDockWidgetArea, closable=False))
+        view = self.create_view(vw.ClusterView,
+            position=QtCore.Qt.LeftDockWidgetArea, closable=False)
+        # Connect callback function when selecting clusters.
+        view.clustersSelected.connect(self.clusters_selected_callback)
+        self.views['ClusterView'].append(view)
         
     def add_correlation_matrix_view(self):
         self.views['CorrelationMatrixView'].append(self.create_view(vw.CorrelationMatrixView,
@@ -288,14 +309,16 @@ class MainWindow(QtGui.QMainWindow):
         )
         self.get_view('ClusterView').set_data(**data)
     
-    
-    # Task callbacks.
-    # ---------------
-    def open_done(self, loader):
-        # Save the loader object.
-        self.loader = loader
-        # Update the views.
-        self.update_cluster_view()
+    def update_waveform_view(self):
+        data = dict(
+            waveforms=self.loader.get_waveforms(),
+            clusters=self.loader.get_clusters(),
+            cluster_colors=self.loader.get_cluster_colors(),
+            clusters_selected=self.loader.get_clusters_selected(),
+            masks=self.loader.get_masks(),
+            geometrical_positions=self.loader.get_probe(),
+        )
+        self.get_view('WaveformView').set_data(**data)
     
     
     # Geometry.
@@ -318,9 +341,16 @@ class MainWindow(QtGui.QMainWindow):
     
     # Event handlers.
     # ---------------
-    # def force_key_release(self):
-        
+    def force_key_release(self):
+        """HACK: force release of Ctrl when opening a dialog with a keyboard
+        shortcut."""
+        self.keyReleaseEvent(QtGui.QKeyEvent(QtCore.QEvent.KeyRelease,
+            QtCore.Qt.Key_Control, QtCore.Qt.NoModifier))
     
+    def contextMenuEvent(self, e):
+        """Disable the context menu in the main window."""
+        return
+        
     def keyPressEvent(self, e):
         super(MainWindow, self).keyPressEvent(e)
         for views in self.views.values():

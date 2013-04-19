@@ -176,10 +176,7 @@ class KlustersLoader(object):
         try:
             self.probe = read_probe(self.filename_probe)
         except IOError:
-            # Die if no XML file is available for this dataset, as it contains
-            # critical metadata.
-            # raise IOError("The XML file is missing.")
-            pass
+            self.probe = None
         
         
         # Read features.
@@ -320,6 +317,9 @@ class KlustersLoader(object):
             spikes = get_spikes_in_clusters(clusters, self.clusters)    
         self.spikes_selected = spikes
         self.clusters_selected = clusters
+    
+    def get_clusters_selected(self):
+        return self.clusters_selected
     
     def get_features(self, spikes=None, clusters=None):
         if clusters is not None:

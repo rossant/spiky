@@ -25,17 +25,19 @@ from spiky.views.tests.utils import show_view, get_data
 def test_waveformview():
     
     keys = ('waveforms,clusters,cluster_colors,clusters_selected,masks,'
-            'geometrical_positions').split(',')
+            'geometrical_positions'
+            ).split(',')
            
     data = get_data()
     kwargs = {k: data[k] for k in keys}
     
-    kwargs['operators'] = [
+    operators = [
+        # lambda self: self.view.set_data(**kwargs),
         lambda self: (self.close() 
             if USERPREF['test_auto_close'] != False else None),
     ]
     
     # Show the view.
-    show_view(WaveformView, **kwargs)
+    show_view(WaveformView, operators=operators, **kwargs)
     
     
