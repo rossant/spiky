@@ -4,6 +4,7 @@
 # Imports
 # -----------------------------------------------------------------------------
 import pprint
+import os
 import inspect
 from collections import OrderedDict
 
@@ -43,9 +44,35 @@ class MainWindow(QtGui.QMainWindow):
         # Create the views.
         self.create_views()
         
+        # Set the custom Qt styles.
+        self.set_styles()
+
+        # Restore the geometry right before showing the window.
         self.restore_geometry()
         
+        # Show the main window.
         self.show()
+    
+    def set_styles(self):
+        # set stylesheet
+        path = os.path.dirname(os.path.realpath(__file__))
+        path = os.path.join(path, "styles.css")
+        with open(path, 'r') as f:
+            stylesheet = f.read()
+        stylesheet = stylesheet.replace('%ACCENT%', '#cdcdcd')
+        stylesheet = stylesheet.replace('%ACCENT2%', '#a0a0a0')
+        stylesheet = stylesheet.replace('%ACCENT3%', '#909090')
+        stylesheet = stylesheet.replace('%ACCENT4%', '#cdcdcd')
+        self.setStyleSheet(stylesheet)
+    
+    
+    # Actions.
+    # --------
+    def create_actions(self):
+        pass
+    
+    def create_menu(self):
+        pass
     
     
     # View methods.
@@ -56,7 +83,7 @@ class MainWindow(QtGui.QMainWindow):
         # Create the default layout.
         self.views = {}
         self.views['ClusterView'] = self.add_view(vw.ClusterView,
-            position=QtCore.Qt.LeftDockWidgetArea,)
+            position=QtCore.Qt.LeftDockWidgetArea, closable=False)
         self.views['CorrelationMatrixView'] = self.add_view(vw.CorrelationMatrixView,
             position=QtCore.Qt.LeftDockWidgetArea,)
             
@@ -86,8 +113,9 @@ class MainWindow(QtGui.QMainWindow):
             self.views['CorrelogramsView'], 
             QtCore.Qt.Vertical
             )
-        
-    def add_view(self, view_class, position=None, **kwargs):
+    
+    def add_view(self, view_class, position=None, 
+        closable=True, **kwargs):
         """Add a widget to the main window."""
         view = view_class(self, getfocus=False)
         view.set_data(**kwargs)
@@ -98,12 +126,18 @@ class MainWindow(QtGui.QMainWindow):
         dockwidget = QtGui.QDockWidget(view_class.__name__)
         dockwidget.setObjectName(view_class.__name__)
         dockwidget.setWidget(view)
+        dockwidget.view = view
         
         # Set dock widget options.
-        dockwidget.setFeatures(
-            QtGui.QDockWidget.DockWidgetClosable | \
-            QtGui.QDockWidget.DockWidgetFloatable | \
-            QtGui.QDockWidget.DockWidgetMovable)
+        if closable:
+            options = (QtGui.QDockWidget.DockWidgetClosable | 
+                QtGui.QDockWidget.DockWidgetFloatable | 
+                QtGui.QDockWidget.DockWidgetMovable)
+        else:
+            options = (QtGui.QDockWidget.DockWidgetFloatable | 
+                QtGui.QDockWidget.DockWidgetMovable)
+            
+        dockwidget.setFeatures(options)
         dockwidget.setAllowedAreas(
             QtCore.Qt.LeftDockWidgetArea |
             QtCore.Qt.RightDockWidgetArea |
@@ -114,24 +148,24 @@ class MainWindow(QtGui.QMainWindow):
         self.addDockWidget(position, dockwidget)
         
         return dockwidget
-        
+    
     
     # Geometry.
     # ---------
     def save_geometry(self):
         """Save the arrangement of the whole window."""
-        SETTINGS['main_window_geometry'] = encode_bytearray(
+        SETTINGS['main_window.geometry'] = encode_bytearray(
             self.saveGeometry())
-        SETTINGS['main_window_state'] = encode_bytearray(self.saveState())
+        SETTINGS['main_window.state'] = encode_bytearray(self.saveState())
         
     def restore_geometry(self):
-        """Restore the arrangement of the whole window from a INI file."""
-        g = SETTINGS['main_window_geometry']
-        w = SETTINGS['main_window_state']
+        """Restore the arrangement of the whole window."""
+        g = SETTINGS['main_window.geometry']
+        s = SETTINGS['main_window.state']
         if g:
             self.restoreGeometry(decode_bytearray(g))
-        if w:
-            self.restoreState(decode_bytearray(w))
+        if s:
+            self.restoreState(decode_bytearray(s))
     
     
     # Event handlers.
@@ -149,6 +183,9 @@ class MainWindow(QtGui.QMainWindow):
     def closeEvent(self, e):
         # Save the window geometry when closing the software.
         self.save_geometry()
+        for view in self.views.values():
+            if hasattr(view.view, 'closeEvent'):
+                view.view.closeEvent(e)
         return super(MainWindow, self).closeEvent(e)
             
             

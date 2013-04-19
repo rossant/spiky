@@ -16,6 +16,7 @@ from spiky.io.selection import get_indices
 from spiky.utils.colors import COLORMAP
 import spiky.utils.logger as log
 from spiky.utils.settings import SETTINGS
+from spiky.utils.persistence import encode_bytearray, decode_bytearray
 
 
 # Generic classes
@@ -660,6 +661,7 @@ class ClusterView(QtGui.QTreeView):
         self.create_actions()
         self.create_context_menu()
         
+        self.restore_geometry()
     
     # Data methods
     # ------------
@@ -691,6 +693,8 @@ class ClusterView(QtGui.QTreeView):
         # HACK: drag is triggered in the model, so connect it to move_clusters
         # in this function
         self.model.clustersMoved.connect(self.move_clusters)
+        
+        self.restore_geometry()
         
     
     # Public methods
@@ -998,5 +1002,27 @@ class ClusterView(QtGui.QTreeView):
     def sizeHint(self):
         return QtCore.QSize(300, 600)
         
+    
+    # Save and restore geometry
+    # -------------------------
+    def save_geometry(self):
+        SETTINGS['cluster_widget.geometry'] = encode_bytearray(
+            self.saveGeometry())
+        SETTINGS['cluster_widget.header'] = encode_bytearray(
+            self.header().saveState())
+        
+    def restore_geometry(self):
+        g = SETTINGS['cluster_widget.geometry']
+        h = SETTINGS['cluster_widget.header']
+        if g:
+            self.restoreGeometry(decode_bytearray(g))
+        if h:
+            self.header().restoreState(decode_bytearray(h))
+    
+        
+    def closeEvent(self, e):
+        # Save the window geometry when closing the software.
+        self.save_geometry()
+        return super(ClusterView, self).closeEvent(e)
         
         
