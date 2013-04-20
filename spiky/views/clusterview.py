@@ -647,8 +647,7 @@ class ClusterView(QtGui.QTreeView):
             self.setFocusPolicy(QtCore.Qt.WheelFocus)
         else:
             self.setFocusPolicy(QtCore.Qt.NoFocus)
-        
-        # Capture keyboard events.
+
         self.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.setAllColumnsShowFocus(True)

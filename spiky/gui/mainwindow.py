@@ -167,6 +167,7 @@ class MainWindow(QtGui.QMainWindow):
         # print len(self.loader.get_features())
         # print "done", clusters
         self.update_waveform_view()
+        self.update_feature_view()
     
     
     # Threads.
@@ -320,6 +321,20 @@ class MainWindow(QtGui.QMainWindow):
         )
         self.get_view('WaveformView').set_data(**data)
     
+    def update_feature_view(self):
+        data = dict(
+            features=self.loader.get_features(),
+            masks=self.loader.get_masks(),
+            clusters=self.loader.get_clusters(),
+            clusters_selected=self.loader.get_clusters_selected(),
+            cluster_colors=self.loader.get_cluster_colors(),
+            nchannels=self.loader.nchannels,
+            fetdim=self.loader.fetdim,
+            nextrafet=self.loader.nextrafet,
+        )
+        self.get_view('FeatureView').set_data(**data)
+
+        
     
     # Geometry.
     # ---------
