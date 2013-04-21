@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from spiky.io.selection import (select, select_pairs, get_spikes_in_clusters,
-    to_array)
+    to_array, get_some_spikes_in_clusters)
 
 
 # -----------------------------------------------------------------------------
@@ -74,8 +74,22 @@ def test_select_pandas():
 def test_select_single():
     indices = [10, 20, 25]
     clusters = generate_clusters(indices)
+    assert select(clusters, 10) == 1
+
+def test_select_some():
+    nspikes = 100
+    clusters = np.zeros(nspikes, dtype=np.int32)
+    for i in xrange(1, 10):
+        clusters[range(i, nspikes, 10)] = i
+    clusters_selected = [2, 3, 5]
+    nspikes_max_expected = 20
+    nspikes_per_cluster_min = 2
+    spikes = get_some_spikes_in_clusters(clusters_selected, clusters,
+        nspikes_max_expected=nspikes_max_expected,
+        nspikes_per_cluster_min=nspikes_per_cluster_min)
     
-    print select(clusters, 3)
+    assert len(spikes) >= nspikes_per_cluster_min * len(clusters_selected)
+    
     
 def test_select_array():
     # All spikes in cluster 1.

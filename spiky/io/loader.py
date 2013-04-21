@@ -13,7 +13,9 @@ import pandas as pd
 
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
     load_binary, load_pickle)
-from selection import select, select_pairs, get_spikes_in_clusters
+from selection import (select, select_pairs, get_spikes_in_clusters,
+    get_some_spikes_in_clusters)
+from spiky.utils.userpref import USERPREF
 from spiky.utils.logger import debug, info, warn
 from spiky.utils.colors import COLORS_COUNT
 
@@ -110,9 +112,9 @@ def read_probe(filename_probe):
 
 
 # -----------------------------------------------------------------------------
-# KlustersLoader class
+# Generic Loader class
 # -----------------------------------------------------------------------------
-class KlustersLoader(object):
+class Loader(object):
     
     # Initialization methods
     # ----------------------
@@ -128,6 +130,134 @@ class KlustersLoader(object):
         self.clusters_selected = None
         if filename:
             self.open(filename)
+    
+    def open(self, filename):
+        pass
+    
+    
+    # Input-Output methods
+    # --------------------
+    def read(self):
+        pass
+    
+    def save(self):
+        pass
+    
+    
+    # Access to the data: spikes
+    # --------------------------
+    def select(self, spikes=None, clusters=None):
+        pass
+    
+    def get_clusters_selected(self):
+        return self.clusters_selected
+    
+    def get_features(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
+        if spikes is None:
+            spikes = self.spikes_selected
+        return select(self.features, spikes)
+    
+    def get_spiketimes(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
+        if spikes is None:
+            spikes = self.spikes_selected
+        return select(self.spiketimes, spikes)
+    
+    def get_clusters(self, spikes=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
+        if spikes is None:
+            spikes = self.spikes_selected
+        return select(self.clusters, spikes)
+    
+    def get_masks(self, spikes=None, full=None, clusters=None):
+        if clusters is not None:
+            spikes = get_spikes_in_clusters(clusters, self.clusters)
+        if spikes is None:
+            spikes = self.spikes_selected
+        if not full:
+            masks = self.masks
+        else:
+            masks = self.masks_full
+        return select(masks, spikes)
+    
+    def get_waveforms(self, spikes=None, clusters=None):
+        if spikes is not None:
+            return select(self.waveforms, spikes)
+        else:
+            if clusters is None:
+                clusters = self.clusters_selected
+            if clusters is not None:
+                spikes = get_some_spikes_in_clusters(clusters, self.clusters,
+                    nspikes_max_expected=USERPREF['waveforms_nspikes_max_expected'],
+                    nspikes_per_cluster_min=USERPREF['waveforms_nspikes_per_cluster_min'])
+            else:
+                spikes = self.spikes_selected
+        return select(self.waveforms, spikes)
+    
+    
+    # Access to the data: clusters
+    # ----------------------------
+    def get_cluster_colors(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select(self.cluster_colors, clusters)
+    
+    def get_cluster_groups(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select(self.cluster_groups, clusters)
+    
+    def get_group_colors(self, groups=None):
+        return select(self.group_colors, groups)
+    
+    def get_group_names(self, groups=None):
+        return select(self.group_names, groups)
+    
+    def get_cluster_sizes(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        counter = Counter(self.clusters)
+        sizes = pd.Series(counter, dtype=np.int32)
+        return select(sizes, clusters)
+    
+    
+    # Access to the data: stats
+    # -------------------------
+    def get_correlograms(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return select_pairs(self.correlograms, clusters)
+        
+    def get_correlation_matrix(self):
+        return self.correlation_matrix
+        
+        
+    # Access to the data: misc
+    # ------------------------
+    def get_probe(self):
+        return self.probe
+    
+    
+    # Setters
+    # -------
+    def set_correlograms(self, correlograms):
+        self.correlograms.update(correlograms)
+        
+    def set_correlation_matrix(self, correlation_matrix):
+        self.correlation_matrix = correlation_matrix
+        
+    # def invalidate_correlograms(self, cluster_indices):
+        # pass
+
+    
+# -----------------------------------------------------------------------------
+# Klusters Loader
+# -----------------------------------------------------------------------------
+class KlustersLoader(Loader):
     
     def open(self, filename):
         """Open a file."""
@@ -151,7 +281,6 @@ class KlustersLoader(object):
             self.filename_mask = find_filename(self.filename, 'mask')
         self.filename_spk = find_filename(self.filename, 'spk')
         self.filename_probe = find_filename(self.filename, 'probe')
-    
     
     # Input-Output methods
     # --------------------
@@ -288,141 +417,29 @@ class KlustersLoader(object):
     def save(self):
         pass
     
-    def close(self):
-        self.spikes_selected = None
-        self.clusters_selected = None
+    # def close(self):
+        # self.spikes_selected = None
+        # self.clusters_selected = None
         
-        self.filename = None
-        self.fileindex = None
-        self.filename_xml = None
-        self.filename_fet = None
-        self.filename_clu = None
-        self.filename_mask = None
-        self.filename_spk = None
+        # self.filename = None
+        # self.fileindex = None
+        # self.filename_xml = None
+        # self.filename_fet = None
+        # self.filename_clu = None
+        # self.filename_mask = None
+        # self.filename_spk = None
         
-        self.features = None
-        self.spiketimes = None
-        self.clusters = None
-        self.masks = None
-        self.masks_full = None
-        self.waveforms = None
+        # self.features = None
+        # self.spiketimes = None
+        # self.clusters = None
+        # self.masks = None
+        # self.masks_full = None
+        # self.waveforms = None
         
-        self.metadata = {}
+        # self.metadata = {}
     
-    
-    # Access to the data: spikes
-    # --------------------------
     def select(self, spikes=None, clusters=None):
         if clusters is not None:
             spikes = get_spikes_in_clusters(clusters, self.clusters)    
         self.spikes_selected = spikes
         self.clusters_selected = clusters
-    
-    def get_clusters_selected(self):
-        return self.clusters_selected
-    
-    def get_features(self, spikes=None, clusters=None):
-        if clusters is not None:
-            spikes = get_spikes_in_clusters(clusters, self.clusters)
-        if spikes is None:
-            spikes = self.spikes_selected
-        return select(self.features, spikes)
-    
-    def get_spiketimes(self, spikes=None, clusters=None):
-        if clusters is not None:
-            spikes = get_spikes_in_clusters(clusters, self.clusters)
-        if spikes is None:
-            spikes = self.spikes_selected
-        return select(self.spiketimes, spikes)
-    
-    def get_clusters(self, spikes=None, clusters=None):
-        if clusters is not None:
-            spikes = get_spikes_in_clusters(clusters, self.clusters)
-        if spikes is None:
-            spikes = self.spikes_selected
-        return select(self.clusters, spikes)
-    
-    def get_masks(self, spikes=None, full=None, clusters=None):
-        if clusters is not None:
-            spikes = get_spikes_in_clusters(clusters, self.clusters)
-        if spikes is None:
-            spikes = self.spikes_selected
-        if not full:
-            masks = self.masks
-        else:
-            masks = self.masks_full
-        return select(masks, spikes)
-    
-    def get_waveforms(self, spikes=None, clusters=None):
-        if clusters is not None:
-            spikes = get_spikes_in_clusters(clusters, self.clusters)
-        if spikes is None:
-            spikes = self.spikes_selected
-        return select(self.waveforms, spikes)
-    
-    
-    # Access to the data: clusters
-    # ----------------------------
-    def get_cluster_colors(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        return select(self.cluster_colors, clusters)
-    
-    def get_cluster_groups(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        return select(self.cluster_groups, clusters)
-    
-    def get_group_colors(self, groups=None):
-        return select(self.group_colors, groups)
-    
-    def get_group_names(self, groups=None):
-        return select(self.group_names, groups)
-    
-    def get_cluster_sizes(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        counter = Counter(self.clusters)
-        sizes = pd.Series(counter, dtype=np.int32)
-        return select(sizes, clusters)
-    
-    
-    # Access to the data: stats
-    # -------------------------
-    def get_correlograms(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        return select_pairs(self.correlograms, clusters)
-        
-    def get_correlation_matrix(self):
-        return self.correlation_matrix
-        
-        
-    # Access to the data: misc
-    # ------------------------
-    def get_probe(self):
-        return self.probe
-    
-    
-    # Setters
-    # -------
-    def set_correlograms(self, correlograms):
-        self.correlograms.update(correlograms)
-        
-    def set_correlation_matrix(self, correlation_matrix):
-        self.correlation_matrix = correlation_matrix
-        
-    # def invalidate_correlograms(self, cluster_indices):
-        # pass
-    
-    
-    # Access to the data: clusters
-    # ----------------------------
-    def get_clusters_info(self, clusters=None):
-        pass
-
-    def get_groups_info(self, groups=None):
-        pass
-
-    
-    

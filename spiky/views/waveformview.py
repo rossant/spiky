@@ -407,7 +407,13 @@ class WaveformDataManager(Manager):
             clusters = np.zeros(0, dtype=np.int32)
             cluster_colors = np.zeros(0, dtype=np.int32)
             clusters_selected = []
-                 
+        
+        # Not all waveforms have been selected, so select the appropriate 
+        # samples in clusters and masks.
+        self.waveform_indices = get_indices(waveforms)
+        masks = select(masks, self.waveform_indices)
+        clusters = select(clusters, self.waveform_indices)
+        
         # Convert from Pandas into raw NumPy arrays.
         self.waveforms_array = get_array(waveforms)
         self.masks_array = get_array(masks)
@@ -434,7 +440,6 @@ class WaveformDataManager(Manager):
         self.clusters = clusters
         # self.cluster_colors = cluster_colors
         self.masks = masks
-        self.waveform_indices = get_indices(self.waveforms)
         
         # Prepare GPU data.
         self.data = self.prepare_waveform_data()

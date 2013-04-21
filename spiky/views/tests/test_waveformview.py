@@ -31,6 +31,9 @@ def test_waveformview():
     data = get_data()
     kwargs = {k: data[k] for k in keys}
     
+    
+    # kwargs['clusters'] = 
+    
     operators = [
         # lambda self: self.view.set_data(**kwargs),
         lambda self: (self.close() 

@@ -108,6 +108,6 @@ def test_klusters_loader():
     
     # Close the loader.
     # -----------------
-    l.close()
+    # l.close()
 
     
