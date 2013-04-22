@@ -35,6 +35,3 @@ def test_compute_correlations():
     assert matrix[0,1] > 100 * matrix[1, 2]
     
     
-    
-    
-    

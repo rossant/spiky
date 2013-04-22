@@ -9,6 +9,8 @@ from qtools import inthread, inprocess
 from qtools import QtGui, QtCore
 
 from spiky.io import KlustersLoader
+from spiky.io.selection import to_array
+from spiky.stats import compute_correlograms
 
 # -----------------------------------------------------------------------------
 # Tasks
@@ -27,7 +29,18 @@ class SelectTask(QtCore.QObject):
         loader.select(clusters=clusters)
         self.clustersSelected.emit(np.array(clusters))
         
+class CorrelogramsTask(QtCore.QObject):
+    correlogramsComputed = QtCore.pyqtSignal(np.ndarray, object)
+    
+    def compute(self, spiketimes, clusters, clusters_selected,
+            halfwidth=None, bin=None):
+        correlograms = compute_correlograms(spiketimes, clusters,
+            clusters_to_update=clusters_selected,
+            halfwidth=halfwidth, bin=bin)
+        self.correlogramsComputed.emit(np.array(clusters_selected),
+            correlograms)
 
+    
 # -----------------------------------------------------------------------------
 # Container
 # -----------------------------------------------------------------------------
@@ -35,10 +48,12 @@ class ThreadedTasks(QtCore.QObject):
     def __init__(self):
         self.open_task = inthread(OpenTask)()
         self.select_task = inthread(SelectTask)(impatient=True)
+        self.correlograms_task = inthread(CorrelogramsTask)(impatient=True)
 
     def join(self):
         self.open_task.join()
         self.select_task.join()
+        self.correlograms_task.join()
         
     def terminate(self):
         pass

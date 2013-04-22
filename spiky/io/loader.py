@@ -403,8 +403,9 @@ class KlustersLoader(Loader):
         # -----------------------------
         # TODO: compute them in an external process
         cluster_max = self.clusters.max()
-        self.correlograms = {}
         self.ncorrbins = 50
+        self.corrbin = .001
+        self.correlograms = {}
         self.correlation_matrix = np.zeros((self.nclusters, self.nclusters))
     
         # Save data set parameters.

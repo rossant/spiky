@@ -15,6 +15,7 @@ from galry import QtGui, QtCore
 from qtools import inprocess, inthread
 
 import spiky.views as vw
+from spiky.io.selection import to_array
 from spiky.io.loader import KlustersLoader
 import spiky.utils.logger as log
 from spiky.utils.persistence import encode_bytearray, decode_bytearray
@@ -173,8 +174,9 @@ class MainWindow(QtGui.QMainWindow):
     
     # Clusters callbacks.
     def clusters_selected_callback(self, clusters):
+        # Launch cluster selection on the Loader in an external thread.
         self.tasks.select_task.select(self.loader, clusters)
-    
+        
     
     # Task callbacks.
     # ---------------
@@ -184,12 +186,28 @@ class MainWindow(QtGui.QMainWindow):
         # Update the views.
         self.update_cluster_view()
         
-    def selection_done(self, clusters):
-        # print len(self.loader.get_features())
-        # print "done", clusters
+    def selection_done(self, clusters_selected):
+        """Called on the main thread once the clusters have been loaded 
+        in the main thread."""
+        
+        # Launch the computation of the correlograms.
+        spiketimes = to_array(self.loader.get_spiketimes())
+        clusters = to_array(self.loader.get_clusters())
+        bin = self.loader.corrbin
+        halfwidth = self.loader.ncorrbins * bin / 2
+        self.tasks.correlograms_task.compute(spiketimes, clusters,
+            clusters_selected, halfwidth=halfwidth, bin=bin)
+    
+        # Update the different views.
         self.update_waveform_view()
         self.update_feature_view()
+        # self.update_correlograms_view()
     
+    def correlograms_computed(self, clusters, correlograms):
+        if set(self.loader.get_clusters_selected()) == set(clusters):
+            self.loader.set_correlograms(correlograms)
+            self.update_correlograms_view()
+        
     
     # Threads.
     # --------
@@ -197,6 +215,8 @@ class MainWindow(QtGui.QMainWindow):
         self.tasks = ThreadedTasks()
         self.tasks.open_task.dataOpened.connect(self.open_done)
         self.tasks.select_task.clustersSelected.connect(self.selection_done)
+        self.tasks.correlograms_task.correlogramsComputed.connect(
+            self.correlograms_computed)
     
     def join_threads(self):
          self.tasks.join()
@@ -357,6 +377,15 @@ class MainWindow(QtGui.QMainWindow):
             nextrafet=self.loader.nextrafet,
         )
         [view.set_data(**data) for view in self.get_views('FeatureView')]
+        
+    def update_correlograms_view(self):
+        data = dict(
+            correlograms=self.loader.get_correlograms(),
+            clusters_selected=self.loader.get_clusters_selected(),
+            cluster_colors=self.loader.get_cluster_colors(),
+            ncorrbins=self.loader.ncorrbins,
+        )
+        [view.set_data(**data) for view in self.get_views('CorrelogramsView')]
         
     
     # Geometry.

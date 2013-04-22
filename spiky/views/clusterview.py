@@ -653,6 +653,7 @@ class ClusterView(QtGui.QTreeView):
         # self.setFirstColumnSpanned(0, QtCore.QModelIndex(), True)
         # select full rows
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.setMaximumWidth(300)
         
         # self.setRootIsDecorated(False)
         self.setItemDelegate(self.ClusterDelegate())

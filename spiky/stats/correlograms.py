@@ -89,18 +89,3 @@ def compute_correlograms(spiketimes, clusters, clusters_to_update=None,
         
     return correlograms
     
-    
-if __name__ == '__main__':
-    
-    
-    filename = r"D:\Git\spiky\_test\data\test.clu.1"
-    from spiky.io.loader import KlustersLoader
-    l = KlustersLoader(filename)
-    
-    spiketimes = l.get_spiketimes()
-    clusters = l.get_clusters()
-    
-    corr = compute_correlograms(spiketimes, clusters,
-        halfwidth=.1, bin=.001)
-    
-    

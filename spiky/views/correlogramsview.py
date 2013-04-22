@@ -29,7 +29,7 @@ VERTEX_SHADER = """
     box_position.y = -1 + a * (1 + 2 * margin) * (2 * cluster.y + 1);
     
     vec2 transformed_position = position;
-    //transformed_position.y = 2 * transformed_position.y - 1;
+    transformed_position.y = 2 * transformed_position.y - 1;
     transformed_position = box_position + a * transformed_position;
 """
 
@@ -84,12 +84,16 @@ def get_correlograms_array(correlograms, clusters_selected=None,
         # The dictionary contains half of the pairs, the other half can be
         # deduced from the symmetric pair.
         if clu0 <= clu1:
-            correlogram = correlograms[(clu0, clu1)]
+            correlogram = correlograms.get((clu0, clu1), None)
         else:
-            correlogram = correlograms[(clu1, clu0)][::-1]
-        correlograms_array[index, :] = correlogram
+            correlogram = correlograms.get((clu1, clu0), None)
+            if correlogram is not None:
+                correlogram = correlogram[::-1]
+        if correlogram is not None:
+            correlograms_array[index, :] = correlogram
     return correlograms_array
 
+    
 # -----------------------------------------------------------------------------
 # Data manager
 # -----------------------------------------------------------------------------
@@ -98,7 +102,7 @@ class CorrelogramsDataManager(Manager):
         clusters_selected=None, ncorrbins=None):
         
         if correlograms is None:
-            correlograms = np.zeros(0)
+            correlograms = {}
             cluster_colors = np.zeros(0)
             clusters_selected = []
             ncorrbins = 0            
@@ -109,6 +113,7 @@ class CorrelogramsDataManager(Manager):
         self.clusters_selected = clusters_selected
         self.clusters_unique = sorted(clusters_selected)
         self.nclusters = len(clusters_selected)
+        self.cluster_colors_array = get_array(cluster_colors)
         
         # HACK: if correlograms is empty, ncorrelograms == 1 here!
         if self.correlograms_array.size == 0:
@@ -148,7 +153,7 @@ class CorrelogramsDataManager(Manager):
         self.position = np.empty((n, 2), dtype=np.float32)
         self.position[:,0] = X.ravel()
         self.position[:,1] = Y.ravel()
-        
+    
         # baselines of the correlograms
         self.baselines = baselines
         
@@ -160,7 +165,8 @@ class CorrelogramsDataManager(Manager):
             
         color_array_index = np.zeros(self.ncorrelograms, dtype=np.int32)
         
-        color_array_index[identity] = np.array(cluster_colors + 1, dtype=np.int32)
+        color_array_index[identity] = np.array(self.cluster_colors_array + 1, 
+            dtype=np.int32)
         # very first color in color map = white (cross-correlograms)
         self.color = np.vstack((np.ones((1, 3)), COLORMAP))
         self.color_array_index = color_array_index
@@ -183,6 +189,7 @@ class CorrelogramsVisual(PlotVisual):
             nprimitives=ncorrelograms,
             color=color,
             color_array_index=color_array_index,
+            autonormalizable=False,
             )
             
         self.primitive_type = 'TRIANGLE_STRIP'
@@ -334,6 +341,7 @@ class CorrelogramsBindings(SpikyBindings):
 # -----------------------------------------------------------------------------
 class CorrelogramsView(GalryWidget):
     def __init__(self, *args, **kwargs):
+        # Activate antialiasing.
         format = QtOpenGL.QGLFormat()
         format.setSampleBuffers(True)
         kwargs['format'] = format
@@ -360,3 +368,4 @@ class CorrelogramsView(GalryWidget):
             
     def sizeHint(self):
         return QtCore.QSize(400, 400)
+    

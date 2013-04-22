@@ -48,14 +48,16 @@ class StatsCache(object):
             if key in self.cluster_pair_stats:
                 return self.get_cluster_pair_stats(key[0], key[1])
             else:
-                raise IndexError(("Cluster pair ({0:d}, {1:d}) is not "
-                                  "in the cache.").format(*key))
+                return None
+                # raise IndexError(("Cluster pair ({0:d}, {1:d}) is not "
+                                  # "in the cache.").format(*key))
         else:
             if key in self.cluster_stats:
                 return self.get_cluster_stats(key)
             else:
-                raise IndexError(("Cluster {0:d} is not "
-                                  "in the cache.").format(key))
+                return None
+                # raise IndexError(("Cluster {0:d} is not "
+                                  # "in the cache.").format(key))
             
     
     # Update methods
