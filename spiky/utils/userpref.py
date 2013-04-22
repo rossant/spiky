@@ -28,11 +28,18 @@ def load(filepath, appname=''):
         log.exception("An exception occurred in the user preferences file.")
     return preferences
     
-def save(filepath, preferences="", appname=''):
-    """Save the preferences in the file."""
+def save(filepath, preferences=None, appname=''):
+    """Save the preferences in the file, only for the default file."""
+    if preferences is None:
+        default = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            'preferences_default.py')
+        with open(default, 'r') as f:
+            preferences = f.read()
     with open(filepath, 'w') as f:
-        f.write("# User preferences for {0:s}\n{1:s}".format(appname,
-            preferences))
+        f.write(preferences)
+        # f.write("# User preferences for {0:s}\n{1:s}".format(appname,
+            # preferences))
     return preferences
 
 
