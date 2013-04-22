@@ -227,13 +227,13 @@ class Loader(object):
     
     # Access to the data: stats
     # -------------------------
-    def get_correlograms(self, clusters=None):
-        if clusters is None:
-            clusters = self.clusters_selected
-        return select_pairs(self.correlograms, clusters)
+    # def get_correlograms(self, clusters=None):
+        # if clusters is None:
+            # clusters = self.clusters_selected
+        # return select_pairs(self.correlograms, clusters)
         
-    def get_correlation_matrix(self):
-        return self.correlation_matrix
+    # def get_correlation_matrix(self):
+        # return self.correlation_matrix
         
         
     # Access to the data: misc
@@ -244,11 +244,11 @@ class Loader(object):
     
     # Setters
     # -------
-    def set_correlograms(self, correlograms):
-        self.correlograms.update(correlograms)
+    # def set_correlograms(self, correlograms):
+        # self.correlograms.update(correlograms)
         
-    def set_correlation_matrix(self, correlation_matrix):
-        self.correlation_matrix = correlation_matrix
+    # def set_correlation_matrix(self, correlation_matrix):
+        # self.correlation_matrix = correlation_matrix
         
     # def invalidate_correlograms(self, cluster_indices):
         # pass
@@ -405,8 +405,8 @@ class KlustersLoader(Loader):
         cluster_max = self.clusters.max()
         self.ncorrbins = 50
         self.corrbin = .001
-        self.correlograms = {}
-        self.correlation_matrix = np.zeros((self.nclusters, self.nclusters))
+        # self.correlograms = {}
+        # self.correlation_matrix = np.zeros((self.nclusters, self.nclusters))
     
         # Save data set parameters.
         self.nsamples = nsamples

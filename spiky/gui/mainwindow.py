@@ -17,6 +17,7 @@ from qtools import inprocess, inthread
 import spiky.views as vw
 from spiky.io.selection import to_array
 from spiky.io.loader import KlustersLoader
+from spiky.stats.cache import StatsCache
 import spiky.utils.logger as log
 from spiky.utils.persistence import encode_bytearray, decode_bytearray
 from spiky.utils.settings import SETTINGS
@@ -186,32 +187,52 @@ class MainWindow(QtGui.QMainWindow):
         # Update the views.
         self.update_cluster_view()
         
-    def selection_done(self, clusters_selected):
-        """Called on the main thread once the clusters have been loaded 
-        in the main thread."""
-        
-        # Launch the computation of the correlograms.
+    def start_compute_correlograms(self, clusters_selected):
         spiketimes = to_array(self.loader.get_spiketimes())
         clusters = to_array(self.loader.get_clusters())
         bin = self.loader.corrbin
         halfwidth = self.loader.ncorrbins * bin / 2
-        self.tasks.correlograms_task.compute(spiketimes, clusters,
-            clusters_selected, halfwidth=halfwidth, bin=bin)
-    
+        # Get cluster pairs that need to be updated.
+        pairs_to_update = (
+            self.statscache.get_cluster_pairs_to_update(
+                clusters_selected))
+        # If there are pairs that need to be updated, launch the task.
+        if pairs_to_update:
+            # Obtain the list of clusters that need to be updated.
+            clus0, clus1 = zip(*pairs_to_update)
+            clusters_to_update = sorted(set(clus0).union(clus1))
+            # Launch the task.
+            self.tasks.correlograms_task.compute(spiketimes, clusters,
+                clusters_to_update, halfwidth=halfwidth, bin=bin)    
+        # Otherwise, update directly the correlograms view without launching
+        # the task in the external process.
+        else:
+            self.update_correlograms_view()
+        
+    def selection_done(self, clusters_selected):
+        """Called on the main thread once the clusters have been loaded 
+        in the main thread."""
+        # Launch the computation of the correlograms.
+        self.start_compute_correlograms(clusters_selected)
         # Update the different views.
         self.update_waveform_view()
         self.update_feature_view()
         # self.update_correlograms_view()
     
     def correlograms_computed(self, clusters, correlograms):
+        for pair, correlogram in correlograms.iteritems():
+            self.statscache[pair] = correlogram
         if set(self.loader.get_clusters_selected()) == set(clusters):
-            self.loader.set_correlograms(correlograms)
             self.update_correlograms_view()
         
     
     # Threads.
     # --------
     def create_threads(self):
+        # Create the cache for the cluster statistics that need to be
+        # computed in the background.
+        self.statscache = StatsCache()
+        # Create the external threads.
         self.tasks = ThreadedTasks()
         self.tasks.open_task.dataOpened.connect(self.open_done)
         self.tasks.select_task.clustersSelected.connect(self.selection_done)
@@ -379,9 +400,12 @@ class MainWindow(QtGui.QMainWindow):
         [view.set_data(**data) for view in self.get_views('FeatureView')]
         
     def update_correlograms_view(self):
+        clusters_selected = self.loader.get_clusters_selected()
+        # HACKish...
+        correlograms = self.statscache.cluster_pair_stats
         data = dict(
-            correlograms=self.loader.get_correlograms(),
-            clusters_selected=self.loader.get_clusters_selected(),
+            correlograms=correlograms,
+            clusters_selected=clusters_selected,
             cluster_colors=self.loader.get_cluster_colors(),
             ncorrbins=self.loader.ncorrbins,
         )

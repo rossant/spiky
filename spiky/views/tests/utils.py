@@ -36,7 +36,7 @@ def get_data():
         features=l.get_features(),
         masks=l.get_masks(),
         waveforms=l.get_waveforms(),
-        correlograms=l.get_correlograms(),
+        # correlograms=l.get_correlograms(),
         clusters=l.get_clusters(),
         
         cluster_colors=l.get_cluster_colors(),
@@ -50,7 +50,7 @@ def get_data():
         spiketimes=l.get_spiketimes(),
         geometrical_positions=l.get_probe(),
         
-        correlation_matrix=l.get_correlation_matrix(),
+        # correlation_matrix=l.get_correlation_matrix(),
         
         nchannels=l.nchannels,
         nsamples=l.nsamples,

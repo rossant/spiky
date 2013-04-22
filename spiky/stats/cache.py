@@ -58,7 +58,15 @@ class StatsCache(object):
                 return None
                 # raise IndexError(("Cluster {0:d} is not "
                                   # "in the cache.").format(key))
-            
+    
+    def get_cluster_pairs_to_update(self, clusters):
+        pairs_existing = set(self.cluster_pair_stats.keys())
+        pairs_requested = set(product(clusters, clusters))
+        pairs_to_update = pairs_requested - pairs_existing
+        return pairs_to_update
+        # clus0, clus1 = zip(*pairs_to_update)
+        # return sorted(set(clus0) + set(clus1))
+        
     
     # Update methods
     # --------------

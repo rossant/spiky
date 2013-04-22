@@ -34,9 +34,16 @@ class CorrelogramsTask(QtCore.QObject):
     
     def compute(self, spiketimes, clusters, clusters_selected,
             halfwidth=None, bin=None):
+        if len(clusters_selected) == 0:
+            return {}
         correlograms = compute_correlograms(spiketimes, clusters,
             clusters_to_update=clusters_selected,
             halfwidth=halfwidth, bin=bin)
+        return correlograms
+        
+    def compute_done(self, spiketimes, clusters, clusters_selected,
+            halfwidth=None, bin=None, _result=None):
+        correlograms = _result
         self.correlogramsComputed.emit(np.array(clusters_selected),
             correlograms)
 
@@ -48,7 +55,7 @@ class ThreadedTasks(QtCore.QObject):
     def __init__(self):
         self.open_task = inthread(OpenTask)()
         self.select_task = inthread(SelectTask)(impatient=True)
-        self.correlograms_task = inthread(CorrelogramsTask)(impatient=True)
+        self.correlograms_task = inprocess(CorrelogramsTask)(impatient=True)
 
     def join(self):
         self.open_task.join()
@@ -56,7 +63,7 @@ class ThreadedTasks(QtCore.QObject):
         self.correlograms_task.join()
         
     def terminate(self):
-        pass
+        self.correlograms_task.terminate()
 
         
         

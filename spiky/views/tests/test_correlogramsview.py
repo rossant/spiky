@@ -23,8 +23,7 @@ from spiky.views.tests.utils import show_view, get_data
 # Tests
 # -----------------------------------------------------------------------------
 def test_correlogramsview():
-    keys = ('correlograms,clusters_selected,cluster_colors,'
-            'ncorrbins').split(',')
+    keys = ('clusters_selected,cluster_colors,ncorrbins').split(',')
            
     data = get_data()
     kwargs = {k: data[k] for k in keys}
