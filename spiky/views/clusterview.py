@@ -344,7 +344,6 @@ class ClusterGroupManager(TreeModel):
                 parent=self.get_group(select(cluster_groups, clusteridx)))
     
     def save(self):
-        
         groups = self.get_groups()
         allclusters = self.get_clusters()
         
@@ -960,10 +959,18 @@ class ClusterView(QtGui.QTreeView):
                     self.model.get_groupidx(cluster) not in selected_groups)
             ])
         
+        # Selected groups.
+        group_indices = [self.model.get_group(groupidx)
+            for groupidx in selected_groups]
+        
         # log.debug("Selected {0:d} clusters.".format(len(clusters)))
         log.debug("Selected clusters {0:s}.".format(str(clusters)))
         self.clustersSelected.emit(np.array(clusters, dtype=np.int32))
-    
+        
+        if group_indices:
+            self.scrollTo(group_indices[-1].index)
+        elif clusters:
+            self.scrollTo(self.model.get_cluster(clusters[-1]).index)
     
     # Selected items
     # --------------

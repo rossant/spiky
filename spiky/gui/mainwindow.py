@@ -95,17 +95,32 @@ class MainWindow(QtGui.QMainWindow):
         
     def create_actions(self):
         self.add_action('open', '&Open', shortcut='Ctrl+O')
+        
+        # Open last file action
+        path = SETTINGS['main_window.last_data_file']
+        if path:
+            lastfile = os.path.basename(path)
+            if len(lastfile) > 30:
+                lastfile = '...' + lastfile[-30:]
+            self.add_action('open_last', 'Open &last ({0:s})'.format(
+                lastfile), shortcut='Ctrl+Alt+O')
+        else:
+            self.add_action('open_last', 'Open &last', shortcut='Ctrl+Alt+O')
+            self.open_last_action.setEnabled(False)
+        
         self.add_action('quit', '&Quit', shortcut='Ctrl+Q')
         
         self.add_action('add_feature_view', 'Add FeatureView')
         self.add_action('add_waveform_view', 'Add WaveformView')
-        self.add_action('add_correlation_matrix_view', 'Add CorrelationMatrixView')
+        self.add_action('add_correlation_matrix_view',
+            'Add CorrelationMatrixView')
         self.add_action('add_correlograms_view', 'Add CorrelogramsView')
     
     def create_menu(self):
         # File menu.
         file_menu = self.menuBar().addMenu("&File")
         file_menu.addAction(self.open_action)
+        file_menu.addAction(self.open_last_action)
         file_menu.addSeparator()
         file_menu.addAction(self.quit_action)
         
@@ -133,6 +148,12 @@ class MainWindow(QtGui.QMainWindow):
             # Save the folder.
             folder = os.path.dirname(path)
             SETTINGS['main_window.last_data_dir'] = folder
+            SETTINGS['main_window.last_data_file'] = path
+            
+    def open_last_callback(self, checked):
+        path = SETTINGS['main_window.last_data_file']
+        if path:
+            self.tasks.open_task.open(path)
             
     def quit_callback(self, checked):
         self.close()
@@ -249,6 +270,9 @@ class MainWindow(QtGui.QMainWindow):
         else:
             return views[index]
             
+    def get_views(self, name):
+        return self.views[name]
+            
     def create_views(self):
         """Create all views at initialization."""
         
@@ -319,7 +343,7 @@ class MainWindow(QtGui.QMainWindow):
             masks=self.loader.get_masks(),
             geometrical_positions=self.loader.get_probe(),
         )
-        self.get_view('WaveformView').set_data(**data)
+        [view.set_data(**data) for view in self.get_views('WaveformView')]
     
     def update_feature_view(self):
         data = dict(
@@ -332,8 +356,7 @@ class MainWindow(QtGui.QMainWindow):
             fetdim=self.loader.fetdim,
             nextrafet=self.loader.nextrafet,
         )
-        self.get_view('FeatureView').set_data(**data)
-
+        [view.set_data(**data) for view in self.get_views('FeatureView')]
         
     
     # Geometry.

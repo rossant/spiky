@@ -407,7 +407,7 @@ class WaveformDataManager(Manager):
             clusters = np.zeros(0, dtype=np.int32)
             cluster_colors = np.zeros(0, dtype=np.int32)
             clusters_selected = []
-        
+
         # Not all waveforms have been selected, so select the appropriate 
         # samples in clusters and masks.
         self.waveform_indices = get_indices(waveforms)

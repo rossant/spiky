@@ -153,7 +153,7 @@ class FeatureDataManager(Manager):
         else:
             self.clusters_rel = np.zeros(0, dtype=np.int32)
             self.clusters_rel_ordered = np.zeros(0, dtype=np.int32)
-            
+        
         self.clusters_unique = sorted(clusters_selected)
         self.nclusters = len(Counter(clusters))
         self.masks_full = self.masks_array.T.ravel()
@@ -487,7 +487,8 @@ class FeatureSelectionManager(Manager):
 # -----------------------------------------------------------------------------
 class FeatureProjectionManager(Manager):
     def set_data(self):
-        self.projection = [None, None]
+        if not hasattr(self, 'projection'):
+            self.projection = [None, None]
         self.nchannels = self.data_manager.nchannels
         self.fetdim = self.data_manager.fetdim
         self.nextrafet = self.data_manager.nextrafet
@@ -543,7 +544,8 @@ class FeatureProjectionManager(Manager):
             
     def get_projection(self, coord):
         return self.projection[coord]
-            
+        
+        
 # -----------------------------------------------------------------------------
 # Interaction
 # -----------------------------------------------------------------------------
