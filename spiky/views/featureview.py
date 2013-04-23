@@ -557,14 +557,13 @@ class FeatureInfoManager(Manager):
         ispk = dist.argmin()
         cluster = self.data_manager.clusters_rel[ispk]
         
-        color = self.data_manager.cluster_colors[cluster]
-        
-        r, g, b = COLORMAP[color,:]
-        color = (r, g, b, .75)
+        # color = self.data_manager.cluster_colors[cluster]
+        # r, g, b = COLORMAP[color,:]
+        # color = (r, g, b, .75)
         
         text = "cluster {0:d}".format(self.data_manager.clusters_unique[cluster])
         
-        self.paint_manager.set_data(coordinates=(xd, yd), color=color,
+        self.paint_manager.set_data(coordinates=(xd, yd), #color=color,
             text=text,
             visible=True,
             visual='clusterinfo')

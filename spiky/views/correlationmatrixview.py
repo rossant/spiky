@@ -38,10 +38,13 @@ def colormap(x, col0=None, col1=None):
     removed = x == -1
     
     x[np.isnan(x)] = 0.
-    # TODO: proper scaling
     x -= x.min()
     x *= (1. / x.max())
-    x = np.clip(x, 0., 1.)
+    # Set the maximum values above which the max color should be used.
+    max = .1
+    x = np.clip(x / max, 0., 1.)
+    # Gamma correction. Doesn't look very good.
+    # x = x ** .2
     
     shape = x.shape
     
@@ -62,6 +65,9 @@ def colormap(x, col0=None, col1=None):
     
     # value of -1 = black
     y[removed,:] = 0
+    # Remove diagonal.
+    n = y.shape[0]
+    y[xrange(n), xrange(n), :] = 0
     
     return y
     
@@ -84,8 +90,6 @@ class CorrelationMatrixDataManager(Manager):
         elif correlation_matrix.shape[0] == 1:
             correlation_matrix = -np.ones((2, 2))
         n = correlation_matrix.shape[0]
-        # remove diagonal
-        # correlation_matrix[range(n), range(n)] = -1
         
         self.texture = colormap(correlation_matrix)[::-1, :, :]
         self.correlation_matrix = correlation_matrix

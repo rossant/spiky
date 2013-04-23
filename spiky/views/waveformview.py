@@ -909,17 +909,17 @@ class WaveformInfoManager(Manager):
         
         channel, cluster_rel = self.position_manager.find_box(xd, yd)
         # i = self.position_manager.nclusters * channel + cluster_rel
-        color = self.data_manager.cluster_colors_array[cluster_rel]
         
-        r, g, b = COLORMAP[color,:]
-        color = (r, g, b, .75)
+        # color = self.data_manager.cluster_colors_array[cluster_rel]
+        # r, g, b = COLORMAP[color,:]
+        # color = (r, g, b, .75)
         
         text = "cluster {0:d}, channel {1:d}".format(
             self.data_manager.clusters_unique[cluster_rel],
             channel,
             )
         
-        self.paint_manager.set_data(coordinates=(xd, yd), color=color,
+        self.paint_manager.set_data(coordinates=(xd, yd), #color=color,
             text=text,
             visible=True,
             visual='clusterinfo')
