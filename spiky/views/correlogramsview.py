@@ -288,8 +288,8 @@ class CorrelogramsInfoManager(Manager):
         r, g, b = COLORMAP[color1,:]
         color1 = (r, g, b, .75)
         
-        cx = self.data_manager.clusters_selected[cx_rel]
-        cy = self.data_manager.clusters_selected[cy_rel]
+        cx = self.data_manager.clusters_unique[cx_rel]
+        cy = self.data_manager.clusters_unique[cy_rel]
         
         text = "%d / %d" % (cx, cy)
         

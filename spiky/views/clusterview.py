@@ -710,7 +710,7 @@ class ClusterView(QtGui.QTreeView):
                 selection_model.Select | 
                 selection_model.Rows 
                 )
-        if clusters:
+        if len(clusters) > 0:
             selection_model.setCurrentIndex(
                 self.model.get_cluster(clusters[-1]).index,
                 QtGui.QItemSelectionModel.NoUpdate)

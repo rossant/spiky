@@ -178,6 +178,11 @@ class MainWindow(QtGui.QMainWindow):
         # Launch cluster selection on the Loader in an external thread.
         self.tasks.select_task.select(self.loader, clusters)
         
+    def cluster_pair_selected_callback(self, clusters):
+        """Callback when the user clicks on a pair in the
+        CorrelationMatrixView."""
+        self.get_view('ClusterView').select(clusters)
+        
     
     # Task callbacks.
     # ---------------
@@ -332,8 +337,10 @@ class MainWindow(QtGui.QMainWindow):
         self.views['ClusterView'].append(view)
         
     def add_correlation_matrix_view(self):
-        self.views['CorrelationMatrixView'].append(self.create_view(vw.CorrelationMatrixView,
-            position=QtCore.Qt.LeftDockWidgetArea,))
+        view = self.create_view(vw.CorrelationMatrixView,
+            position=QtCore.Qt.LeftDockWidgetArea,)
+        view.pairSelected.connect(self.cluster_pair_selected_callback)
+        self.views['CorrelationMatrixView'].append(view)
     
     def add_waveform_view(self):
         self.views['WaveformView'].append(self.create_view(vw.WaveformView,

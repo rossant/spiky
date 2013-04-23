@@ -933,8 +933,8 @@ class WaveformInteractionManager(PlotInteractionManager):
         channel, cluster_rel = self.position_manager.find_box(xp, yp)
         cluster = self.data_manager.clusters_unique[cluster_rel]
         # emit the boxClicked signal
-        log.debug("Select cluster {0:d}, channel {1:d}".
-            format(cluster, channel))
+        log.debug("Select cluster {0:d}, channel {1:d} on axis {2:s}.".
+            format(cluster, channel, 'xy'[coord]))
         self.parent.boxClicked.emit(cluster, channel)
     
     def initialize(self):

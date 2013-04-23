@@ -193,10 +193,11 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         
         cx = self.data_manager.clusters_unique[cx_rel]
         cy = self.data_manager.clusters_unique[cy_rel]
+        clusters = np.unique([cx, cy])
         
         # Emit signal.
         log.debug("Selected clusters {0:d} and {1:d}.".format(cx, cy))
-        self.parent.pairSelected.emit(cx, cy)
+        self.parent.pairSelected.emit(clusters)
         
     def show_closest_cluster(self, parameter):
         nclu = self.data_manager.nclusters
@@ -247,7 +248,7 @@ class CorrelationMatrixBindings(SpikyBindings):
 class CorrelationMatrixView(GalryWidget):
     
     # Raise the list of highlighted spike absolute indices.
-    pairSelected = QtCore.pyqtSignal(int, int)
+    pairSelected = QtCore.pyqtSignal(np.ndarray)
     
     def initialize(self):
         self.set_bindings(CorrelationMatrixBindings)

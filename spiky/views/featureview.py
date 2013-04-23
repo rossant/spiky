@@ -627,7 +627,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         channel, feature = self.projection_manager.get_projection(coord)
         
         log.debug(("Projection changed to channel {0:d} and "
-                   "feature {1:d} on axis {2:s}").format(
+                   "feature {1:d} on axis {2:s}.").format(
                         channel, feature, 'xy'[coord]))
         self.parent.projectionChanged.emit(coord, channel, feature)
         
@@ -641,7 +641,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         channel, feature = self.projection_manager.get_projection(coord)
         
         log.debug(("Projection changed to channel {0:d} and "
-                   "feature {1:d} on axis {2:s}").format(
+                   "feature {1:d} on axis {2:s}.").format(
                         channel, feature, 'xy'[coord]))
         self.parent.projectionChanged.emit(coord, channel, feature)
         
