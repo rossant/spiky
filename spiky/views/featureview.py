@@ -140,6 +140,7 @@ class FeatureDataManager(Manager):
         self.masks = masks
         self.clusters = clusters
         self.feature_indices = get_indices(self.features)
+        self.feature_indices_array = get_array(self.feature_indices)
         
         self.features_array = get_array(self.features)
         self.masks_array = get_array(self.masks)
@@ -297,7 +298,9 @@ class FeatureHighlightManager(HighlightManager):
     def initialize(self):
         super(FeatureHighlightManager, self).initialize()
         self.feature_indices = self.data_manager.feature_indices
-        self.highlight_mask = np.zeros(self.data_manager.nspikes, dtype=np.int32)
+        self.feature_indices_array = self.data_manager.feature_indices_array
+        self.highlight_mask = np.zeros(self.data_manager.nspikes,
+            dtype=np.int32)
         self.highlighted_spikes = []
         
     def find_enclosed_spikes(self, enclosing_box):
@@ -317,7 +320,6 @@ class FeatureHighlightManager(HighlightManager):
                   # (masks > 0) & \
                   (features[:,0] >= xmin) & (features[:,0] <= xmax) & \
                   (features[:,1] >= ymin) & (features[:,1] <= ymax))
-        # absolute indices in the data
         spkindices = np.nonzero(indices)[0]
         spkindices = np.unique(spkindices)
         return spkindices
@@ -343,15 +345,27 @@ class FeatureHighlightManager(HighlightManager):
         
     def highlighted(self, box):
         # Get selected spikes (relative indices).
-        spikes = self.find_enclosed_spikes(box) 
+        spikes = self.find_enclosed_spikes(box)
         # Set highlighted spikes.
         self.set_highlighted_spikes(spikes)
         # Emit the HighlightSpikes signal.
         self.emit(spikes)
         
+    def highlight_spikes(self, spikes):
+        """spikes in absolute indices."""
+        spikes = np.intersect1d(self.data_manager.feature_indices_array, 
+            spikes)
+        if len(spikes) > 0:
+            spikes_rel = np.digitize(spikes, 
+                self.data_manager.feature_indices_array) - 1
+        else:
+            spikes_rel = []
+        self.set_highlighted_spikes(spikes_rel)
+        
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
+        self.emit([])
 
     def emit(self, spikes):
         spikes = np.array(spikes, dtype=np.int32)
@@ -596,7 +610,6 @@ class FeatureInteractionManager(PlotInteractionManager):
     def cancel_highlight(self, parameter):
         self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
-        self.paint_manager.set_data(visible=False, visual='clusterinfo_bg')
         
     def highlight_spike(self, parameter):
         self.highlight_manager.highlight(parameter)
@@ -816,7 +829,7 @@ class FeatureView(GalryWidget):
     # Public methods
     # --------------
     def highlight_spikes(self, spikes):
-        self.highlight_manager.set_highlighted_spikes(spikes, False)
+        self.highlight_manager.highlight_spikes(spikes)
         self.updateGL()
     
     def select_spikes(self, spikes):

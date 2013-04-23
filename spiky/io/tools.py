@@ -113,14 +113,12 @@ def get_array(data):
             return data.astype(np.float32)
         else:
             return data
-    else:
-        # Sort the DataFrame by increasing index.
-        # if isinstance(data, pd.DataFrame):
+    elif isinstance(data, (pd.DataFrame, pd.Panel)):
         return data.sort_index().values
-        # elif isinstance(data, pd.Series):
-            # return data.sort_index().values
-        # else:
-            # return data.values
+    elif isinstance(data, pd.Int64Index):
+        return np.sort(data.values)
+    else:
+        return data.sort_index().values
     
 
 # -----------------------------------------------------------------------------

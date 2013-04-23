@@ -411,6 +411,7 @@ class WaveformDataManager(Manager):
         # Not all waveforms have been selected, so select the appropriate 
         # samples in clusters and masks.
         self.waveform_indices = get_indices(waveforms)
+        self.waveform_indices_array = get_array(self.waveform_indices)
         masks = select(masks, self.waveform_indices)
         clusters = select(clusters, self.waveform_indices)
         
@@ -888,6 +889,18 @@ class WaveformHighlightManager(HighlightManager):
         self.set_highlighted_spikes(spikes)
         # Emit the HighlightSpikes signal.
         self.emit(spikes)
+        
+    def highlight_spikes(self, spikes):
+        """spikes in absolute indices."""
+        spikes = np.intersect1d(self.data_manager.waveform_indices_array, 
+            spikes)
+        if len(spikes) > 0:
+            spikes_rel = np.digitize(spikes, 
+                self.data_manager.waveform_indices_array) - 1
+            self.highlighting = True
+            self.set_highlighted_spikes(spikes_rel)
+        else:
+            self.cancel_highlight()
             
     def cancel_highlight(self):
         super(WaveformHighlightManager, self).cancel_highlight()
@@ -899,8 +912,6 @@ class WaveformHighlightManager(HighlightManager):
     def emit(self, spikes):
         spikes = np.array(spikes, dtype=np.int32)
         spikes_abs = self.waveform_indices[spikes]
-        # emit signal
-        # log.debug("Highlight {0:d} spikes.".format(len(spikes_abs)))
         self.parent.spikesHighlighted.emit(spikes_abs)
 
 
@@ -1155,7 +1166,7 @@ class WaveformView(GalryWidget):
     # Public methods
     # --------------
     def highlight_spikes(self, spikes):
-        self.highlight_manager.set_highlighted_spikes(spikes)
+        self.highlight_manager.highlight_spikes(spikes)
         self.updateGL()
 
         

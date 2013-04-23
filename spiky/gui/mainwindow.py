@@ -15,7 +15,7 @@ from galry import QtGui, QtCore
 from qtools import inprocess, inthread
 
 import spiky.views as vw
-from spiky.io.selection import to_array
+from spiky.io.tools import get_array
 from spiky.io.loader import KlustersLoader
 from spiky.stats.cache import StatsCache
 import spiky.utils.logger as log
@@ -183,6 +183,13 @@ class MainWindow(QtGui.QMainWindow):
         CorrelationMatrixView."""
         self.get_view('ClusterView').select(clusters)
         
+    # Highlight callbacks.
+    def waveform_spikes_highlighted_callback(self, spikes):
+        self.get_view('FeatureView').highlight_spikes(get_array(spikes))
+        
+    def features_spikes_highlighted_callback(self, spikes):
+        self.get_view('WaveformView').highlight_spikes(get_array(spikes))
+        
     
     # Task callbacks.
     # ---------------
@@ -199,8 +206,8 @@ class MainWindow(QtGui.QMainWindow):
         
     def start_compute_correlograms(self, clusters_selected):
         # Get the correlograms parameters.
-        spiketimes = to_array(self.loader.get_spiketimes())
-        clusters = to_array(self.loader.get_clusters())
+        spiketimes = get_array(self.loader.get_spiketimes())
+        clusters = get_array(self.loader.get_clusters())
         bin = self.loader.corrbin
         halfwidth = self.loader.ncorrbins * bin / 2
         
@@ -226,9 +233,9 @@ class MainWindow(QtGui.QMainWindow):
         
     def start_compute_correlation_matrix(self):
         # Get the correlation matrix parameters.
-        features = to_array(self.loader.get_features('all'))
-        masks = to_array(self.loader.get_masks('all', full=True))
-        clusters = to_array(self.loader.get_clusters('all'))
+        features = get_array(self.loader.get_features('all'))
+        masks = get_array(self.loader.get_masks('all', full=True))
+        clusters = get_array(self.loader.get_clusters('all'))
         # All clusters.
         clusters_selected = self.loader.get_clusters_unique()
         # Add new cluster indices if needed.
@@ -343,12 +350,18 @@ class MainWindow(QtGui.QMainWindow):
         self.views['CorrelationMatrixView'].append(view)
     
     def add_waveform_view(self):
-        self.views['WaveformView'].append(self.create_view(vw.WaveformView,
-            position=QtCore.Qt.RightDockWidgetArea,))
+        view = self.create_view(vw.WaveformView,
+            position=QtCore.Qt.RightDockWidgetArea,)
+        view.spikesHighlighted.connect(
+            self.waveform_spikes_highlighted_callback)
+        self.views['WaveformView'].append(view)
         
     def add_feature_view(self):
-        self.views['FeatureView'].append(self.create_view(vw.FeatureView,
-            position=QtCore.Qt.RightDockWidgetArea,))
+        view = self.create_view(vw.FeatureView,
+            position=QtCore.Qt.RightDockWidgetArea,)
+        view.spikesHighlighted.connect(
+            self.features_spikes_highlighted_callback)
+        self.views['FeatureView'].append(view)
             
     def add_correlograms_view(self):
         self.views['CorrelogramsView'].append(self.create_view(vw.CorrelogramsView,

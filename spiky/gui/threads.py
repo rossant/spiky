@@ -10,7 +10,6 @@ from qtools import QtGui, QtCore
 
 from spiky.io import KlustersLoader
 import spiky.utils.logger as log
-from spiky.io.selection import to_array
 from spiky.stats import compute_correlograms, compute_correlations
 
 # -----------------------------------------------------------------------------
