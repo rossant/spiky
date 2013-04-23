@@ -285,6 +285,7 @@ class KlustersLoader(Loader):
     # Input-Output methods
     # --------------------
     def read(self):
+        info("Opening {0:s}.".format(self.filename))
         
         # Read metadata.
         # --------------

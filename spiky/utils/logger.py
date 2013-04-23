@@ -58,8 +58,6 @@ class Logger(object):
             stream = sys.stdout
         self.stream = stream
         self.handler = logging.StreamHandler(self.stream)
-        # Create the Logger object.
-        self._logger = logging.getLogger(APPNAME)
         # Set the level and corresponding formatter.
         self.set_level(level, fmt)
         
@@ -69,11 +67,14 @@ class Logger(object):
             level = logging.INFO
         if fmt is None:
             fmt = get_log_format(level == logging.DEBUG)
+        # Create the Logger object.
+        self._logger = logging.getLogger(APPNAME)
         # Create the formatter.
         formatter = logging.Formatter(fmt, datefmt='%Y-%m-%d %H:%M:%S')
         self.handler.setFormatter(formatter)
         # Configure the logger.
         self._logger.setLevel(level)
+        self._logger.propagate = False
         self._logger.addHandler(self.handler)
         
     def debug(self, msg):

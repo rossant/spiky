@@ -116,12 +116,17 @@ def get_spikes_in_clusters(clusters_selected, clusters, return_indices=False):
         return np.nonzero(spike_indices)[0]
         
 def get_some_spikes_in_clusters(clusters_selected, clusters,
-        nspikes_max_expected=500,
-        nspikes_per_cluster_min=5):
+        nspikes_max_expected=None,
+        nspikes_per_cluster_min=None):
     """Select a sample of spikes among those belonging to the selected
     clusters, with at least `nspikes_per_cluster_min` spikes per cluster,
     and an expected maximum number of spikes equal to `nspikes_max_expected`.
     """
+    if nspikes_max_expected is None:
+        nspikes_max_expected = 100
+    if nspikes_per_cluster_min is None:
+        nspikes_per_cluster_min = 5
+    
     spikes = []
     # Number of spikes in all selected clusters.
     counter = Counter(clusters)
