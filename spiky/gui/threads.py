@@ -9,6 +9,7 @@ from qtools import inthread, inprocess
 from qtools import QtGui, QtCore
 
 from spiky.io import KlustersLoader
+import spiky.utils.logger as log
 from spiky.io.selection import to_array
 from spiky.stats import compute_correlograms
 
@@ -34,6 +35,8 @@ class CorrelogramsTask(QtCore.QObject):
     
     def compute(self, spiketimes, clusters, clusters_selected,
             halfwidth=None, bin=None):
+        log.debug("Computing correlograms for clusters {0:s}.".format(
+            str(clusters_selected)))
         if len(clusters_selected) == 0:
             return {}
         correlograms = compute_correlograms(spiketimes, clusters,

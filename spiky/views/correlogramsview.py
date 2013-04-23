@@ -9,6 +9,7 @@ from galry import (Manager, PlotPaintManager, PlotInteractionManager, Visual,
     GalryWidget, QtGui, QtCore, QtOpenGL, enforce_dtype, RectanglesVisual,
     TextVisual, PlotVisual, AxesVisual)
     
+from spiky.stats.cache import IndexedMatrix
 from spiky.io.tools import get_array
 from spiky.utils.colors import COLORMAP
 from spiky.views.common import HighlightManager, SpikyBindings
@@ -71,27 +72,27 @@ def get_histogram_points(hist):
     
     return x, y
 
-def get_correlograms_array(correlograms, clusters_selected=None,
-        ncorrbins=None):
-    """Convert a dictionary of correlograms to an array."""
-    clusters_selected = sorted(clusters_selected)
-    nclusters = len(clusters_selected)
-    correlograms_array = np.zeros((nclusters * nclusters, ncorrbins))
-    for index in xrange(correlograms_array.shape[0]):
-        # Indices of the current pair of clusters.
-        clu0 = clusters_selected[index // nclusters]
-        clu1 = clusters_selected[index % nclusters]
-        # The dictionary contains half of the pairs, the other half can be
-        # deduced from the symmetric pair.
-        if clu0 <= clu1:
-            correlogram = correlograms.get((clu0, clu1), None)
-        else:
-            correlogram = correlograms.get((clu1, clu0), None)
-            if correlogram is not None:
-                correlogram = correlogram[::-1]
-        if correlogram is not None:
-            correlograms_array[index, :] = correlogram
-    return correlograms_array
+# def get_correlograms_array(correlograms, clusters_selected=None,
+        # ncorrbins=None):
+    # """Convert a dictionary of correlograms to an array."""
+    # clusters_selected = sorted(clusters_selected)
+    # nclusters = len(clusters_selected)
+    # correlograms_array = np.zeros((nclusters * nclusters, ncorrbins))
+    # for index in xrange(correlograms_array.shape[0]):
+        # # Indices of the current pair of clusters.
+        # clu0 = clusters_selected[index // nclusters]
+        # clu1 = clusters_selected[index % nclusters]
+        # # The dictionary contains half of the pairs, the other half can be
+        # # deduced from the symmetric pair.
+        # if clu0 <= clu1:
+            # correlogram = correlograms.get((clu0, clu1), None)
+        # else:
+            # correlogram = correlograms.get((clu1, clu0), None)
+            # if correlogram is not None:
+                # correlogram = correlogram[::-1]
+        # if correlogram is not None:
+            # correlograms_array[index, :] = correlogram
+    # return correlograms_array
 
     
 # -----------------------------------------------------------------------------
@@ -99,20 +100,25 @@ def get_correlograms_array(correlograms, clusters_selected=None,
 # -----------------------------------------------------------------------------
 class CorrelogramsDataManager(Manager):
     def set_data(self, correlograms=None, cluster_colors=None, baselines=None,
-        clusters_selected=None, ncorrbins=None):
+        clusters_selected=None):
         
         if correlograms is None:
-            correlograms = {}
+            correlograms = IndexedMatrix(shape=(0, 0, 0))
             cluster_colors = np.zeros(0)
             clusters_selected = []
             ncorrbins = 0            
         
-        self.correlograms_array = get_correlograms_array(correlograms,
-            clusters_selected=clusters_selected, ncorrbins=ncorrbins)
-        self.ncorrelograms, self.nbins = self.correlograms_array.shape
+        # self.correlograms_array = get_correlograms_array(correlograms,
+            # clusters_selected=clusters_selected, ncorrbins=ncorrbins)
+        self.correlograms = correlograms
+        # self.indices = self.correlograms.indices
+        self.correlograms_array = correlograms.to_array()
+        nclusters, nclusters, self.nbins = self.correlograms_array.shape
+        self.ncorrelograms = nclusters * nclusters
         self.clusters_selected = clusters_selected
         self.clusters_unique = sorted(clusters_selected)
         self.nclusters = len(clusters_selected)
+        assert nclusters == self.nclusters
         self.cluster_colors_array = get_array(cluster_colors)
         
         # HACK: if correlograms is empty, ncorrelograms == 1 here!
@@ -124,28 +130,30 @@ class CorrelogramsDataManager(Manager):
         self.clusters = np.array(clusters, dtype=np.int32)
         
         # normalization
-        for j in xrange(self.nclusters):
-            # correlograms in a given row
-            ind = self.clusters[:,1] == j
-            # index of the (i,j) histogram
-            i0 = np.nonzero((self.clusters[:,0] == self.clusters[:,1]) & 
-                (self.clusters[:,0] == j))[0][0]
-            # divide all correlograms in the row by the max of this i0 histogram
-            m = self.correlograms_array[i0,:].max()
+        for i in xrange(self.nclusters):
+            # # correlograms in a given row
+            # ind = self.clusters[:,1] == j
+            # # index of the (i,j) histogram
+            # i0 = np.nonzero((self.clusters[:,0] == self.clusters[:,1]) & 
+                # (self.clusters[:,0] == j))[0][0]
+            correlogram_diagonal = self.correlograms_array[i, i, ...]
+            # divide all correlograms in the row by the max of this histogram
+            m = correlogram_diagonal.max()
             if m > 0:
-                self.correlograms_array[ind,:] /= m
+                self.correlograms_array[i,:,:] /= m
             # normalize all correlograms in the row so that they all fit in the 
             # window
-            m = self.correlograms_array[ind,:].max()
+            m = self.correlograms_array[i,:,:].max()
             if m > 0:
-                self.correlograms_array[ind,:] /= m
+                self.correlograms_array[i,:,:] /= m
         
         self.nprimitives = self.ncorrelograms
         # index 0 = heterogeneous clusters, index>0 ==> cluster index + 1
         self.cluster_colors = get_array(cluster_colors)
         
         # get the vertex positions
-        X, Y = get_histogram_points(self.correlograms_array)
+        X, Y = get_histogram_points(self.correlograms_array.reshape(
+            (self.ncorrelograms, self.nbins)))
         n = X.size
         self.nsamples = X.shape[1]
         

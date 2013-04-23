@@ -184,23 +184,31 @@ class MainWindow(QtGui.QMainWindow):
     def open_done(self, loader):
         # Save the loader object.
         self.loader = loader
+        # Create the cache for the cluster statistics that need to be
+        # computed in the background.
+        self.statscache = StatsCache(loader.ncorrbins)
         # Update the views.
         self.update_cluster_view()
         
     def start_compute_correlograms(self, clusters_selected):
+        # Get the correlograms parameters.
         spiketimes = to_array(self.loader.get_spiketimes())
         clusters = to_array(self.loader.get_clusters())
         bin = self.loader.corrbin
         halfwidth = self.loader.ncorrbins * bin / 2
-        # Get cluster pairs that need to be updated.
-        pairs_to_update = (
-            self.statscache.get_cluster_pairs_to_update(
-                clusters_selected))
+        
+        # Add new cluster indices if needed.
+        clusters_new = self.statscache.correlograms.not_in_indices(
+            clusters_selected)
+        if len(clusters_new) > 0:
+            self.statscache.correlograms.add_indices(clusters_new)
+        
+        # Get cluster indices that need to be updated.
+        clusters_to_update = (
+            self.statscache.correlograms.blank_indices(clusters_selected))
+        # print clusters_to_update
         # If there are pairs that need to be updated, launch the task.
-        if pairs_to_update:
-            # Obtain the list of clusters that need to be updated.
-            clus0, clus1 = zip(*pairs_to_update)
-            clusters_to_update = sorted(set(clus0).union(clus1))
+        if len(clusters_to_update) > 0:
             # Launch the task.
             self.tasks.correlograms_task.compute(spiketimes, clusters,
                 clusters_to_update, halfwidth=halfwidth, bin=bin)    
@@ -217,11 +225,14 @@ class MainWindow(QtGui.QMainWindow):
         # Update the different views.
         self.update_waveform_view()
         self.update_feature_view()
-        # self.update_correlograms_view()
     
     def correlograms_computed(self, clusters, correlograms):
+        # # Update the cluster indices in the cache.
+        # self.statscache.correlograms.add_indices(clusters)
+        # Put the computed correlograms in the cache.
         for pair, correlogram in correlograms.iteritems():
-            self.statscache[pair] = correlogram
+            self.statscache.correlograms[pair] = correlogram
+        # Update the view.
         if set(self.loader.get_clusters_selected()) == set(clusters):
             self.update_correlograms_view()
         
@@ -229,9 +240,6 @@ class MainWindow(QtGui.QMainWindow):
     # Threads.
     # --------
     def create_threads(self):
-        # Create the cache for the cluster statistics that need to be
-        # computed in the background.
-        self.statscache = StatsCache()
         # Create the external threads.
         self.tasks = ThreadedTasks()
         self.tasks.open_task.dataOpened.connect(self.open_done)
@@ -401,16 +409,17 @@ class MainWindow(QtGui.QMainWindow):
         
     def update_correlograms_view(self):
         clusters_selected = self.loader.get_clusters_selected()
-        # HACKish...
-        correlograms = self.statscache.cluster_pair_stats
-        data = dict(
-            correlograms=correlograms,
-            clusters_selected=clusters_selected,
-            cluster_colors=self.loader.get_cluster_colors(),
-            ncorrbins=self.loader.ncorrbins,
-        )
-        [view.set_data(**data) for view in self.get_views('CorrelogramsView')]
-        
+        try:
+            correlograms = self.statscache.correlograms.submatrix(
+                clusters_selected)
+            data = dict(
+                correlograms=correlograms,
+                clusters_selected=clusters_selected,
+                cluster_colors=self.loader.get_cluster_colors(),
+            )
+            [view.set_data(**data) for view in self.get_views('CorrelogramsView')]
+        except IndexError:
+            log.debug("Skip update correlograms view.")
     
     # Geometry.
     # ---------

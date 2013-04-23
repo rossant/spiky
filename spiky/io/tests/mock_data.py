@@ -12,6 +12,7 @@ import shutil
 
 from spiky.utils.colors import COLORS_COUNT
 from spiky.io.tools import save_binary, save_text, check_dtype, check_shape
+from spiky.stats.cache import IndexedMatrix
 
 
 # -----------------------------------------------------------------------------
@@ -57,10 +58,11 @@ def create_masks(nspikes, nchannels, fetdim):
 def create_correlation_matrix(nclusters):
     return np.random.rand(nclusters, nclusters)
     
-def create_correlograms(nclusters, ncorrbins):
-    return {(i + cluster_offset, j + cluster_offset): 
-        np.random.rand(ncorrbins) for i in xrange(nclusters)
-            for j in xrange(nclusters) if i <= j}
+def create_correlograms(clusters, ncorrbins):
+    n = len(clusters)
+    shape = (n, n, ncorrbins)
+    return IndexedMatrix(clusters, shape=shape,
+        data=np.random.rand(*shape))
     
 def create_xml(nchannels, nsamples, fetdim):
     channels = '\n'.join(["<channel>{0:d}</channel>".format(i) 

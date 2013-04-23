@@ -23,12 +23,13 @@ from spiky.views.tests.utils import show_view, get_data
 # Tests
 # -----------------------------------------------------------------------------
 def test_correlogramsview():
-    keys = ('clusters_selected,cluster_colors,ncorrbins').split(',')
+    keys = ('clusters_selected,cluster_colors').split(',')
            
     data = get_data()
     kwargs = {k: data[k] for k in keys}
     
-    kwargs['correlograms'] = create_correlograms(nclusters, ncorrbins)
+    kwargs['correlograms'] = create_correlograms(kwargs['clusters_selected'], 
+        ncorrbins)
     
     kwargs['operators'] = [
         lambda self: (self.close() 
