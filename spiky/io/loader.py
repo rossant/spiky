@@ -151,6 +151,9 @@ class Loader(object):
     
     def get_clusters_selected(self):
         return self.clusters_selected
+        
+    def get_clusters_unique(self):
+        return self.clusters_unique
     
     def get_features(self, spikes=None, clusters=None):
         if clusters is not None:
@@ -357,6 +360,7 @@ class KlustersLoader(Loader):
         # Convert to Pandas.
         self.cluster_info = pd.DataFrame(self.cluster_info, dtype=np.int32)
         self.cluster_info = select(self.cluster_info, clusters_unique)
+        self.clusters_unique = clusters_unique
         self.cluster_colors = self.cluster_info[0].astype(np.int32)
         self.cluster_groups = self.cluster_info[1].astype(np.int32)
         

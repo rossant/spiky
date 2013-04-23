@@ -11,7 +11,7 @@ from qtools import QtGui, QtCore
 from spiky.io import KlustersLoader
 import spiky.utils.logger as log
 from spiky.io.selection import to_array
-from spiky.stats import compute_correlograms
+from spiky.stats import compute_correlograms, compute_correlations
 
 # -----------------------------------------------------------------------------
 # Tasks
@@ -23,12 +23,14 @@ class OpenTask(QtCore.QObject):
         loader = KlustersLoader(path)
         self.dataOpened.emit(loader)
 
+        
 class SelectTask(QtCore.QObject):
     clustersSelected = QtCore.pyqtSignal(np.ndarray)
     
     def select(self, loader, clusters):
         loader.select(clusters=clusters)
         self.clustersSelected.emit(np.array(clusters))
+        
         
 class CorrelogramsTask(QtCore.QObject):
     correlogramsComputed = QtCore.pyqtSignal(np.ndarray, object)
@@ -50,23 +52,48 @@ class CorrelogramsTask(QtCore.QObject):
         self.correlogramsComputed.emit(np.array(clusters_selected),
             correlograms)
 
+            
+class CorrelationMatrixTask(QtCore.QObject):
+    correlationMatrixComputed = QtCore.pyqtSignal(np.ndarray, object)
+    
+    def compute(self, features, clusters, masks, clusters_selected):
+        log.debug("Computing correlation for clusters {0:s}.".format(
+            str(clusters_selected)))
+        if len(clusters_selected) == 0:
+            return {}
+        correlations = compute_correlations(features, clusters, masks, 
+            clusters_selected)
+        return correlations
+        
+    def compute_done(self, features, clusters, masks, clusters_selected,
+        _result=None):
+        correlations = _result
+        self.correlationMatrixComputed.emit(np.array(clusters_selected),
+            correlations)
+            
     
 # -----------------------------------------------------------------------------
 # Container
 # -----------------------------------------------------------------------------
 class ThreadedTasks(QtCore.QObject):
     def __init__(self):
+        # In external threads.
         self.open_task = inthread(OpenTask)()
         self.select_task = inthread(SelectTask)(impatient=True)
+        # In external processes.
         self.correlograms_task = inprocess(CorrelogramsTask)(impatient=True)
+        self.correlation_matrix_task = inprocess(CorrelationMatrixTask)(
+            impatient=True)
 
     def join(self):
         self.open_task.join()
         self.select_task.join()
         self.correlograms_task.join()
+        self.correlation_matrix_task.join()
         
     def terminate(self):
         self.correlograms_task.terminate()
+        self.correlation_matrix_task.terminate()
 
         
         

@@ -187,6 +187,8 @@ class MainWindow(QtGui.QMainWindow):
         # Create the cache for the cluster statistics that need to be
         # computed in the background.
         self.statscache = StatsCache(loader.ncorrbins)
+        # Start computing the correlation matrix.
+        self.start_compute_correlation_matrix()
         # Update the views.
         self.update_cluster_view()
         
@@ -217,6 +219,33 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.update_correlograms_view()
         
+    def start_compute_correlation_matrix(self):
+        # Get the correlation matrix parameters.
+        features = to_array(self.loader.get_features('all'))
+        masks = to_array(self.loader.get_masks('all', full=True))
+        clusters = to_array(self.loader.get_clusters('all'))
+        # All clusters.
+        clusters_selected = self.loader.get_clusters_unique()
+        # Add new cluster indices if needed.
+        clusters_new = self.statscache.correlation_matrix.not_in_indices(
+            clusters_selected)
+        if len(clusters_new) > 0:
+            self.statscache.correlation_matrix.add_indices(clusters_new)
+        
+        # Get cluster indices that need to be updated.
+        clusters_to_update = (
+            self.statscache.correlation_matrix.blank_indices(clusters_selected))
+        # print clusters_to_update
+        # If there are pairs that need to be updated, launch the task.
+        if len(clusters_to_update) > 0:
+            # Launch the task.
+            self.tasks.correlation_matrix_task.compute(features,
+                clusters, masks, clusters_selected)
+        # Otherwise, update directly the correlograms view without launching
+        # the task in the external process.
+        else:
+            self.update_correlation_matrix_view()
+        
     def selection_done(self, clusters_selected):
         """Called on the main thread once the clusters have been loaded 
         in the main thread."""
@@ -227,8 +256,6 @@ class MainWindow(QtGui.QMainWindow):
         self.update_feature_view()
     
     def correlograms_computed(self, clusters, correlograms):
-        # # Update the cluster indices in the cache.
-        # self.statscache.correlograms.add_indices(clusters)
         # Put the computed correlograms in the cache.
         for pair, correlogram in correlograms.iteritems():
             self.statscache.correlograms[pair] = correlogram
@@ -236,6 +263,12 @@ class MainWindow(QtGui.QMainWindow):
         if set(self.loader.get_clusters_selected()) == set(clusters):
             self.update_correlograms_view()
         
+    def correlation_matrix_computed(self, clusters, matrix):
+        for pair, value in matrix.iteritems():
+            self.statscache.correlation_matrix[pair] = value
+        # Update the view.
+        self.update_correlation_matrix_view()
+    
     
     # Threads.
     # --------
@@ -246,6 +279,8 @@ class MainWindow(QtGui.QMainWindow):
         self.tasks.select_task.clustersSelected.connect(self.selection_done)
         self.tasks.correlograms_task.correlogramsComputed.connect(
             self.correlograms_computed)
+        self.tasks.correlation_matrix_task.correlationMatrixComputed.connect(
+            self.correlation_matrix_computed)
     
     def join_threads(self):
          self.tasks.join()
@@ -420,6 +455,16 @@ class MainWindow(QtGui.QMainWindow):
             [view.set_data(**data) for view in self.get_views('CorrelogramsView')]
         except IndexError:
             log.debug("Skip update correlograms view.")
+    
+    def update_correlation_matrix_view(self):
+        matrix = self.statscache.correlation_matrix
+        data = dict(
+            correlation_matrix=matrix.to_array(),
+            cluster_colors_full=self.loader.get_cluster_colors('all'),
+        )
+        [view.set_data(**data) 
+            for view in self.get_views('CorrelationMatrixView')]
+    
     
     # Geometry.
     # ---------

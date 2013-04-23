@@ -82,7 +82,6 @@ def compute_correlations(features, clusters, masks,
     A dictionary pairs => value is returned.
     
     """
-    
     nPoints = features.shape[0]
     nDims = features.shape[1]
     
