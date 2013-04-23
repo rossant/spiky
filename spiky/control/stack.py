@@ -6,7 +6,7 @@
 
 
 # -----------------------------------------------------------------------------
-# Logging classes
+# Action stack
 # -----------------------------------------------------------------------------
 class Stack(object):
     """Stack structure used for undo/redo, with optional maximum size."""
@@ -15,7 +15,8 @@ class Stack(object):
         self.maxsize = maxsize
         # Current position in the stack.
         self.position = 0
-        
+    
+    
     # Action methods
     # --------------
     def add(self, obj):

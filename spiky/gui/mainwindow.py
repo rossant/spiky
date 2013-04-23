@@ -190,6 +190,10 @@ class MainWindow(QtGui.QMainWindow):
     def features_spikes_highlighted_callback(self, spikes):
         self.get_view('WaveformView').highlight_spikes(get_array(spikes))
         
+    # Misc callbacks.
+    def waveform_box_clicked_callback(self, coord, cluster, channel):
+        self.get_view('FeatureView').set_projection(coord, channel, 0)
+        
     
     # Task callbacks.
     # ---------------
@@ -354,6 +358,7 @@ class MainWindow(QtGui.QMainWindow):
             position=QtCore.Qt.RightDockWidgetArea,)
         view.spikesHighlighted.connect(
             self.waveform_spikes_highlighted_callback)
+        view.boxClicked.connect(self.waveform_box_clicked_callback)
         self.views['WaveformView'].append(view)
         
     def add_feature_view(self):

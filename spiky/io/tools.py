@@ -115,7 +115,7 @@ def get_array(data):
             return data
     elif isinstance(data, (pd.DataFrame, pd.Panel)):
         return data.sort_index().values
-    elif isinstance(data, pd.Int64Index):
+    elif isinstance(data, (pd.Int64Index, pd.Index)):
         return np.sort(data.values)
     else:
         return data.sort_index().values
