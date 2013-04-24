@@ -271,18 +271,18 @@ class Loader(object):
     def add_cluster(self, cluster, group, color):
         if cluster not in self.cluster_groups.index:
             self.cluster_groups = self.cluster_groups.append(
-                pd.Series([group], index=[cluster]))
+                pd.Series([group], index=[cluster])).sort_index()
         if cluster not in self.cluster_colors.index:
             self.cluster_colors = self.cluster_colors.append(
-                pd.Series([color], index=[cluster]))
+                pd.Series([color], index=[cluster])).sort_index()
         
     def add_group(self, group, name, color):
         if group not in self.group_colors.index:
             self.group_colors = self.group_colors.append(
-                pd.Series([color], index=[group]))
+                pd.Series([color], index=[group])).sort_index()
         if group not in self.group_names.index:
             self.group_names = self.group_names.append(
-                pd.Series([name], index=[group]))
+                pd.Series([name], index=[group])).sort_index()
         
     # Remove.
     def remove_cluster(self, cluster):

@@ -74,6 +74,48 @@ def test_controller_1():
     c.redo()
     assert np.array_equal(l.get_spikes(cluster_split), spikes_sample)
     
+def test_controller_2():
+    l, c = load()
+    
+    # Select three clusters
+    clusters = [2, 4, 6]
+    spikes = l.get_spikes(clusters=clusters)
+    cluster_spikes = l.get_clusters(clusters=clusters)
+    
+    
+    # Merge these clusters.
+    cluster_new = c.merge_clusters(clusters)
+    assert np.array_equal(l.get_spikes(cluster_new), spikes)
+    assert np.all(~np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
+    
+    # Undo.
+    assert c.can_undo()
+    c.undo()
+    assert np.array_equal(l.get_spikes(cluster_new), [])
+    assert np.all(np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
+    assert np.array_equal(l.get_clusters(clusters=clusters), cluster_spikes)
+    
+    # Move clusters.
+    c.move_clusters(clusters, 0)
+    assert np.all(l.get_cluster_groups(clusters) == 0)
+    
+    assert c.can_undo()
+    assert not c.can_redo()
+    
+    # Undo
+    c.undo()
+    assert np.all(l.get_cluster_groups(clusters) == 2)
+    
+    assert not c.can_undo()
+    assert c.can_redo()
+    
+    # Merge clusters.
+    c.merge_clusters(clusters)
+    
+    assert c.can_undo()
+    assert not c.can_redo()
+    
+    
 def test_controller_recolor_clusters():
     l, c = load()
     group = 1

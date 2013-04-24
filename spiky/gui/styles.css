@@ -23,7 +23,7 @@ QToolTip
 
 QWidget
 {
-    color: #b1b1b1;
+    color: #c0c0c0;
     background-color: #323232;
 }
 
@@ -86,7 +86,7 @@ QMenu::item:selected
 
 QWidget:disabled
 {
-    color: #404040;
+    color: #808080;
     /*background-color: #606060;*/
 }
 

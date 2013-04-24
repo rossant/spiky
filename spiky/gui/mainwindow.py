@@ -58,13 +58,22 @@ class MainWindow(QtGui.QMainWindow):
         self.setDockNestingEnabled(True)
         self.setAnimated(False)
         
+        # Initialize some variables.
         self.loader = None
+        self.controller = None
+        self.spikes_highlighted = []
+        self.spikes_selected = []
         
-        # Create the views.
+        # Create the main window.
         self.create_views()
-        self.create_actions()
+        self.create_file_actions()
+        self.create_view_actions()
+        self.create_control_actions()
         self.create_menu()
         self.create_threads()
+        
+        # Update action enabled/disabled property.
+        self.update_action_enabled()
         
         # Show the main window.
         self.set_styles()
@@ -96,7 +105,8 @@ class MainWindow(QtGui.QMainWindow):
             action.setShortcut(shortcut)
         setattr(self, name + '_action', action)
         
-    def create_actions(self):
+    def create_file_actions(self):
+        # Open actions.
         self.add_action('open', '&Open', shortcut='Ctrl+O')
         
         # Open last file action
@@ -111,14 +121,23 @@ class MainWindow(QtGui.QMainWindow):
             self.add_action('open_last', 'Open &last', shortcut='Ctrl+Alt+O')
             self.open_last_action.setEnabled(False)
         
+        # Quit action.
         self.add_action('quit', '&Quit', shortcut='Ctrl+Q')
         
+    def create_view_actions(self):
         self.add_action('add_feature_view', 'Add FeatureView')
         self.add_action('add_waveform_view', 'Add WaveformView')
         self.add_action('add_correlation_matrix_view',
             'Add CorrelationMatrixView')
         self.add_action('add_correlograms_view', 'Add CorrelogramsView')
     
+    def create_control_actions(self):
+        self.add_action('undo', '&Undo', shortcut='Ctrl+Z')
+        self.add_action('redo', '&Redo', shortcut='Ctrl+Y')
+        
+        self.add_action('merge', '&Merge', shortcut='Ctrl+G')
+        self.add_action('split', '&Split', shortcut='Ctrl+K')
+        
     def create_menu(self):
         # File menu.
         file_menu = self.menuBar().addMenu("&File")
@@ -134,9 +153,44 @@ class MainWindow(QtGui.QMainWindow):
         views_menu.addAction(self.add_correlograms_view_action)
         views_menu.addAction(self.add_correlation_matrix_view_action)
         
+        # Actions menu.
+        actions_menu = self.menuBar().addMenu("&Actions")
+        actions_menu.addAction(self.undo_action)
+        actions_menu.addAction(self.redo_action)
+        actions_menu.addSeparator()
+        actions_menu.addAction(self.merge_action)
+        actions_menu.addAction(self.split_action)
+        
+    def update_action_enabled(self):
+        self.undo_action.setEnabled(self.can_undo())
+        self.redo_action.setEnabled(self.can_redo())
+        self.merge_action.setEnabled(self.can_merge())
+        self.split_action.setEnabled(self.can_split())
     
-    # Callback functions.
-    # -------------------
+    def can_undo(self):
+        if self.controller is None:
+            return False
+        return self.controller.can_undo()
+    
+    def can_redo(self):
+        if self.controller is None:
+            return False
+        return self.controller.can_redo()
+    
+    def can_merge(self):
+        cluster_view = self.get_view('ClusterView')
+        clusters = cluster_view.selected_clusters()
+        return len(clusters) >= 2
+        
+    def can_split(self):
+        cluster_view = self.get_view('ClusterView')
+        clusters = cluster_view.selected_clusters()
+        spikes_selected = self.spikes_selected
+        return len(spikes_selected) >= 1
+    
+    
+    # File menu callbacks.
+    # --------------------
     def open_callback(self, checked):
         # HACK: Force release of Ctrl key.
         self.force_key_release()
@@ -161,7 +215,9 @@ class MainWindow(QtGui.QMainWindow):
     def quit_callback(self, checked):
         self.close()
     
-    # Add views callbacks.
+    
+    # Views menu callbacks.
+    # ---------------------
     def add_feature_view_callback(self, checked):
         self.add_feature_view()
         
@@ -174,7 +230,50 @@ class MainWindow(QtGui.QMainWindow):
     def add_correlograms_view_callback(self, checked):
         self.add_correlograms_view()
     
-    # Clusters callbacks.
+    
+    # Actions menu callbacks.
+    # -----------------------
+    def merge_callback(self, checked):
+        cluster_view = self.get_view('ClusterView')
+        clusters = cluster_view.selected_clusters()
+        if len(clusters) >= 2:
+            cluster_new = self.controller.merge_clusters(clusters)
+            self.update_cluster_view()
+            cluster_view.select(cluster_new)
+            
+    def split_callback(self, checked):
+        cluster_view = self.get_view('ClusterView')
+        clusters = cluster_view.selected_clusters()
+        spikes_selected = self.spikes_selected
+        if len(spikes_selected) >= 1:
+            clusters_new = self.controller.split_clusters(clusters, 
+                spikes_selected)
+            self.update_cluster_view()
+            cluster_view.select(clusters_new)
+            
+    def undo_callback(self, checked):
+        cluster_view = self.get_view('ClusterView')
+        clusters_selected = cluster_view.selected_clusters()
+        clusters = self.controller.undo()
+        if clusters is None:
+            clusters = clusters_selected
+        self.update_cluster_view()
+        self.update_action_enabled()
+        cluster_view.select(clusters)
+        
+    def redo_callback(self, checked):
+        cluster_view = self.get_view('ClusterView')
+        clusters_selected = cluster_view.selected_clusters()
+        clusters = self.controller.redo()
+        if clusters is None:
+            clusters = clusters_selected
+        self.update_cluster_view()
+        self.update_action_enabled()
+        cluster_view.select(clusters)
+    
+    
+    # Selection callbacks.
+    # --------------------
     def clusters_selected_callback(self, clusters):
         # Launch cluster selection on the Loader in an external thread.
         self.tasks.select_task.select(self.loader, clusters)
@@ -185,39 +284,52 @@ class MainWindow(QtGui.QMainWindow):
         self.get_view('ClusterView').select(clusters)
     
     
-    # Highlight callbacks.
+    # Views callbacks.
+    # ----------------
     def waveform_spikes_highlighted_callback(self, spikes):
+        self.spikes_highlighted = spikes
         self.get_view('FeatureView').highlight_spikes(get_array(spikes))
         
     def features_spikes_highlighted_callback(self, spikes):
+        self.spikes_highlighted = spikes
         self.get_view('WaveformView').highlight_spikes(get_array(spikes))
         
-    # Misc callbacks.
+    def features_spikes_selected_callback(self, spikes):
+        self.spikes_selected = spikes
+        self.get_view('WaveformView').highlight_spikes(get_array(spikes))
+        
     def waveform_box_clicked_callback(self, coord, cluster, channel):
         self.get_view('FeatureView').set_projection(coord, channel, coord)
         
     
-    # Action callbacks.
+    # Action callbacks from the cluster view.
+    # ---------------------------------------
     def cluster_color_changed_callback(self, cluster, color):
         self.controller.change_cluster_color(cluster, color)
+        self.update_action_enabled()
         self.update_waveform_view()
         self.update_feature_view()
         self.update_correlograms_view()
         
     def group_color_changed_callback(self, group, color):
         self.controller.change_group_color(group, color)
+        self.update_action_enabled()
         
     def group_renamed_callback(self, group, name):
         self.controller.rename_group(group, name)
+        self.update_action_enabled()
         
     def clusters_moved_callback(self, clusters, group):
         self.controller.move_clusters(clusters, group)
+        self.update_action_enabled()
         
     def group_removed_callback(self, group):
         self.controller.remove_group(group)
+        self.update_action_enabled()
         
     def group_added_callback(self, group, name, color):
         self.controller.add_group(group, name, color)
+        self.update_action_enabled()
         
     
     # Task methods.
@@ -292,6 +404,8 @@ class MainWindow(QtGui.QMainWindow):
     def selection_done(self, clusters_selected):
         """Called on the main thread once the clusters have been loaded 
         in the main thread."""
+        # Update action enabled/disabled property.
+        self.update_action_enabled()
         # Launch the computation of the correlograms.
         self.start_compute_correlograms(clusters_selected)
         # Update the different views.
@@ -401,6 +515,8 @@ class MainWindow(QtGui.QMainWindow):
             position=QtCore.Qt.RightDockWidgetArea,)
         view.spikesHighlighted.connect(
             self.features_spikes_highlighted_callback)
+        view.spikesSelected.connect(
+            self.features_spikes_selected_callback)
         self.views['FeatureView'].append(view)
             
     def add_correlograms_view(self):

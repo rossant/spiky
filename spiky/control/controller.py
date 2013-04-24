@@ -77,6 +77,7 @@ class Controller(object):
         for cluster in clusters_to_merge:
             self.loader.remove_cluster(cluster)
         self.loader.unselect()
+        return cluster_merged
         
     def _merge_clusters_undo(self, clusters_old, cluster_groups, 
         cluster_colors, cluster_merged):
@@ -92,6 +93,7 @@ class Controller(object):
         # Remove merged cluster.
         self.loader.remove_cluster(cluster_merged)
         self.loader.unselect()
+        return get_array(clusters_to_merge)
         
         
     # Split.
@@ -100,6 +102,7 @@ class Controller(object):
         # Find groups and colors of old clusters.
         cluster_indices_old = sorted(Counter(clusters_old).keys())
         cluster_indices_new = sorted(Counter(clusters_new).keys())
+        # Get group and color of the new clusters, from the old clusters.
         groups = self.loader.get_cluster_groups(cluster_indices_old)
         colors = self.loader.get_cluster_colors(cluster_indices_old)
         # Add clusters.
@@ -109,15 +112,20 @@ class Controller(object):
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_new)
         self.loader.unselect()
+        return np.array(sorted(set(clusters_old).union(set(clusters_new))))
         
     def _split_clusters_undo(self, clusters_old, clusters_new):
         spikes = get_indices(clusters_old)
+        # Find groups and colors of old clusters.
+        cluster_indices_old = sorted(Counter(clusters_old).keys())
+        cluster_indices_new = sorted(Counter(clusters_new).keys())
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_old)
         # Remove clusters.
-        for cluster_new in clusters_new:
+        for cluster_new in cluster_indices_new:
             self.loader.remove_cluster(cluster_new)
         self.loader.unselect()
+        return clusters_old
         
         
     # Change cluster color.
@@ -255,23 +263,27 @@ class Controller(object):
     def undo(self):
         """Undo an action if possible."""
         action = self.stack.undo()
+        if action is None:
+            return
         # Get the undone action.
         method_name, args, kwargs = action
         # Undo the action.
         # Log the action.
         log.info(get_pretty_action(method_name, args, kwargs, verb='Undo'))
         # The undo action is implemented in '_method_undo'.
-        getattr(self, '_' + method_name + '_undo')(*args, **kwargs)
+        return getattr(self, '_' + method_name + '_undo')(*args, **kwargs)
         
     def redo(self):
         action = self.stack.redo()
+        if action is None:
+            return
         # Get the redo action.
         method_name, args, kwargs = action
         # Redo the action.
         # Log the action.
         log.info(get_pretty_action(method_name, args, kwargs, verb='Redo'))
         # The redo action is implemented in '_method'.
-        getattr(self, '_' + method_name)(*args, **kwargs)
+        return getattr(self, '_' + method_name)(*args, **kwargs)
         
     def can_undo(self):
         return self.stack.can_undo()
