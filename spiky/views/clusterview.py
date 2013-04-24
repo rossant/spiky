@@ -700,6 +700,8 @@ class ClusterView(QtGui.QTreeView):
     # --------------
     def select(self, clusters):
         """Select multiple clusters from their indices."""
+        if isinstance(clusters, (int, long)):
+            clusters = [clusters]
         selection_model = self.selectionModel()
         selection = QtGui.QItemSelection()
         for clusteridx in clusters:

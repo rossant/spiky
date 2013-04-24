@@ -11,6 +11,8 @@ import pandas as pd
 
 from spiky.control.stack import Stack
 import spiky.utils.logger as log
+from spiky.io.selection import get_indices
+from spiky.io.tools import get_array
 from spiky.utils.colors import next_color
 
 
@@ -54,29 +56,47 @@ class Controller(object):
     # Actions.
     # --------
     # Merge.
-    def _merge_clusters(self, clusters_to_merge, cluster_merged):
+    def _merge_clusters(self, clusters_old, cluster_groups, cluster_colors,
+        cluster_merged):
         # Get spikes in clusters to merge.
-        spikes = self.loader.get_spikes(clusters=clusters_to_merge)
-        # Add cluster.
-        group = self.loader.get_cluster_groups(clusters_to_merge) \
-            [clusters_to_merge[0]]
-        color_old = self.loader.get_cluster_colors(clusters_to_merge) \
-            [clusters_to_merge[0]]
+        # spikes = self.loader.get_spikes(clusters=clusters_to_merge)
+        spikes = get_indices(clusters_old)
+        clusters_to_merge = get_indices(cluster_groups)
+        # Add new cluster.
+        # group = self.loader.get_cluster_groups(clusters_to_merge) \
+            # [clusters_to_merge[0]]
+        # color_old = self.loader.get_cluster_colors(clusters_to_merge) \
+            # [clusters_to_merge[0]]
+        group = get_array(cluster_groups)[0]
+        color_old = get_array(cluster_groups)[0]
         color_new = next_color(color_old)
         self.loader.add_cluster(cluster_merged, group, color_new)
         # Set the new cluster to the corresponding spikes.
         self.loader.set_cluster(spikes, cluster_merged)
+        # Remove old clusters.
+        for cluster in clusters_to_merge:
+            self.loader.remove_cluster(cluster)
+        self.loader.unselect()
         
-    def _merge_clusters_undo(self, clusters_to_merge, cluster_merged):
+    def _merge_clusters_undo(self, clusters_old, cluster_groups, 
+        cluster_colors, cluster_merged):
         # Get spikes in clusters to merge.
         spikes = self.loader.get_spikes(clusters=cluster_merged)
+        clusters_to_merge = get_indices(cluster_groups)
+        # Add old clusters.
+        for cluster, group, color in zip(
+                clusters_to_merge, cluster_groups, cluster_colors):
+            self.loader.add_cluster(cluster, group, color)
         # Set the new clusters to the corresponding spikes.
-        self.loader.set_cluster(spikes, clusters_to_merge)
-        # Remove cluster.
+        self.loader.set_cluster(spikes, clusters_old)
+        # Remove merged cluster.
         self.loader.remove_cluster(cluster_merged)
+        self.loader.unselect()
+        
         
     # Split.
-    def _split_clusters(self, clusters_old, spikes, clusters_new):
+    def _split_clusters(self, clusters_old, clusters_new):
+        spikes = get_indices(clusters_old)
         # Find groups and colors of old clusters.
         cluster_indices_old = sorted(Counter(clusters_old).keys())
         cluster_indices_new = sorted(Counter(clusters_new).keys())
@@ -88,13 +108,17 @@ class Controller(object):
             self.loader.add_cluster(cluster_new, group, next_color(color))
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_new)
+        self.loader.unselect()
         
-    def _split_clusters_undo(self, clusters_old, spikes, clusters_new):
+    def _split_clusters_undo(self, clusters_old, clusters_new):
+        spikes = get_indices(clusters_old)
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_old)
         # Remove clusters.
         for cluster_new in clusters_new:
             self.loader.remove_cluster(cluster_new)
+        self.loader.unselect()
+        
         
     # Change cluster color.
     def _change_cluster_color(self, cluster, color_old, color_new):
@@ -103,12 +127,14 @@ class Controller(object):
     def _change_cluster_color_undo(self, cluster, color_old, color_new):
         self.loader.set_cluster_colors(cluster, color_old)
         
+        
     # Move clusters.
     def _move_clusters(self, clusters, groups_old, group_new):
         self.loader.set_cluster_groups(clusters, group_new)
         
     def _move_clusters_undo(self, clusters, groups_old, group_new):
         self.loader.set_cluster_groups(clusters, groups_old)
+      
       
     # Rename group.
     def _rename_group(self, group, name_old, name_new):
@@ -117,6 +143,7 @@ class Controller(object):
     def _rename_group_undo(self, group, name_old, name_new):
         self.loader.set_group_names(group, name_old)
     
+    
     # Change group color.
     def _change_group_color(self, group, color_old, color_new):
         self.loader.set_group_colors(group, color_new)
@@ -124,12 +151,14 @@ class Controller(object):
     def _change_group_color_undo(self, group, color_old, color_new):
         self.loader.set_group_colors(group, color_old)
     
+    
     # Add group.
     def _add_group(self, group, name, color):
         self.loader.add_group(group, name, color)
         
     def _add_group_undo(self, group, name, color):
         self.loader.remove_group(group)
+    
     
     # Remove group.
     def _remove_group(self, group, name, color):
@@ -166,7 +195,11 @@ class Controller(object):
     def merge_clusters(self, clusters):
         clusters_to_merge = clusters
         cluster_merged = self.loader.get_new_clusters(1)[0]
-        self._process('merge_clusters', clusters_to_merge, cluster_merged)
+        clusters_old = self.loader.get_clusters(clusters=clusters_to_merge)
+        cluster_groups = self.loader.get_cluster_groups(clusters_to_merge)
+        cluster_colors = self.loader.get_cluster_colors(clusters_to_merge)
+        self._process('merge_clusters', clusters_old, cluster_groups, 
+            cluster_colors, cluster_merged)
         return cluster_merged
         
     def split_clusters(self, clusters, spikes):
@@ -184,7 +217,7 @@ class Controller(object):
         for cluster_old, cluster_new in zip(cluster_indices_old,
                 clusters_indices_new):
             clusters_new[clusters_old == cluster_old] = cluster_new
-        self._process('split_clusters', clusters_old, spikes, clusters_new)
+        self._process('split_clusters', clusters_old, clusters_new)
         return clusters_indices_new
         
     def change_cluster_color(self, cluster, color):

@@ -37,6 +37,7 @@ def test_controller_1():
     # Select three clusters
     clusters = [2, 4, 6]
     spikes = l.get_spikes(clusters=clusters)
+    cluster_spikes = l.get_clusters(clusters=clusters)
     # Select half of the spikes in these clusters.
     spikes_sample = spikes[::2]
     
@@ -44,16 +45,20 @@ def test_controller_1():
     # Merge these clusters.
     cluster_new = c.merge_clusters(clusters)
     assert np.array_equal(l.get_spikes(cluster_new), spikes)
+    assert np.all(~np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
     
     # Undo.
     assert c.can_undo()
     c.undo()
     assert np.array_equal(l.get_spikes(cluster_new), [])
+    assert np.all(np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
+    assert np.array_equal(l.get_clusters(clusters=clusters), cluster_spikes)
     
     # Redo.
     assert c.can_redo()
     c.redo()
     assert np.array_equal(l.get_spikes(cluster_new), spikes)
+    assert np.all(~np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
     
     
     # Split the newly created cluster into two clusters.

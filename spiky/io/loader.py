@@ -468,3 +468,7 @@ class KlustersLoader(Loader):
             spikes = get_spikes_in_clusters(clusters, self.clusters)    
         self.spikes_selected = spikes
         self.clusters_selected = clusters
+
+    def unselect(self):
+        self.select(spikes=None, clusters=None)
+        
