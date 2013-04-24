@@ -196,6 +196,8 @@ class IndexedMatrix(object):
                 # Case where both items are enumerables.
                 if (not isinstance(item[0], (int, long)) and 
                     not isinstance(item[1], (int, long))):
+                    # TODO: this is inefficient. Rather inspire from
+                    # update_from_dict.
                     # Assign value slice after slice.
                     for j in xrange(len(item[1])):
                         try:
@@ -221,6 +223,15 @@ class IndexedMatrix(object):
                 return
         raise IndexError(("Indexed matrices can only be accessed with [x,y] "
         "with x and y indices or default slice ':'."))
+        
+    def update_from_dict(self, dic):
+        items0, items1 = zip(*dic.keys())
+        items0_relative = self.to_relative(items0)
+        items1_relative = self.to_relative(items1)
+        for (item0, item1, item0_relative, item1_relative) in zip(
+                items0, items1, items0_relative, items1_relative):
+            self._array[item0_relative, item1_relative, ...] = dic[(
+                item0, item1)]
         
     def __len__(self):
         return self.n

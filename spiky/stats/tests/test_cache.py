@@ -162,6 +162,17 @@ def test_indexed_matrix_10():
     assert submatrix.shape == (2, 2, 10)
     assert np.array_equal(submatrix.to_array()[0, 1, ...], 2 * np.ones(10))
     
+def test_indexed_matrix_from_dict():
+    indices = [2, 3, 5, 7]
+    matrix = IndexedMatrix(indices=indices, shape=(4, 4, 10))
+    
+    d = {(i, j): i + j for i in indices for j in indices}
+    matrix.update_from_dict(d)
+    
+    matrix_actual = (np.array(indices).reshape((-1, 1)) + 
+        np.array(indices).reshape((1, -1)))
+    assert np.array_equal(matrix.to_array()[:, :, 0], matrix_actual)
+    
     
 # -----------------------------------------------------------------------------
 # Cache tests

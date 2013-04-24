@@ -414,15 +414,13 @@ class MainWindow(QtGui.QMainWindow):
     
     def correlograms_computed(self, clusters, correlograms):
         # Put the computed correlograms in the cache.
-        for pair, correlogram in correlograms.iteritems():
-            self.statscache.correlograms[pair] = correlogram
+        self.statscache.correlograms.update_from_dict(correlograms)
         # Update the view.
         if set(self.loader.get_clusters_selected()) == set(clusters):
             self.update_correlograms_view()
-        
+    
     def correlation_matrix_computed(self, clusters, matrix):
-        for pair, value in matrix.iteritems():
-            self.statscache.correlation_matrix[pair] = value
+        self.statscache.correlation_matrix.update_from_dict(matrix)
         # Update the view.
         self.update_correlation_matrix_view()
     

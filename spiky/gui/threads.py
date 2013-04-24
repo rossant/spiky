@@ -3,8 +3,9 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-import numpy as np
+import time
 
+import numpy as np
 from qtools import inthread, inprocess
 from qtools import QtGui, QtCore
 
