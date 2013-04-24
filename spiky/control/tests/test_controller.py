@@ -139,9 +139,11 @@ def test_controller_add_group():
     l, c = load()
     
     # Add a group.
-    group = c.add_group('My group')
+    group = 3
+    c.add_group(group, 'My group', 2)
     assert np.all(~np.in1d(l.get_cluster_groups(), group))
     assert l.get_group_names(group) == 'My group'
+    assert l.get_group_colors(group) == 2
     
     # Undo.
     c.undo()
@@ -151,6 +153,7 @@ def test_controller_add_group():
     c.redo()
     assert np.all(~np.in1d(l.get_cluster_groups(), group))
     assert l.get_group_names(group) == 'My group'
+    assert l.get_group_colors(group) == 2
     
 def test_controller_remove_group():
     l, c = load()

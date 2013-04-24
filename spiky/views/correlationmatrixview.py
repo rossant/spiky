@@ -196,7 +196,7 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         clusters = np.unique([cx, cy])
         
         # Emit signal.
-        log.debug("Selected clusters {0:d} and {1:d}.".format(cx, cy))
+        # log.debug("Selected clusters {0:d} and {1:d}.".format(cx, cy))
         self.parent.pairSelected.emit(clusters)
         
     def show_closest_cluster(self, parameter):

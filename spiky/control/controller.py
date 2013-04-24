@@ -207,17 +207,8 @@ class Controller(object):
         color_new = color
         self._process('change_group_color', group, color_old, color_new)
     
-    def add_group(self, name):
-        # Get the index of the new group.
-        group = self.loader.get_new_group()
-        # Obtain a new color.
-        colors = self.loader.get_group_colors().values
-        if len(colors) > 0:
-            color = next_color(colors[-1])
-        else:
-            color = 1
+    def add_group(self, group, name, color):
         self._process('add_group', group, name, color)
-        return group
         
     def remove_group(self, group):
         name = self.loader.get_group_names(group)

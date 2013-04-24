@@ -15,6 +15,7 @@ from galry import QtGui, QtCore
 from qtools import inprocess, inthread
 
 import spiky.views as vw
+from spiky.control.controller import Controller
 from spiky.io.tools import get_array
 from spiky.io.loader import KlustersLoader
 from spiky.stats.cache import StatsCache
@@ -182,7 +183,8 @@ class MainWindow(QtGui.QMainWindow):
         """Callback when the user clicks on a pair in the
         CorrelationMatrixView."""
         self.get_view('ClusterView').select(clusters)
-        
+    
+    
     # Highlight callbacks.
     def waveform_spikes_highlighted_callback(self, spikes):
         self.get_view('FeatureView').highlight_spikes(get_array(spikes))
@@ -195,11 +197,36 @@ class MainWindow(QtGui.QMainWindow):
         self.get_view('FeatureView').set_projection(coord, channel, coord)
         
     
-    # Task callbacks.
-    # ---------------
+    # Action callbacks.
+    def cluster_color_changed_callback(self, cluster, color):
+        self.controller.change_cluster_color(cluster, color)
+        self.update_waveform_view()
+        self.update_feature_view()
+        self.update_correlograms_view()
+        
+    def group_color_changed_callback(self, group, color):
+        self.controller.change_group_color(group, color)
+        
+    def group_renamed_callback(self, group, name):
+        self.controller.rename_group(group, name)
+        
+    def clusters_moved_callback(self, clusters, group):
+        self.controller.move_clusters(clusters, group)
+        
+    def group_removed_callback(self, group):
+        self.controller.remove_group(group)
+        
+    def group_added_callback(self, group, name, color):
+        self.controller.add_group(group, name, color)
+        
+    
+    # Task methods.
+    # -------------
     def open_done(self, loader):
         # Save the loader object.
         self.loader = loader
+        # Create the Controller.
+        self.controller = Controller(self.loader)
         # Create the cache for the cluster statistics that need to be
         # computed in the background.
         self.statscache = StatsCache(loader.ncorrbins)
@@ -343,8 +370,16 @@ class MainWindow(QtGui.QMainWindow):
     def add_cluster_view(self):
         view = self.create_view(vw.ClusterView,
             position=QtCore.Qt.LeftDockWidgetArea, closable=False)
-        # Connect callback function when selecting clusters.
+            
+        # Connect callback functions.
         view.clustersSelected.connect(self.clusters_selected_callback)
+        view.clusterColorChanged.connect(self.cluster_color_changed_callback)
+        view.groupColorChanged.connect(self.group_color_changed_callback)
+        view.groupRenamed.connect(self.group_renamed_callback)
+        view.clustersMoved.connect(self.clusters_moved_callback)
+        view.groupAdded.connect(self.group_added_callback)
+        view.groupRemoved.connect(self.group_removed_callback)
+        
         self.views['ClusterView'].append(view)
         
     def add_correlation_matrix_view(self):

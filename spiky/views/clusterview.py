@@ -13,7 +13,7 @@ import numpy.random as rnd
 from galry import QtGui, QtCore
 
 from spiky.io.selection import get_indices, select
-from spiky.utils.colors import COLORMAP
+from spiky.utils.colors import COLORMAP, next_color
 import spiky.utils.logger as log
 from spiky.utils.settings import SETTINGS
 from spiky.utils.persistence import encode_bytearray, decode_bytearray
@@ -458,12 +458,12 @@ class ClusterGroupManager(TreeModel):
     
     # Action methods
     # --------------
-    def add_group(self, name):
+    def add_group(self, name, color):
         """Add a group."""
         groupidx = max([group.groupidx() for group in self.get_groups()]) + 1
         # Add the group in the tree.
         groupitem = self.add_group_node(groupidx=groupidx,
-            name=name, spkcount=0, color=1)
+            name=name, spkcount=0, color=color)
         return groupitem
         
     def add_group_node(self, **kwargs):
@@ -623,7 +623,7 @@ class ClusterView(QtGui.QTreeView):
 
     clustersMoved = QtCore.pyqtSignal(np.ndarray, int)
     groupRemoved = QtCore.pyqtSignal(int)
-    groupAdded = QtCore.pyqtSignal(int, object)
+    groupAdded = QtCore.pyqtSignal(int, str, int)
     
     class ClusterDelegate(QtGui.QStyledItemDelegate):
         def paint(self, painter, option, index):
@@ -731,11 +731,13 @@ class ClusterView(QtGui.QTreeView):
         self.clustersMoved.emit(np.array(clusters), groupidx)
     
     def add_group(self, name, clusters=[]):
-        group = self.model.add_group(name)
+        color = next_color(max([group.color()
+            for group in self.model.get_groups()]))
+        group = self.model.add_group(name, color)
         groupidx = group.groupidx()
         # Signal.
         log.debug("Adding group {0:s}.".format(name))
-        self.groupAdded.emit(groupidx, name)
+        self.groupAdded.emit(groupidx, name, color)
         # Move the selected clusters to the new group.
         if clusters:
             self.move_clusters(clusters, groupidx)
