@@ -192,7 +192,7 @@ class MainWindow(QtGui.QMainWindow):
         
     # Misc callbacks.
     def waveform_box_clicked_callback(self, coord, cluster, channel):
-        self.get_view('FeatureView').set_projection(coord, channel, 0)
+        self.get_view('FeatureView').set_projection(coord, channel, coord)
         
     
     # Task callbacks.

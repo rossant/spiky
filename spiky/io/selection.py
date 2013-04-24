@@ -36,7 +36,11 @@ def select_numpy(data, spikes):
 def select_pandas(data, spikes, drop_empty_rows=True):
     
     if not hasattr(spikes, '__len__'):
-        return np.array(data.ix[spikes]).squeeze()
+        try:
+            return np.array(data.ix[spikes]).squeeze()
+        except KeyError:
+            raise IndexError("Index {0:d} is not in the data.".format(
+                spikes))
         
     try:
         # Remove empty rows.

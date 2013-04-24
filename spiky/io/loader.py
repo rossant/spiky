@@ -227,17 +227,6 @@ class Loader(object):
         sizes = pd.Series(counter, dtype=np.int32)
         return select(sizes, clusters)
     
-    
-    # Access to the data: stats
-    # -------------------------
-    # def get_correlograms(self, clusters=None):
-        # if clusters is None:
-            # clusters = self.clusters_selected
-        # return select_pairs(self.correlograms, clusters)
-        
-    # def get_correlation_matrix(self):
-        # return self.correlation_matrix
-        
         
     # Access to the data: misc
     # ------------------------
@@ -245,23 +234,65 @@ class Loader(object):
         return self.probe
     
     
-    # Setters
-    # -------
-    # def set_correlograms(self, correlograms):
-        # self.correlograms.update(correlograms)
+    # Control methods
+    # ---------------
+    # Set.
+    def set_cluster(self, spikes, cluster):
+        self.clusters.ix[spikes] = cluster
         
-    # def set_correlation_matrix(self, correlation_matrix):
-        # self.correlation_matrix = correlation_matrix
+    def set_cluster_groups(self, clusters, group):
+        self.cluster_groups.ix[clusters] = group
         
-    # def invalidate_correlograms(self, cluster_indices):
-        # pass
-
+    def set_cluster_colors(self, clusters, color):
+        self.cluster_colors.ix[clusters] = color
+        
+    def set_group_names(self, groups, name):
+        self.group_names.ix[groups] = name
+        
+    def set_group_colors(self, groups, color):
+        self.group_colors.ix[groups] = color
+        
+    # Add.
+    def add_cluster(self, cluster, group, color):
+        if cluster not in self.cluster_groups.index:
+            self.cluster_groups = self.cluster_groups.append(
+                pd.Series([group], index=[cluster]))
+        if cluster not in self.cluster_colors.index:
+            self.cluster_colors = self.cluster_colors.append(
+                pd.Series([color], index=[cluster]))
+        
+    def add_group(self, group, name, color):
+        if group not in self.group_colors.index:
+            self.group_colors = self.group_colors.append(
+                pd.Series([color], index=[group]))
+        if group not in self.group_names.index:
+            self.group_names = self.group_names.append(
+                pd.Series([name], index=[group]))
+        
+    # Remove.
+    def remove_cluster(self, cluster):
+        if np.any(np.in1d(cluster, self.clusters)):
+            raise ValueError(("Cluster {0:d} is not empty and cannot "
+            "be removed.").format(cluster))
+        if cluster in self.cluster_groups.index:
+            self.cluster_groups = self.cluster_groups.drop(cluster)
+        if cluster in self.cluster_colors.index:
+            self.cluster_colors = self.cluster_colors.drop(cluster)
+            
+    def remove_group(self, group):
+        if np.any(np.in1d(group, self.cluster_groups)):
+            raise ValueError(("Group {0:d} is not empty and cannot "
+            "be removed.").format(group))
+        if group in self.group_colors.index:
+            self.group_colors = self.group_colors.drop(group)
+        if group in self.group_names.index:
+            self.group_names = self.group_names.drop(group)
+        
     
 # -----------------------------------------------------------------------------
 # Klusters Loader
 # -----------------------------------------------------------------------------
 class KlustersLoader(Loader):
-    
     def open(self, filename):
         """Open a file."""
         self.filename = filename
@@ -285,13 +316,10 @@ class KlustersLoader(Loader):
         self.filename_spk = find_filename(self.filename, 'spk')
         self.filename_probe = find_filename(self.filename, 'probe')
     
-    # Input-Output methods
-    # --------------------
-    def read(self):
-        info("Opening {0:s}.".format(self.filename))
-        
-        # Read metadata.
-        # --------------
+    
+    # Internal read methods
+    # ---------------------
+    def read_metadata(self):
         try:
             self.metadata = read_xml(self.filename_xml, self.fileindex)
         except IOError:
@@ -299,24 +327,21 @@ class KlustersLoader(Loader):
             # critical metadata.
             raise IOError("The XML file is missing.")
             
-        nsamples = self.metadata.get('nsamples')
-        nchannels = self.metadata.get('nchannels')
-        fetdim = self.metadata.get('fetdim')
-        freq = self.metadata.get('freq')
+        self.nsamples = self.metadata.get('nsamples')
+        self.nchannels = self.metadata.get('nchannels')
+        self.fetdim = self.metadata.get('fetdim')
+        self.freq = self.metadata.get('freq')
         
-        # Read probe.
-        # -----------
+    def read_probe(self):
         try:
             self.probe = read_probe(self.filename_probe)
         except IOError:
             self.probe = None
-        
-        
-        # Read features.
-        # --------------
+    
+    def read_features(self):
         try:
             self.features, self.spiketimes = read_features(self.filename_fet,
-                nchannels, fetdim, freq)
+                self.nchannels, self.fetdim, self.freq)
         except IOError:
             raise IOError("The FET file is missing.")
         # Convert to Pandas.
@@ -324,17 +349,17 @@ class KlustersLoader(Loader):
         self.spiketimes = pd.Series(self.spiketimes, dtype=np.float32)
         
         # Count the number of spikes and save it in the metadata.
-        nspikes = self.features.shape[0]
-        self.metadata['nspikes'] = nspikes
-        
-        # Read clusters.
-        # --------------
+        self.nspikes = self.features.shape[0]
+        self.metadata['nspikes'] = self.nspikes
+        self.nextrafet = self.features.shape[1] - self.nchannels * self.fetdim
+    
+    def read_clusters(self):
         try:
             self.clusters = read_clusters(self.filename_clu)
         except IOError:
             warn("The CLU file is missing.")
             # Default clusters if the CLU file is not available.
-            self.clusters = np.zeros(nspikes + 1, dtype=np.int32)
+            self.clusters = np.zeros(self.nspikes + 1, dtype=np.int32)
             self.clusters[0] = 1
         # Convert to Pandas.
         self.clusters = pd.Series(self.clusters, dtype=np.int32)
@@ -342,15 +367,14 @@ class KlustersLoader(Loader):
         # Counter clusters.
         counter = Counter(self.clusters)
         self.nclusters = len(counter)
-        clusters_unique = sorted(counter.keys())
-        
-        # Read cluster info.
-        # ------------------
+        self.clusters_unique = sorted(counter.keys())
+    
+    def read_cluster_info(self):
         try:
             self.cluster_info = read_cluster_info(self.filename_clusterinfo)
         except IOError:
             info("The CLUSTERINFO file is missing.")
-            maxcluster = max(clusters_unique)
+            maxcluster = max(self.clusters_unique)
             self.cluster_info = np.zeros((maxcluster + 1, 2), dtype=np.int32)
             self.cluster_info[:, 0] = np.mod(np.arange(maxcluster + 1, 
                 dtype=np.int32), COLORS_COUNT) + 1
@@ -359,13 +383,12 @@ class KlustersLoader(Loader):
             self.cluster_info[:, 1] = 2 * np.ones(maxcluster + 1)
         # Convert to Pandas.
         self.cluster_info = pd.DataFrame(self.cluster_info, dtype=np.int32)
-        self.cluster_info = select(self.cluster_info, clusters_unique)
-        self.clusters_unique = clusters_unique
+        self.cluster_info = select(self.cluster_info, self.clusters_unique)
+        # self.clusters_unique = clusters_unique
         self.cluster_colors = self.cluster_info[0].astype(np.int32)
         self.cluster_groups = self.cluster_info[1].astype(np.int32)
         
-        # Read group info.
-        # ----------------
+    def read_group_info(self):
         try:
             self.group_info = read_group_info(self.filename_groups)
         except IOError:
@@ -380,69 +403,50 @@ class KlustersLoader(Loader):
         self.group_colors = self.group_info[0].astype(np.int32)
         self.group_names = self.group_info[1].astype(np.str_)
         
-        # Read masks.
-        # -----------
+    def read_masks(self):
         try:
             self.masks, self.masks_full = read_masks(self.filename_mask,
-                                                     fetdim)
+                                                     self.fetdim)
         except IOError:
             warn("The MASKS/FMASKS file is missing.")
             # Default masks if the MASK/FMASK file is not available.
-            self.masks = np.ones((nspikes, nchannels))
-            self.masks_full = np.ones(features.shape)
+            self.masks = np.ones((self.nspikes, self.nchannels))
+            self.masks_full = np.ones(self.features.shape)
         self.masks = pd.DataFrame(self.masks)
         self.masks_full = pd.DataFrame(self.masks_full)
-
-        # Read waveforms.
-        # ---------------
+    
+    def read_waveforms(self):
         try:
-            self.waveforms = read_waveforms(self.filename_spk, nsamples,
-                                            nchannels)
+            self.waveforms = read_waveforms(self.filename_spk, self.nsamples,
+                                            self.nchannels)
         except IOError:
             warn("The SPK file is missing.")
-            self.waveforms = np.zeros((nspikes, nsamples, nchannels))
+            self.waveforms = np.zeros((self.nspikes, self.nsamples, 
+                self.nchannels))
         # Convert to Pandas.
         self.waveforms = pd.Panel(self.waveforms, dtype=np.float32)
     
-        # Initialize cluster statistics
-        # -----------------------------
-        # TODO: compute them in an external process
-        cluster_max = self.clusters.max()
+    def read_stats(self):
         self.ncorrbins = 50
         self.corrbin = .001
-        # self.correlograms = {}
-        # self.correlation_matrix = np.zeros((self.nclusters, self.nclusters))
     
-        # Save data set parameters.
-        self.nsamples = nsamples
-        self.nchannels = nchannels
-        self.fetdim = fetdim
-        self.freq = freq
-        self.nextrafet = self.features.shape[1] - nchannels * fetdim
+    
+    # Public methods
+    # --------------
+    def read(self):
+        info("Opening {0:s}.".format(self.filename))
+        self.read_metadata()
+        self.read_probe()
+        self.read_features()
+        self.read_clusters()
+        self.read_cluster_info()
+        self.read_group_info()
+        self.read_masks()
+        self.read_waveforms()
+        self.read_stats()
     
     def save(self):
         pass
-    
-    # def close(self):
-        # self.spikes_selected = None
-        # self.clusters_selected = None
-        
-        # self.filename = None
-        # self.fileindex = None
-        # self.filename_xml = None
-        # self.filename_fet = None
-        # self.filename_clu = None
-        # self.filename_mask = None
-        # self.filename_spk = None
-        
-        # self.features = None
-        # self.spiketimes = None
-        # self.clusters = None
-        # self.masks = None
-        # self.masks_full = None
-        # self.waveforms = None
-        
-        # self.metadata = {}
     
     def select(self, spikes=None, clusters=None):
         if clusters is not None:
