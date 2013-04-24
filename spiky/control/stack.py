@@ -14,7 +14,7 @@ class Stack(object):
         self._stack = []
         self.maxsize = maxsize
         # Current position in the stack.
-        self.position = 0
+        self.position = -1
     
     
     # Action methods
@@ -36,21 +36,24 @@ class Stack(object):
         self.position = len(self._stack) - 1
         
     def undo(self):
-        """Go back by one step in the stack."""
+        """Go back by one step in the stack, and return the undone item."""
+        current = self.get_current()
         if self.can_undo():
             self.position -= 1
+        return current
         
     def redo(self):
-        """Go forward by one step in the stack."""
+        """Go forward by one step in the stack, and return the redone item."""
         if self.can_redo():
             self.position += 1
+            return self.get_current()
         
         
     # Get methods
     # -----------
     def get_current(self):
         """Return the current element."""
-        if self.position < len(self._stack):
+        if self.position >= 0 and self.position < len(self._stack):
             return self._stack[self.position]
         else:
             return None
@@ -64,7 +67,7 @@ class Stack(object):
     # ---------------
     def can_undo(self):
         """Return whether an undo action is possible."""
-        return self.position > 0
+        return self.position >= 0
         
     def can_redo(self):
         """Return whether an redo action is possible."""

@@ -105,7 +105,6 @@ def test_klusters_loader():
     assert np.array_equal(get_array(select(waveforms_selected, index)), 
         get_array(waveform))
     
-    
 def test_klusters_loader_control():
     # Open the mock data.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')

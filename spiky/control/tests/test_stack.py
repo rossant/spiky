@@ -18,6 +18,10 @@ def test_stack1():
     assert s.can_redo() == False
     
     s.add("action 0")
+    
+    assert s.can_undo() == True
+    assert s.can_redo() == False
+    
     s.add("action 1")
     s.add("action 2")
     
@@ -47,10 +51,9 @@ def test_stack1():
     
     s.undo()
     assert s.get_current() == "action 0"
-    assert s.can_undo() == False
+    assert s.can_undo() == True
     assert s.can_redo() == True
     
-
 def test_stack_maxsize():
     
     s = Stack(maxsize=10)

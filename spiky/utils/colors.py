@@ -70,6 +70,8 @@ hsv = hsv[perm, ...]
 HIGHLIGHT_COLORMAP = hsv_to_rgb(hsv)
 HIGHLIGHT_COLORMAP = np.vstack(((1., 1., 1.), HIGHLIGHT_COLORMAP))
 
+def next_color(color):
+    return np.mod(color - 1, COLORS_COUNT) + 1
 
 if __name__ == "__main__":
     def hsv_rect(hsv, coords):

@@ -14,7 +14,7 @@ import pandas as pd
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
     load_binary, load_pickle)
 from selection import (select, select_pairs, get_spikes_in_clusters,
-    get_some_spikes_in_clusters)
+    get_some_spikes_in_clusters, get_indices)
 from spiky.utils.userpref import USERPREF
 from spiky.utils.logger import debug, info, warn
 from spiky.utils.colors import COLORS_COUNT
@@ -201,6 +201,11 @@ class Loader(object):
                 spikes = self.spikes_selected
         return select(self.waveforms, spikes)
     
+    def get_spikes(self, clusters=None):
+        if clusters is None:
+            clusters = self.clusters_selected
+        return get_indices(self.get_clusters(clusters=clusters))
+    
     
     # Access to the data: clusters
     # ----------------------------
@@ -232,6 +237,9 @@ class Loader(object):
     # ------------------------
     def get_probe(self):
         return self.probe
+    
+    def get_new_clusters(self, n=1):
+        return self.clusters.max() + np.arange(1, n + 1, dtype=np.int32)
     
     
     # Control methods
