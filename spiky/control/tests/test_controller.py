@@ -135,5 +135,39 @@ def test_controller_recolor_groups():
     c.redo()
     assert l.get_group_colors(group) == 10
     
+def test_controller_add_group():
+    l, c = load()
+    
+    # Add a group.
+    group = c.add_group('My group')
+    assert np.all(~np.in1d(l.get_cluster_groups(), group))
+    assert l.get_group_names(group) == 'My group'
+    
+    # Undo.
+    c.undo()
+    assert np.all(~np.in1d(l.get_cluster_groups(), group))
+    
+    # Redo.
+    c.redo()
+    assert np.all(~np.in1d(l.get_cluster_groups(), group))
+    assert l.get_group_names(group) == 'My group'
+    
+def test_controller_remove_group():
+    l, c = load()
+    
+    # Remove a group.
+    group = 1
+    c.remove_group(group)
+    assert np.all(~np.in1d(l.get_cluster_groups(), group))
+    
+    # Undo.
+    c.undo()
+    assert np.all(~np.in1d(l.get_cluster_groups(), group))
+    assert l.get_group_names(group) == 'MUA'
+    
+    # Redo.
+    c.redo()
+    assert np.all(~np.in1d(l.get_cluster_groups(), group))
+    
     
     

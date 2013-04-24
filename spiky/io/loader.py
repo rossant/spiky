@@ -241,6 +241,13 @@ class Loader(object):
     def get_new_clusters(self, n=1):
         return self.clusters.max() + np.arange(1, n + 1, dtype=np.int32)
     
+    def get_new_group(self):
+        groups = get_indices(self.group_names).values
+        if len(groups) > 0:
+            return groups.max() + 1
+        else:
+            return 0
+    
     
     # Control methods
     # ---------------

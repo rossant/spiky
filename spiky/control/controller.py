@@ -124,6 +124,21 @@ class Controller(object):
     def _change_group_color_undo(self, group, color_old, color_new):
         self.loader.set_group_colors(group, color_old)
     
+    # Add group.
+    def _add_group(self, group, name, color):
+        self.loader.add_group(group, name, color)
+        
+    def _add_group_undo(self, group, name, color):
+        self.loader.remove_group(group)
+    
+    # Remove group.
+    def _remove_group(self, group, name, color):
+        self.loader.remove_group(group)
+        
+    def _remove_group_undo(self, group, name, color):
+        self.loader.add_group(group, name, color)
+    
+    
     
     # Internal action methods.
     # ------------------------
@@ -191,6 +206,24 @@ class Controller(object):
         color_old = self.loader.get_group_colors(group)
         color_new = color
         self._process('change_group_color', group, color_old, color_new)
+    
+    def add_group(self, name):
+        # Get the index of the new group.
+        group = self.loader.get_new_group()
+        # Obtain a new color.
+        colors = self.loader.get_group_colors().values
+        if len(colors) > 0:
+            color = next_color(colors[-1])
+        else:
+            color = 1
+        self._process('add_group', group, name, color)
+        return group
+        
+    def remove_group(self, group):
+        name = self.loader.get_group_names(group)
+        color = self.loader.get_group_colors(group)
+        self._process('remove_group', group, name, color)
+        
     
     
     # Stack methods.
