@@ -232,6 +232,7 @@ class IndexedMatrix(object):
                 items0, items1, items0_relative, items1_relative):
             self._array[item0_relative, item1_relative, ...] = dic[(
                 item0, item1)]
+            self._notblank[item0_relative, item1_relative, ...] = True
         
     def __len__(self):
         return self.n

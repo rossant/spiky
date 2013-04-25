@@ -72,28 +72,6 @@ def get_histogram_points(hist):
     
     return x, y
 
-# def get_correlograms_array(correlograms, clusters_selected=None,
-        # ncorrbins=None):
-    # """Convert a dictionary of correlograms to an array."""
-    # clusters_selected = sorted(clusters_selected)
-    # nclusters = len(clusters_selected)
-    # correlograms_array = np.zeros((nclusters * nclusters, ncorrbins))
-    # for index in xrange(correlograms_array.shape[0]):
-        # # Indices of the current pair of clusters.
-        # clu0 = clusters_selected[index // nclusters]
-        # clu1 = clusters_selected[index % nclusters]
-        # # The dictionary contains half of the pairs, the other half can be
-        # # deduced from the symmetric pair.
-        # if clu0 <= clu1:
-            # correlogram = correlograms.get((clu0, clu1), None)
-        # else:
-            # correlogram = correlograms.get((clu1, clu0), None)
-            # if correlogram is not None:
-                # correlogram = correlogram[::-1]
-        # if correlogram is not None:
-            # correlograms_array[index, :] = correlogram
-    # return correlograms_array
-
     
 # -----------------------------------------------------------------------------
 # Data manager

@@ -5,7 +5,8 @@
 # -----------------------------------------------------------------------------
 import numpy as np
 import numpy.random as rdn
-from galry import (Manager, PaintManager, PlotInteractionManager, Visual,
+from galry import (Manager, DefaultPaintManager, PlotInteractionManager,
+    Visual, PlotPaintManager,
     GalryWidget, QtGui, QtCore, QtOpenGL, enforce_dtype, RectanglesVisual,
     TextVisual, TextureVisual)
 from matplotlib.colors import hsv_to_rgb
@@ -111,7 +112,7 @@ class CorrelationMatrixDataManager(Manager):
 # -----------------------------------------------------------------------------
 # Visuals
 # -----------------------------------------------------------------------------
-class CorrelationMatrixPaintManager(PaintManager):
+class CorrelationMatrixPaintManager(PlotPaintManager):
     def initialize(self):
         self.add_visual(TextureVisual,
             texture=self.data_manager.texture, 
@@ -217,15 +218,6 @@ class CorrelationMatrixInteractionManager(PlotInteractionManager):
         
         
 class CorrelationMatrixBindings(SpikyBindings):
-    # def set_zoombox_keyboard(self):
-        # """Set zoombox bindings with the keyboard."""
-        # self.set('LeftClickMove', 'ZoomBox',
-                    # key_modifier='Shift',
-                    # param_getter=lambda p: (p["mouse_press_position"][0],
-                                            # p["mouse_press_position"][1],
-                                            # p["mouse_position"][0],
-                                            # p["mouse_position"][1]))
-
     def set_clusterinfo(self):
         self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
             param_getter=lambda p:
@@ -237,7 +229,7 @@ class CorrelationMatrixBindings(SpikyBindings):
             (p['mouse_position'][0], p['mouse_position'][1]))
     
     def initialize(self):
-        super(CorrelationMatrixBindings, self).initialize()
+        # super(CorrelationMatrixBindings, self).initialize()
         self.set_clusterinfo()
         self.set_selectcluster()
     

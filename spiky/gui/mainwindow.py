@@ -363,7 +363,7 @@ class MainWindow(QtGui.QMainWindow):
         # Get cluster indices that need to be updated.
         clusters_to_update = (
             self.statscache.correlograms.blank_indices(clusters_selected))
-        # print clusters_to_update
+        
         # If there are pairs that need to be updated, launch the task.
         if len(clusters_to_update) > 0:
             # Launch the task.

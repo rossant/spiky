@@ -173,6 +173,7 @@ def test_indexed_matrix_from_dict():
         np.array(indices).reshape((1, -1)))
     assert np.array_equal(matrix.to_array()[:, :, 0], matrix_actual)
     
+    assert np.array_equal(matrix.blank_indices(), [])
     
 # -----------------------------------------------------------------------------
 # Cache tests
