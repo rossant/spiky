@@ -69,6 +69,7 @@ class MainWindow(QtGui.QMainWindow):
         self.create_file_actions()
         self.create_view_actions()
         self.create_control_actions()
+        self.create_robot_actions()
         self.create_menu()
         self.create_threads()
         
@@ -137,6 +138,9 @@ class MainWindow(QtGui.QMainWindow):
         
         self.add_action('merge', '&Merge', shortcut='Ctrl+G')
         self.add_action('split', '&Split', shortcut='Ctrl+K')
+
+    def create_robot_actions(self):
+        self.add_action('next_clusters', '&Next clusters', shortcut='Ctrl+R')
         
     def create_menu(self):
         # File menu.
@@ -160,6 +164,10 @@ class MainWindow(QtGui.QMainWindow):
         actions_menu.addSeparator()
         actions_menu.addAction(self.merge_action)
         actions_menu.addAction(self.split_action)
+        
+        # Robot menu.
+        robot_menu = self.menuBar().addMenu("&Robot")
+        robot_menu.addAction(self.next_clusters_action)
         
     def update_action_enabled(self):
         self.undo_action.setEnabled(self.can_undo())
@@ -379,6 +387,8 @@ class MainWindow(QtGui.QMainWindow):
             loader.ncorrbins)
         # Start computing the correlation matrix.
         self.start_compute_correlation_matrix()
+        # Update the robot.
+        self.update_robot()
         # Update the views.
         self.update_cluster_view()
         
@@ -447,6 +457,24 @@ class MainWindow(QtGui.QMainWindow):
         # Update the view.
         self.update_correlation_matrix_view()
     
+    
+    # Robot.
+    # ------
+    def update_robot(self):
+        self.tasks.robot_task.update(       
+            features=self.loader.get_features('all'),
+            spiketimes=self.loader.get_spiketimes('all'),
+            clusters=self.loader.get_clusters('all'),
+            masks=self.loader.get_masks('all'),
+            cluster_groups=self.loader.get_cluster_groups('all'),
+            )
+            
+    def next_clusters_callback(self, checked):
+        clusters =  self.tasks.robot_task.next_clusters(
+            _sync=True)[2]['_result']
+        log.info("The robot proposes clusters {0:s}.".format(str(clusters)))
+        
+        
     
     # Threads.
     # --------
