@@ -11,7 +11,7 @@ import pandas as pd
 
 from spiky.control.stack import Stack
 import spiky.utils.logger as log
-from spiky.io.selection import get_indices
+from spiky.io.selection import get_indices, select
 from spiky.io.tools import get_array
 from spiky.utils.colors import next_color
 
@@ -97,7 +97,8 @@ class Controller(object):
         
         
     # Split.
-    def _split_clusters(self, clusters_old, clusters_new):
+    def _split_clusters(self, clusters_old, cluster_groups, 
+        cluster_colors, clusters_new):
         spikes = get_indices(clusters_old)
         # Find groups and colors of old clusters.
         cluster_indices_old = sorted(Counter(clusters_old).keys())
@@ -123,11 +124,18 @@ class Controller(object):
         return 'split', (cluster_indices_old, cluster_indices_new,
             clusters_empty)
         
-    def _split_clusters_undo(self, clusters_old, clusters_new):
+    def _split_clusters_undo(self, clusters_old, cluster_groups, 
+        cluster_colors, clusters_new):
         spikes = get_indices(clusters_old)
         # Find groups and colors of old clusters.
         cluster_indices_old = sorted(Counter(clusters_old).keys())
         cluster_indices_new = sorted(Counter(clusters_new).keys())
+        # Add clusters that were removed after the split operation.
+        clusters_empty = sorted(set(cluster_indices_old) - 
+            set(cluster_indices_new))
+        for cluster in clusters_empty:
+            self.loader.add_cluster(cluster, select(cluster_groups, cluster),
+                select(cluster_colors, cluster))
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_old)
         # Remove clusters.
@@ -241,7 +249,10 @@ class Controller(object):
         for cluster_old, cluster_new in zip(cluster_indices_old,
                 clusters_indices_new):
             clusters_new[clusters_old == cluster_old] = cluster_new
-        return self._process('split_clusters', clusters_old, clusters_new)
+        cluster_groups = self.loader.get_cluster_groups(cluster_indices_old)
+        cluster_colors = self.loader.get_cluster_colors(cluster_indices_old)
+        return self._process('split_clusters', clusters_old, cluster_groups,
+            cluster_colors, clusters_new)
         # return clusters_indices_new
         
     def change_cluster_color(self, cluster, color):
