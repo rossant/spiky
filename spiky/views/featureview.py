@@ -323,6 +323,7 @@ class FeatureHighlightManager(HighlightManager):
         self.highlight_mask = np.zeros(self.data_manager.nspikes,
             dtype=np.int32)
         self.highlighted_spikes = []
+        self.is_highlighting = False
         
     def find_enclosed_spikes(self, enclosing_box):
         x0, y0, x1, y1 = enclosing_box
@@ -363,6 +364,7 @@ class FeatureHighlightManager(HighlightManager):
                 highlight=self.highlight_mask, visual='features')
         
         self.highlighted_spikes = spikes
+        self.is_highlighting = True
         
     def highlighted(self, box):
         # Get selected spikes (relative indices).
@@ -386,6 +388,7 @@ class FeatureHighlightManager(HighlightManager):
     def cancel_highlight(self):
         super(FeatureHighlightManager, self).cancel_highlight()
         self.set_highlighted_spikes(np.array([]))
+        self.is_highlighting = False
         self.emit([])
 
     def emit(self, spikes):
@@ -636,7 +639,7 @@ class FeatureInteractionManager(PlotInteractionManager):
     # Highlighting
     # ------------
     def none_callback(self, parameter):
-        if len(self.highlight_manager.highlighted_spikes) > 0:
+        if self.highlight_manager.is_highlighting:
             self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
         

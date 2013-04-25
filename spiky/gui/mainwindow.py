@@ -359,10 +359,10 @@ class MainWindow(QtGui.QMainWindow):
         halfwidth = self.loader.ncorrbins * bin / 2
         
         # Add new cluster indices if needed.
-        # clusters_new = self.statscache.correlograms.not_in_indices(
-            # clusters_selected)
-        # if len(clusters_new) > 0:
-            # self.statscache.correlograms.add_indices(clusters_new)
+        clusters_new = self.statscache.correlograms.not_in_indices(
+            clusters_selected)
+        if len(clusters_new) > 0:
+            self.statscache.correlograms.add_indices(clusters_new)
         
         # Get cluster indices that need to be updated.
         clusters_to_update = (
@@ -386,10 +386,10 @@ class MainWindow(QtGui.QMainWindow):
         # All clusters.
         clusters_selected = self.loader.get_clusters_unique()
         # Add new cluster indices if needed.
-        # clusters_new = self.statscache.correlation_matrix.not_in_indices(
-            # clusters_selected)
-        # if len(clusters_new) > 0:
-            # self.statscache.correlation_matrix.add_indices(clusters_new)
+        clusters_new = self.statscache.correlation_matrix.not_in_indices(
+            clusters_selected)
+        if len(clusters_new) > 0:
+            self.statscache.correlation_matrix.add_indices(clusters_new)
         
         # Get cluster indices that need to be updated.
         clusters_to_update = (
