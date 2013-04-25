@@ -54,13 +54,11 @@ def test_indexed_matrix_3():
     assert matrix.shape == (5, 5)
     assert np.array_equal(matrix.indices, [2, 3, 4, 5, 7])
     
-@raises(IndexError)
 def test_indexed_matrix_4():
     indices = [2, 3, 5, 7]
     matrix = IndexedMatrix(indices=indices)
-    
-    # The index already exists, so this raises an Exception.
     matrix.add_indices(7)
+    assert np.array_equal(matrix.indices, indices)
     
 def test_indexed_matrix_5():
     indices = [2, 3, 5, 7]

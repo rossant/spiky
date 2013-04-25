@@ -38,5 +38,13 @@ class StatsCache(object):
         self.correlograms.invalidate(clusters)
         self.correlation_matrix.invalidate(clusters)
         
+    def add(self, clusters):
+        self.correlograms.add_indices(clusters)
+        self.correlation_matrix.add_indices(clusters)
+        
+    def remove(self, clusters):
+        self.correlograms.remove_indices(clusters)
+        self.correlation_matrix.remove_indices(clusters)
+        
         
         

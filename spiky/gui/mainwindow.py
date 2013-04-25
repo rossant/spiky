@@ -238,6 +238,13 @@ class MainWindow(QtGui.QMainWindow):
         clusters = cluster_view.selected_clusters()
         if len(clusters) >= 2:
             cluster_new = self.controller.merge_clusters(clusters)
+            
+            # Invalidate the cache.
+            self.statscache.add(cluster_new)
+            self.statscache.remove(clusters)
+            # self.statscache.invalidate(clusters)
+            self.start_compute_correlation_matrix()
+            
             self.update_cluster_view()
             cluster_view.select(cluster_new)
             
@@ -248,6 +255,12 @@ class MainWindow(QtGui.QMainWindow):
         if len(spikes_selected) >= 1:
             clusters_new = self.controller.split_clusters(clusters, 
                 spikes_selected)
+                
+            # Invalidate the cache.
+            self.statscache.add(clusters_new)
+            self.statscache.invalidate(clusters)
+            self.start_compute_correlation_matrix()
+            
             self.update_cluster_view()
             cluster_view.select(clusters_new)
             
@@ -359,10 +372,7 @@ class MainWindow(QtGui.QMainWindow):
         halfwidth = self.loader.ncorrbins * bin / 2
         
         # Add new cluster indices if needed.
-        clusters_new = self.statscache.correlograms.not_in_indices(
-            clusters_selected)
-        if len(clusters_new) > 0:
-            self.statscache.correlograms.add_indices(clusters_new)
+        self.statscache.correlograms.add_indices(clusters_selected)
         
         # Get cluster indices that need to be updated.
         clusters_to_update = (
@@ -383,23 +393,14 @@ class MainWindow(QtGui.QMainWindow):
         features = get_array(self.loader.get_features('all'))
         masks = get_array(self.loader.get_masks('all', full=True))
         clusters = get_array(self.loader.get_clusters('all'))
-        # All clusters.
-        clusters_selected = self.loader.get_clusters_unique()
-        # Add new cluster indices if needed.
-        clusters_new = self.statscache.correlation_matrix.not_in_indices(
-            clusters_selected)
-        if len(clusters_new) > 0:
-            self.statscache.correlation_matrix.add_indices(clusters_new)
-        
         # Get cluster indices that need to be updated.
         clusters_to_update = (
-            self.statscache.correlation_matrix.blank_indices(clusters_selected))
-        # print clusters_to_update
+            self.statscache.correlation_matrix.blank_indices())
         # If there are pairs that need to be updated, launch the task.
         if len(clusters_to_update) > 0:
             # Launch the task.
             self.tasks.correlation_matrix_task.compute(features,
-                clusters, masks, clusters_selected)
+                clusters, masks, clusters_to_update)
         # Otherwise, update directly the correlograms view without launching
         # the task in the external process.
         else:
@@ -443,9 +444,6 @@ class MainWindow(QtGui.QMainWindow):
     
     def join_threads(self):
          self.tasks.join()
-    
-    def invalidate_clusters(self):
-        pass
     
     
     # View methods.

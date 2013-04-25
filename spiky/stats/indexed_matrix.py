@@ -47,10 +47,13 @@ class IndexedMatrix(object):
     # Indices
     # -------
     def add_indices(self, indices):
+        """Add new indices only if they don't already exist."""
         if isinstance(indices, (int, long)):
             indices = [indices]
         if len(indices) == 0:
             return
+        # Keep only those indices which do not exist already.
+        indices = self.not_in_indices(indices)
         # Raise an error if at least one requested index is already in the
         # current array indices.
         if np.any(np.in1d(indices, self.indices)):
@@ -129,7 +132,9 @@ class IndexedMatrix(object):
             indices_relative = indices_relative[0]
         return indices_relative
     
-    def not_in_indices(self, indices):
+    def not_in_indices(self, indices=None):
+        if indices is None:
+            indices = self.indices
         return sorted(set(indices) - set(self.indices))
     
     def blank_indices(self, indices=None):
