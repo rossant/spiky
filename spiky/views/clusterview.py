@@ -728,8 +728,8 @@ class ClusterView(QtGui.QTreeView):
             clusters = [clusters]
         if len(clusters) == 0:
             return
-        self.model.move_clusters([self.model.get_cluster(clusteridx)
-            for clusteridx in clusters], self.model.get_group(groupidx))
+        # self.model.move_clusters([self.model.get_cluster(clusteridx)
+            # for clusteridx in clusters], self.model.get_group(groupidx))
         # Signal.
         log.debug("Moving clusters {0:s} to group {1:d}.".format(
             str(clusters), groupidx))

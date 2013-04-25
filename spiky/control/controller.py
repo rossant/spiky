@@ -298,7 +298,10 @@ class Controller(object):
         # Log the action.
         log.info(get_pretty_action(method_name, args, kwargs, verb='Undo'))
         # The undo action is implemented in '_method_undo'.
-        return getattr(self, '_' + method_name + '_undo')(*args, **kwargs)
+        r = getattr(self, '_' + method_name + '_undo')(*args, **kwargs)
+        if r is None:
+            r = method_name + '_undo', (args, kwargs)
+        return r
         
     def redo(self):
         action = self.stack.redo()
@@ -310,7 +313,10 @@ class Controller(object):
         # Log the action.
         log.info(get_pretty_action(method_name, args, kwargs, verb='Redo'))
         # The redo action is implemented in '_method'.
-        return getattr(self, '_' + method_name)(*args, **kwargs)
+        r = getattr(self, '_' + method_name)(*args, **kwargs)
+        if r is None:
+            r = method_name + '_redo', (args, kwargs)
+        return r
         
     def can_undo(self):
         return self.stack.can_undo()
