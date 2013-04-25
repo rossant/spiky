@@ -277,7 +277,7 @@ class FeaturePaintManager(PlotPaintManager):
             is_static=True,
             coordinates=(-1., -1.),
             color=(1.,1.,1.,1.),
-            posoffset=(50., 100.),
+            posoffset=(50., 80.),
             text=' 0:B',
             letter_spacing=300.,
             depth=-1,
@@ -307,7 +307,6 @@ class FeaturePaintManager(PlotPaintManager):
             cmap_index=cmap_index
             )
             
-
     def toggle_mask(self):
         self.toggle_mask_value = 1 - self.toggle_mask_value
         self.set_data(visual='features', toggle_mask=self.toggle_mask_value)
@@ -398,16 +397,19 @@ class FeatureHighlightManager(HighlightManager):
         
 
 class FeatureSelectionManager(Manager):
-    selection_polygon_color = (1., 1., 1., .5)
-    points = np.zeros((100, 2))
-    npoints = 0
-    is_selection_pending = False
     projection = [None, None]
     
     def polygon(self):
         return self.points[:self.npoints + 2,:]
     
     def initialize(self):
+        
+        self.selection_polygon_color = (1., 1., 1., .5)
+        self.points = np.zeros((100, 2))
+        self.npoints = 0
+        self.is_selection_pending = False
+        self.projection = [None, None]
+        
         if not self.paint_manager.get_visual('selection_polygon'):
             self.paint_manager.add_visual(PlotVisual,
                                     position=self.points,
@@ -489,10 +491,9 @@ class FeatureSelectionManager(Manager):
             self.select_spikes()
         
     def set_selection_polygon_visibility(self, visible):
-        if hasattr(self.paint_manager, 'ds_selection_polygon'):
-            self.paint_manager.set_data(
-                    visible=visible,
-                    visual='selection_polygon')
+        self.paint_manager.set_data(
+                visible=visible,
+                visual='selection_polygon')
         
     def end_point(self, point):
         """Terminate selection polygon."""
@@ -511,11 +512,12 @@ class FeatureSelectionManager(Manager):
     def cancel_selection(self):
         """Remove the selection polygon."""
         # hide the selection polygon
-        if self.paint_manager.get_visual('selection_polygon').get('visible', None):
-            self.paint_manager.set_data(visible=False,
-                visual='selection_polygon')
+        # if self.paint_manager.get_visual('selection_polygon').get('visible', None):
+        self.paint_manager.set_data(visible=False,
+            visual='selection_polygon')
         self.set_selected_spikes(np.array([]))
         self.is_selection_pending = False
+        self.emit([])
 
 
 # -----------------------------------------------------------------------------
@@ -556,7 +558,7 @@ class FeatureProjectionManager(Manager):
         
     def reset_projection(self):
         if self.projection[0] is None or self.projection[1] is None:
-            self.set_projection(0, 0, 0, False)
+            self.set_projection(0, 0, 0)#, False)
             self.set_projection(1, 0, 1)
         else:
             self.set_projection(0, self.projection[0][0], self.projection[0][1], False)
@@ -613,7 +615,7 @@ class FeatureInteractionManager(PlotInteractionManager):
     def initialize(self):
         self.constrain_navigation = False
     
-        self.register(None, self.cancel_highlight)
+        self.register(None, self.none_callback)
         self.register('HighlightSpike', self.highlight_spike)
         self.register('SelectionPointPending', self.selection_point_pending)
         
@@ -633,8 +635,9 @@ class FeatureInteractionManager(PlotInteractionManager):
     
     # Highlighting
     # ------------
-    def cancel_highlight(self, parameter):
-        self.highlight_manager.cancel_highlight()
+    def none_callback(self, parameter):
+        if len(self.highlight_manager.highlighted_spikes) > 0:
+            self.highlight_manager.cancel_highlight()
         self.paint_manager.set_data(visible=False, visual='clusterinfo')
         
     def highlight_spike(self, parameter):
@@ -707,7 +710,6 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.cursor = None
         
         nav = self.get_processor('navigation')
-        # print "hey"
         # window coordinates
         x, y = parameter
         # data coordinates
@@ -765,7 +767,7 @@ class FeatureBindings(SpikyBindings):
         
     def set_feature(self):
         # select projection feature for coordinate 0
-        for feature in xrange(6):
+        for feature in xrange(4):
             self.set('KeyPress', 'SelectFeature',
                      key='F{0:d}'.format(feature+1), description='X', 
                      key_modifier='Control',
@@ -780,29 +782,26 @@ class FeatureBindings(SpikyBindings):
             param_getter=lambda p:
             (p['mouse_position'][0], p['mouse_position'][1]))
         
-    def set_switch_mode(self):
-        self.set('KeyPress', 'SwitchInteractionMode', key='N')
-        
     def set_selection(self):
         # selection
         self.set('Move',
                  'SelectionPointPending',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 # key_modifier='Control',
                  param_getter=lambda p: (p["mouse_position"][0],
                                          p["mouse_position"][1],))
         self.set('LeftClick',
                  'AddSelectionPoint',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 # key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
         self.set('RightClick',
                  'EndSelectionPoint',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 # key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
         self.set('DoubleClick',
                  'CancelSelectionPoint',
-                 key_modifier=QtCore.Qt.Key_Control,
+                 # key_modifier='Control',
                  param_getter=lambda p: (p["mouse_press_position"][0],
                                          p["mouse_press_position"][1],))
     
@@ -811,7 +810,7 @@ class FeatureBindings(SpikyBindings):
         self.set_toggle_mask()
         self.set_neighbor_channel()
         self.set_feature()
-        self.set_switch_mode()
+        # self.set_switch_mode()
         self.set_clusterinfo()
         self.set_selection()
 
