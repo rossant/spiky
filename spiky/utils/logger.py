@@ -23,7 +23,7 @@ def get_log_format(debug=False):
         return '%(asctime)s  %(message)s'
 
 def get_caller():
-    return ""
+    # return ""
     tb = traceback.extract_stack()[-3]
     module = os.path.splitext(os.path.basename(tb[0]))[0].ljust(24)
     line = str(tb[1]).ljust(4)

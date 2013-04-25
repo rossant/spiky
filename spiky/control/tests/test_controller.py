@@ -43,7 +43,7 @@ def test_controller_1():
     
     
     # Merge these clusters.
-    cluster_new = c.merge_clusters(clusters)
+    _, (_, cluster_new) = c.merge_clusters(clusters)
     assert np.array_equal(l.get_spikes(cluster_new), spikes)
     assert np.all(~np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
     
@@ -62,8 +62,7 @@ def test_controller_1():
     
     
     # Split the newly created cluster into two clusters.
-    clusters_split = c.split_clusters(cluster_new, spikes_sample)
-    cluster_split = list(set(clusters_split) - set([cluster_new]))[0]
+    _, (_, cluster_split, _) = c.split_clusters(cluster_new, spikes_sample)
     assert np.array_equal(l.get_spikes(cluster_split), spikes_sample)
     
     
@@ -85,7 +84,7 @@ def test_controller_2():
     
     
     # Merge these clusters.
-    cluster_new = c.merge_clusters(clusters)
+    _, (_, cluster_new) = c.merge_clusters(clusters)
     assert np.array_equal(l.get_spikes(cluster_new), spikes)
     assert np.all(~np.in1d(clusters, get_indices(l.get_cluster_groups('all'))))
     

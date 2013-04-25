@@ -233,58 +233,125 @@ class MainWindow(QtGui.QMainWindow):
     
     # Actions menu callbacks.
     # -----------------------
+    # def invalidate_after_merge(self, clusters_to_merge, cluster_new):
+        # """Invalidate the cache after a merge operation."""
+        # self.statscache.add(cluster_new)
+        # self.statscache.invalidate(cluster_new)
+        # self.statscache.remove(clusters_to_merge)
+        
+    # def invalidate_after_split(self, clusters_old, clusters_new,    
+        # clusters_empty):
+        # """Invalidate the cache after a split operation."""
+        # self.statscache.add(clusters_new)
+        # self.statscache.invalidate(clusters_old)
+        # self.statscache.remove(clusters_empty)
+    
+    def do_merge(self, clusters_to_merge, cluster_new):
+        if isinstance(clusters_to_merge, (int, long)):
+            clusters_to_merge = [clusters_to_merge]
+        if isinstance(cluster_new, (int, long)):
+            cluster_new = [cluster_new]
+        # self.invalidate_after_merge(clusters_to_merge, cluster_new)
+        self.statscache.add(cluster_new)
+        self.statscache.invalidate(cluster_new)
+        self.statscache.remove(clusters_to_merge)
+        
+        self.update_cluster_view()
+        self.get_view('ClusterView').select(cluster_new)
+        self.start_compute_correlation_matrix()
+        
+    def do_split(self, clusters_old, clusters_new, clusters_empty):
+        if isinstance(clusters_old, (int, long)):
+            clusters_old = [clusters_old]
+        if isinstance(clusters_new, (int, long)):
+            clusters_new = [clusters_new]
+        clusters_selected = sorted(set(clusters_old).
+            union(set(clusters_new)))
+        # self.invalidate_after_split(clusters_old, clusters_new, 
+            # clusters_empty)
+        
+        self.statscache.add(clusters_new)
+        self.statscache.invalidate(clusters_old)
+        self.statscache.remove(clusters_empty)
+            
+        self.update_cluster_view()
+        self.get_view('ClusterView').select(clusters_selected)
+        self.start_compute_correlation_matrix()
+            
     def merge_callback(self, checked):
         cluster_view = self.get_view('ClusterView')
         clusters = cluster_view.selected_clusters()
         if len(clusters) >= 2:
-            cluster_new = self.controller.merge_clusters(clusters)
-            
-            # Invalidate the cache.
-            self.statscache.add(cluster_new)
-            self.statscache.remove(clusters)
-            # self.statscache.invalidate(clusters)
-            self.start_compute_correlation_matrix()
-            
-            self.update_cluster_view()
-            cluster_view.select(cluster_new)
+            _, args = self.controller.merge_clusters(clusters)
+            # self.invalidate_after_merge(clusters_to_merge, cluster_new)
+            # self.update_cluster_view()
+            # cluster_view.select(cluster_new)
+            # self.start_compute_correlation_matrix()
+            self.do_merge(*args)
             
     def split_callback(self, checked):
         cluster_view = self.get_view('ClusterView')
         clusters = cluster_view.selected_clusters()
         spikes_selected = self.spikes_selected
         if len(spikes_selected) >= 1:
-            clusters_new = self.controller.split_clusters(clusters, 
-                spikes_selected)
-                
-            # Invalidate the cache.
-            self.statscache.add(clusters_new)
-            self.statscache.invalidate(clusters)
-            self.start_compute_correlation_matrix()
-            
-            self.update_cluster_view()
-            cluster_view.select(clusters_new)
+            _, args = self.controller.split_clusters(clusters, spikes_selected)
+            self.do_split(*args)
+            # self.invalidate_after_split(clusters_old, clusters_new, 
+                # clusters_empty)
+            # self.update_cluster_view()
+            # cluster_view.select(sorted(set(clusters_new).
+                # union(set(clusters_old))))
+            # self.start_compute_correlation_matrix()
             
     def undo_callback(self, checked):
         cluster_view = self.get_view('ClusterView')
         clusters_selected = cluster_view.selected_clusters()
-        clusters = self.controller.undo()
-        if clusters is None:
-            clusters = clusters_selected
+        action, args = self.controller.undo()
         
-        self.update_cluster_view()
+        if action == 'merge_undo':
+            clusters_to_merge, cluster_new = args
+            self.do_split(cluster_new, clusters_to_merge, cluster_new)
+            # self.invalidate_after_split(cluster_new, clusters_to_merge, 
+                # cluster_new)
+            # self.update_cluster_view()
+            # cluster_view.select(clusters_to_merge)
+            # self.start_compute_correlation_matrix()
+            
+        elif action == 'split_undo':
+            clusters_old, clusters_new, clusters_empty = args
+            self.do_merge(clusters_new, clusters_old)
+            # self.invalidate_after_merge(clusters_new, clusters_old)
+            # self.update_cluster_view()
+            # cluster_view.select(clusters_old)
+            # self.start_compute_correlation_matrix()
+            
         self.update_action_enabled()
-        cluster_view.select(clusters)
         
     def redo_callback(self, checked):
         cluster_view = self.get_view('ClusterView')
         clusters_selected = cluster_view.selected_clusters()
-        clusters = self.controller.redo()
-        if clusters is None:
-            clusters = clusters_selected
+        action, args = self.controller.redo()
         
-        self.update_cluster_view()
+        if action == 'merge':
+            self.do_merge(*args)
+            # clusters_to_merge, cluster_new = args
+            # self.invalidate_after_merge(clusters_to_merge, cluster_new)
+            # self.update_cluster_view()
+            # cluster_view.select(cluster_new)
+            # self.start_compute_correlation_matrix()
+            
+        elif action == 'split':
+            self.do_split(*args)
+            # clusters_old, clusters_new, clusters_empty = args
+            # clusters_selected = sorted(set(clusters_old).
+                # union(set(clusters_new)))
+            # self.invalidate_after_split(clusters_old, clusters_new, 
+                # clusters_empty)
+            # self.update_cluster_view()
+            # cluster_view.select(clusters_selected)
+            # self.start_compute_correlation_matrix()
+            
         self.update_action_enabled()
-        cluster_view.select(clusters)
     
     
     # Selection callbacks.

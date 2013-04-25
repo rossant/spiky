@@ -166,6 +166,11 @@ class IndexedMatrix(object):
         """
         if isinstance(indices, (int, long)):
             indices = [indices]
+        # Only keep the indices which already exist.
+        indices = np.array(indices)
+        indices = indices[np.in1d(indices, self.indices)]
+        if len(indices) == 0:
+            return
         indices_relative = self.to_relative(indices)
         for i in indices_relative:
             self._notblank[i, :] = False

@@ -706,16 +706,19 @@ class ClusterView(QtGui.QTreeView):
         selection = QtGui.QItemSelection()
         for clusteridx in clusters:
             cluster = self.model.get_cluster(clusteridx)
-            selection.select(cluster.index, cluster.index)
+            if cluster is not None:
+                selection.select(cluster.index, cluster.index)
         selection_model.select(selection, 
                 selection_model.Current |
                 selection_model.Select | 
                 selection_model.Rows 
                 )
         if len(clusters) > 0:
-            selection_model.setCurrentIndex(
-                self.model.get_cluster(clusters[-1]).index,
-                QtGui.QItemSelectionModel.NoUpdate)
+            cluster = self.model.get_cluster(clusters[-1])
+            if cluster is not None:
+                selection_model.setCurrentIndex(
+                    cluster.index,
+                    QtGui.QItemSelectionModel.NoUpdate)
     
     def unselect(self):
         self.selectionModel().clear()

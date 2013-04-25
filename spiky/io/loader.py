@@ -251,9 +251,14 @@ class Loader(object):
     
     # Control methods
     # ---------------
+    def update_clusters_unique(self):
+        counter = Counter(self.clusters)
+        self.clusters_unique = sorted(counter.keys())
+        
     # Set.
     def set_cluster(self, spikes, cluster):
         self.clusters.ix[spikes] = cluster
+        self.update_clusters_unique()
         
     def set_cluster_groups(self, clusters, group):
         self.cluster_groups.ix[clusters] = group
@@ -302,6 +307,17 @@ class Loader(object):
             self.group_colors = self.group_colors.drop(group)
         if group in self.group_names.index:
             self.group_names = self.group_names.drop(group)
+    
+    def remove_empty_clusters(self):
+        clusters_all = self.cluster_groups.index
+        clusters_in_data = self.clusters_unique
+        clusters_empty = sorted(set(clusters_all) - set(clusters_in_data))
+        if len(clusters_empty) > 0:
+            debug("Removing empty clusters {0:s}.".
+                format(str(clusters_empty)))
+            for cluster in clusters_empty:
+                self.remove_cluster(cluster)
+        return clusters_empty
         
     
 # -----------------------------------------------------------------------------

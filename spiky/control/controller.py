@@ -77,7 +77,7 @@ class Controller(object):
         for cluster in clusters_to_merge:
             self.loader.remove_cluster(cluster)
         self.loader.unselect()
-        return cluster_merged
+        return 'merge', (clusters_to_merge, cluster_merged)
         
     def _merge_clusters_undo(self, clusters_old, cluster_groups, 
         cluster_colors, cluster_merged):
@@ -93,7 +93,7 @@ class Controller(object):
         # Remove merged cluster.
         self.loader.remove_cluster(cluster_merged)
         self.loader.unselect()
-        return get_array(clusters_to_merge)
+        return 'merge_undo', (clusters_to_merge, cluster_merged)
         
         
     # Split.
@@ -109,10 +109,19 @@ class Controller(object):
         for cluster_new, group, color in zip(cluster_indices_new, 
                 groups, colors):
             self.loader.add_cluster(cluster_new, group, next_color(color))
+        # clusters_empty = sorted(set(cluster_indices_old) - 
+            # set(cluster_indices_new))
+        # print cluster_indices_old, cluster_indices_new, clusters_empty
+        # for cluster in clusters_empty:
+            # self.loader.remove_cluster(cluster)
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_new)
+        # Remove empty clusters.
+        clusters_empty = self.loader.remove_empty_clusters()
         self.loader.unselect()
-        return np.array(sorted(set(cluster_indices_old).union(set(cluster_indices_new))))
+        # return np.array(sorted(set(cluster_indices_old).union(set(cluster_indices_new))))
+        return 'split', (cluster_indices_old, cluster_indices_new,
+            clusters_empty)
         
     def _split_clusters_undo(self, clusters_old, clusters_new):
         spikes = get_indices(clusters_old)
@@ -122,10 +131,14 @@ class Controller(object):
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_old)
         # Remove clusters.
-        for cluster_new in cluster_indices_new:
-            self.loader.remove_cluster(cluster_new)
+        # for cluster_new in cluster_indices_new:
+            # self.loader.remove_cluster(cluster_new)
+        # Remove empty clusters.
+        clusters_empty = self.loader.remove_empty_clusters()
         self.loader.unselect()
-        return cluster_indices_old
+        # return cluster_indices_old
+        return 'split_undo', (cluster_indices_old, cluster_indices_new, 
+            clusters_empty)
         
         
     # Change cluster color.
@@ -190,7 +203,10 @@ class Controller(object):
         # Process the action.
         # The actual action is implemented in '_method' with a leading
         # underscore.
-        return getattr(self, '_' + method_name)(*args, **kwargs)
+        r = getattr(self, '_' + method_name)(*args, **kwargs)
+        if r is None:
+            r = method_name, (args, kwargs)
+        return r
     
     def __getattr__(self, method_name):
         assert inspect.ismethod('_' + method_name)
@@ -206,9 +222,9 @@ class Controller(object):
         clusters_old = self.loader.get_clusters(clusters=clusters_to_merge)
         cluster_groups = self.loader.get_cluster_groups(clusters_to_merge)
         cluster_colors = self.loader.get_cluster_colors(clusters_to_merge)
-        self._process('merge_clusters', clusters_old, cluster_groups, 
+        return self._process('merge_clusters', clusters_old, cluster_groups, 
             cluster_colors, cluster_merged)
-        return cluster_merged
+        # return cluster_merged
         
     def split_clusters(self, clusters, spikes):
         # Old clusters for all spikes to split.
