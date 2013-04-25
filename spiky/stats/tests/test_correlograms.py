@@ -38,8 +38,5 @@ def test_compute_correlograms():
     assert np.array_equal(correlograms[(0, 1)], c01)
     assert np.array_equal(correlograms[(1, 0)], c10)
     
-    
-    
-    
-    
+    # print (correlograms[(0, 1)], c01)
     

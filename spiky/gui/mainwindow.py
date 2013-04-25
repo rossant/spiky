@@ -257,6 +257,7 @@ class MainWindow(QtGui.QMainWindow):
         clusters = self.controller.undo()
         if clusters is None:
             clusters = clusters_selected
+        
         self.update_cluster_view()
         self.update_action_enabled()
         cluster_view.select(clusters)
@@ -267,6 +268,7 @@ class MainWindow(QtGui.QMainWindow):
         clusters = self.controller.redo()
         if clusters is None:
             clusters = clusters_selected
+        
         self.update_cluster_view()
         self.update_action_enabled()
         cluster_view.select(clusters)
@@ -342,7 +344,8 @@ class MainWindow(QtGui.QMainWindow):
         self.controller = Controller(self.loader)
         # Create the cache for the cluster statistics that need to be
         # computed in the background.
-        self.statscache = StatsCache(loader.ncorrbins)
+        self.statscache = StatsCache(loader.get_clusters_unique(), 
+            loader.ncorrbins)
         # Start computing the correlation matrix.
         self.start_compute_correlation_matrix()
         # Update the views.
@@ -350,16 +353,16 @@ class MainWindow(QtGui.QMainWindow):
         
     def start_compute_correlograms(self, clusters_selected):
         # Get the correlograms parameters.
-        spiketimes = get_array(self.loader.get_spiketimes())
-        clusters = get_array(self.loader.get_clusters())
+        spiketimes = get_array(self.loader.get_spiketimes('all'))
+        clusters = get_array(self.loader.get_clusters('all'))
         bin = self.loader.corrbin
         halfwidth = self.loader.ncorrbins * bin / 2
         
         # Add new cluster indices if needed.
-        clusters_new = self.statscache.correlograms.not_in_indices(
-            clusters_selected)
-        if len(clusters_new) > 0:
-            self.statscache.correlograms.add_indices(clusters_new)
+        # clusters_new = self.statscache.correlograms.not_in_indices(
+            # clusters_selected)
+        # if len(clusters_new) > 0:
+            # self.statscache.correlograms.add_indices(clusters_new)
         
         # Get cluster indices that need to be updated.
         clusters_to_update = (
@@ -383,10 +386,10 @@ class MainWindow(QtGui.QMainWindow):
         # All clusters.
         clusters_selected = self.loader.get_clusters_unique()
         # Add new cluster indices if needed.
-        clusters_new = self.statscache.correlation_matrix.not_in_indices(
-            clusters_selected)
-        if len(clusters_new) > 0:
-            self.statscache.correlation_matrix.add_indices(clusters_new)
+        # clusters_new = self.statscache.correlation_matrix.not_in_indices(
+            # clusters_selected)
+        # if len(clusters_new) > 0:
+            # self.statscache.correlation_matrix.add_indices(clusters_new)
         
         # Get cluster indices that need to be updated.
         clusters_to_update = (
@@ -417,8 +420,8 @@ class MainWindow(QtGui.QMainWindow):
         # Put the computed correlograms in the cache.
         self.statscache.correlograms.update_from_dict(correlograms)
         # Update the view.
-        if set(self.loader.get_clusters_selected()) == set(clusters):
-            self.update_correlograms_view()
+        # if set(self.loader.get_clusters_selected()) == set(clusters):
+        self.update_correlograms_view()
     
     def correlation_matrix_computed(self, clusters, matrix):
         self.statscache.correlation_matrix.update_from_dict(matrix)
@@ -440,6 +443,9 @@ class MainWindow(QtGui.QMainWindow):
     
     def join_threads(self):
          self.tasks.join()
+    
+    def invalidate_clusters(self):
+        pass
     
     
     # View methods.

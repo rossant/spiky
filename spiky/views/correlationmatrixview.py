@@ -92,6 +92,13 @@ class CorrelationMatrixDataManager(Manager):
             correlation_matrix = -np.ones((2, 2))
         n = correlation_matrix.shape[0]
         
+        # Normalize the correlation matrix.
+        s = correlation_matrix.sum(axis=1)
+        correlation_matrix[s == 0, 0] = 1e-9
+        s = correlation_matrix.sum(axis=1)
+        correlation_matrix *= (1. / s.reshape((-1, 1)))
+        
+        
         self.texture = colormap(correlation_matrix)[::-1, :, :]
         self.correlation_matrix = correlation_matrix
         

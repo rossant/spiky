@@ -84,6 +84,8 @@ def compute_correlations(features, clusters, masks,
     
     A dictionary pairs => value is returned.
     
+    Compute all (i, *) and (i, *) for i in clusters_to_update
+    
     """
     nPoints = features.shape[0] #size(Fet1, 1)
     nDims = features.shape[1] #size(Fet1, 2)
@@ -97,19 +99,25 @@ def compute_correlations(features, clusters, masks,
     clusterslist = sorted(stats.keys())
     matrix_product = np.zeros((clumax, clumax))
 
-    for ci in clusterslist:
+    if clusters_to_update is None:
+        clusters_to_update = clusterslist
+    
+    for ci in clusters_to_update:
         mui, Ci, Ciinv, logdeti, npointsi = stats[ci]
         for cj in clusterslist:
+            if ci > cj:
+                continue
             muj, Cj, Cjinv, logdetj, npointsj = stats[cj]
             dmu = (muj - mui).reshape((-1, 1))
             
             p = np.log(2*np.pi)*(-nDims/2.)+(-.5*np.log(np.linalg.det(Ci+Cj)))+(-.5)*np.dot(np.dot(dmu.T, np.linalg.inv(Ci+Cj)), dmu)
             alpha = float(npointsi) / nPoints
             matrix_product[ci, cj] = np.exp(p + np.log(alpha))
-    s = matrix_product.sum(axis=1)
-    matrix_product[s == 0, 0] = 1e-9
-    s = matrix_product.sum(axis=1)
-    matrix_product *= (1. / s.reshape((-1, 1)))
+            matrix_product[cj, ci] = matrix_product[ci, cj]
+    # s = matrix_product.sum(axis=1)
+    # matrix_product[s == 0, 0] = 1e-9
+    # s = matrix_product.sum(axis=1)
+    # matrix_product *= (1. / s.reshape((-1, 1)))
     
     return {(ci, cj): matrix_product[ci, cj]
         for ci in clusterslist for cj in clusterslist}

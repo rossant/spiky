@@ -39,8 +39,10 @@ def compute_spike_delays(spiketimes, clusters, clusters_to_update=None,
     clusters_mask[clusters_to_update] = True
     
     # initialize the correlograms
-    for (cl0, cl1) in product(clusters_to_update, clusters_to_update):
-        delays[(cl0, cl1)] = []
+    for cl in clusters_to_update:
+        for i in clusters_unique:
+            delays[(cl, i)] = []
+            # delays[(i, cl)] = []
 
     # loop through all spikes, across all neurons, all sorted
     for i in range(nspikes):
@@ -56,20 +58,41 @@ def compute_spike_delays(spiketimes, clusters, clusters_to_update=None,
             while j < nspikes:
                 t1, cl1 = spiketimes[j], clusters[j]
                 # pass clusters that do not need to be processed
-                if clusters_mask[cl1]:
-                    # compute only correlograms if necessary
-                    # and avoid computing symmetric pairs twice
-                    if t0min <= t1 <= t0max:
-                        d = t1 - t0
-                        delays[(cl0, cl1)].append(d)
-                        delays[(cl1, cl0)].append(-d)
-                    else:
-                        break
+                # if clusters_mask[cl1]:
+                # compute only correlograms if necessary
+                # and avoid computing symmetric pairs twice
+                # if t0min <= t1 <= t0max:
+                if t1 <= t0max:
+                    d = t1 - t0
+                    delays[(cl0, cl1)].append(d)
+                    # delays[(cl1, cl0)].append(-d)
+                else:
+                    break
                 j += 1
+            j = i - 1
+            # go backward in time up to the correlogram half-width
+            while j >= 0:
+                t1, cl1 = spiketimes[j], clusters[j]
+                # pass clusters that do not need to be processed
+                # if clusters_mask[cl1]:
+                # compute only correlograms if necessary
+                # and avoid computing symmetric pairs twice
+                if t0min <= t1:# <= t0max:
+                    d = t1 - t0
+                    delays[(cl0, cl1)].append(d)
+                    # delays[(cl1, cl0)].append(-d)
+                else:
+                    break
+                j -= 1
     return delays
 
 def compute_correlograms(spiketimes, clusters, clusters_to_update=None,
     halfwidth=.01, bin=.001):
+    """
+    
+    Compute all (i, *) and (i, *) for i in clusters_to_update
+    
+    """
 
     # Compute all delays between any two close spikes.
     delays_pairs = compute_spike_delays(spiketimes, clusters,
