@@ -262,9 +262,30 @@ class FeaturePaintManager(PlotPaintManager):
         
         self.add_visual(AxesVisual, name='grid')
         
+        self.add_visual(TextVisual, name='projectioninfo_x',
+            fontsize=16,
+            is_static=True,
+            coordinates=(-1., -1.),
+            color=(1.,1.,1.,1.),
+            posoffset=(100., 20.),
+            text='0:A',
+            letter_spacing=300.,
+            depth=-1,
+            visible=True)
+        self.add_visual(TextVisual, name='projectioninfo_y',
+            fontsize=16,
+            is_static=True,
+            coordinates=(-1., -1.),
+            color=(1.,1.,1.,1.),
+            posoffset=(50., 100.),
+            text=' 0:B',
+            letter_spacing=300.,
+            depth=-1,
+            visible=True)
+        
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             background_transparent=False,
-            posoffset=(.05, -.05),
+            posoffset=(20., -50.),
             letter_spacing=350.,
             depth=-1,
             visible=False)
@@ -285,6 +306,7 @@ class FeaturePaintManager(PlotPaintManager):
             cluster_depth=self.data_manager.clusters_full_depth,
             cmap_index=cmap_index
             )
+            
 
     def toggle_mask(self):
         self.toggle_mask_value = 1 - self.toggle_mask_value
@@ -513,10 +535,12 @@ class FeatureProjectionManager(Manager):
         if channel < self.nchannels:
             i = channel * self.fetdim + feature
             self.data_manager.masks_full = self.data_manager.masks_array[:,channel]
+            text = '{0:d}:{1:s}'.format(channel, 'ABCDEF'[feature])
         # handle extra feature, with channel being directly the feature index
         else:
             i = min(self.nchannels * self.fetdim + self.nextrafet - 1,
                     channel - self.nchannels + self.nchannels * self.fetdim)
+            text = 'E{0:d}'.format(channel - self.nchannels)
         self.data_manager.data[:, coord] = self.data_manager.features_array[:, i].ravel()
         
         if do_update:
@@ -525,6 +549,10 @@ class FeatureProjectionManager(Manager):
             self.selection_manager.set_selection_polygon_visibility(
               (self.projection[0] == self.selection_manager.projection[0]) & \
               (self.projection[1] == self.selection_manager.projection[1]))
+            
+            # Update projection info.
+            self.paint_manager.set_data(visual='projectioninfo_' + 'xy'[coord],
+                text=text)
         
     def reset_projection(self):
         if self.projection[0] is None or self.projection[1] is None:
@@ -545,15 +573,13 @@ class FeatureProjectionManager(Manager):
             self.data_manager.nextrafet)
         self.set_projection(coord, channel, feature, do_update=True)
         
-    def select_neighbor_feature(self, parameter):
-        coord, feature_dir = parameter
+    def select_feature(self, coord, feature):
+        # feature = np.clip(feature, 0, s - 1)
         # current channel and feature in the given coordinate
-        proj = self.projection_manager.projection[coord]
+        proj = self.projection[coord]
         if proj is None:
             proj = (0, coord)
-        channel, feature = proj
-        # next or previous feature
-        feature = np.mod(feature + feature_dir, self.data_manager.fetdim)
+        channel, _ = proj
         self.set_projection(coord, channel, feature, do_update=True)
             
     def get_projection(self, coord):
@@ -600,7 +626,7 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.register('ToggleMask', self.toggle_mask)
 
         self.register('SelectNeighborChannel', self.select_neighbor_channel)
-        self.register('SelectNeighborFeature', self.select_neighbor_feature)
+        self.register('SelectFeature', self.select_feature)
         
         self.register('ShowClosestCluster', self.show_closest_cluster)
     
@@ -647,10 +673,13 @@ class FeatureInteractionManager(PlotInteractionManager):
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
         
-    def select_neighbor_feature(self, parameter):
-        coord, feature_dir = parameter
+    def select_feature(self, parameter):
+        coord, feature = parameter
         
-        self.projection_manager.select_neighbor_channel(coord, channel_dir)
+        if feature < 0 or feature >= self.data_manager.fetdim:
+            return
+        
+        self.projection_manager.select_feature(coord, feature)
         channel, feature = self.projection_manager.get_projection(coord)
         
         log.debug(("Projection changed to channel {0:d} and "
@@ -734,22 +763,17 @@ class FeatureBindings(SpikyBindings):
                  key_modifier='Shift',
                  param_getter=lambda p: (1, int(np.sign(p['wheel']))))
         
-    # def set_neighbor_feature(self):
-        # # select previous/next feature for coordinate 0
-        # self.set('KeyPress', 'SelectNeighborFeature',
-                 # key='Left', description='X-', key_modifier='Control',
-                 # param_getter=lambda p: (0, -1))
-        # self.set('KeyPress', 'SelectNeighborFeature',
-                 # key='Right', description='X+', key_modifier='Control',
-                 # param_getter=lambda p: (0, 1))
-                 
-        # # select previous/next feature for coordinate 1
-        # self.set('KeyPress', 'SelectNeighborFeature',
-                 # key='Left', description='Y-', key_modifier='Shift',
-                 # param_getter=lambda p: (1, -1))
-        # self.set('KeyPress', 'SelectNeighborFeature',
-                 # key='Right', description='Y+', key_modifier='Shift',
-                 # param_getter=lambda p: (1, 1))
+    def set_feature(self):
+        # select projection feature for coordinate 0
+        for feature in xrange(6):
+            self.set('KeyPress', 'SelectFeature',
+                     key='F{0:d}'.format(feature+1), description='X', 
+                     key_modifier='Control',
+                     param_getter=(0, feature))
+            self.set('KeyPress', 'SelectFeature',
+                     key='F{0:d}'.format(feature+1), description='Y', 
+                     key_modifier='Shift',
+                     param_getter=(1, feature))
         
     def set_clusterinfo(self):
         self.set('Move', 'ShowClosestCluster', key_modifier='Shift',
@@ -786,7 +810,7 @@ class FeatureBindings(SpikyBindings):
         self.set_highlight()
         self.set_toggle_mask()
         self.set_neighbor_channel()
-        # self.set_neighbor_feature()
+        self.set_feature()
         self.set_switch_mode()
         self.set_clusterinfo()
         self.set_selection()

@@ -120,7 +120,7 @@ class CorrelationMatrixPaintManager(PlotPaintManager):
 
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
             background_transparent=False,
-            posoffset=(.12, -.28),
+            posoffset=(50., -60.),
             letter_spacing=350.,
             depth=-1,
             visible=False)

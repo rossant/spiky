@@ -155,7 +155,7 @@ class ProbePM(PaintManager):
         self.add_visual(SpriteVisual, position=probe.get_positions(), 
             texture=get_disc(50), color=colors, name='channels')
         self.add_visual(TextVisual, coordinates=probe.get_positions(), 
-            text=text, posoffset=(.01, .005),
+            text=text, posoffset=(4., 2.),
             fontsize=18, letter_spacing=300.,
             color=get_color('w'), 
             name='channels_text')

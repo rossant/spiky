@@ -708,7 +708,7 @@ class WaveformPaintManager(PlotPaintManager):
             "superimposed", "channel_positions",)
         
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            posoffset=(.08, -.08),
+            posoffset=(30., -30.),
             background_transparent=False,
             letter_spacing=350.,
             depth=-1,

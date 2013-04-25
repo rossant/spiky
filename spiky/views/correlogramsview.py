@@ -226,7 +226,7 @@ class CorrelogramsPaintManager(PlotPaintManager):
             name='correlograms')
             
         self.add_visual(TextVisual, text='0', name='clusterinfo', fontsize=16,
-            posoffset=(.12, -.12),
+            posoffset=(50., -50.),
             background_transparent=False,
             letter_spacing=350.,
             depth=-1,
