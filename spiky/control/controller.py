@@ -112,7 +112,7 @@ class Controller(object):
         # Set the new clusters to the corresponding spikes.
         self.loader.set_cluster(spikes, clusters_new)
         self.loader.unselect()
-        return np.array(sorted(set(clusters_old).union(set(clusters_new))))
+        return np.array(sorted(set(cluster_indices_old).union(set(cluster_indices_new))))
         
     def _split_clusters_undo(self, clusters_old, clusters_new):
         spikes = get_indices(clusters_old)
@@ -125,7 +125,7 @@ class Controller(object):
         for cluster_new in cluster_indices_new:
             self.loader.remove_cluster(cluster_new)
         self.loader.unselect()
-        return clusters_old
+        return cluster_indices_old
         
         
     # Change cluster color.
@@ -190,7 +190,7 @@ class Controller(object):
         # Process the action.
         # The actual action is implemented in '_method' with a leading
         # underscore.
-        getattr(self, '_' + method_name)(*args, **kwargs)
+        return getattr(self, '_' + method_name)(*args, **kwargs)
     
     def __getattr__(self, method_name):
         assert inspect.ismethod('_' + method_name)
@@ -225,8 +225,8 @@ class Controller(object):
         for cluster_old, cluster_new in zip(cluster_indices_old,
                 clusters_indices_new):
             clusters_new[clusters_old == cluster_old] = cluster_new
-        self._process('split_clusters', clusters_old, clusters_new)
-        return clusters_indices_new
+        return self._process('split_clusters', clusters_old, clusters_new)
+        # return clusters_indices_new
         
     def change_cluster_color(self, cluster, color):
         color_old = self.loader.get_cluster_colors(cluster)

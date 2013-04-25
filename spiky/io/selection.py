@@ -150,7 +150,7 @@ def get_some_spikes_in_clusters(clusters_selected, clusters,
         nspikes_in_cluster_requested = np.clip(int(
             nspikes_max_expected / float(nspikes_in_clusters_selected) * 
                 len(spikes_in_cluster)),
-            nspikes_per_cluster_min,
+            min(nspikes_per_cluster_min, nspikes_in_cluster),
             nspikes_in_cluster
             )
         # Choose randomly the appropriate number of spikes among those

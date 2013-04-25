@@ -296,6 +296,7 @@ class MainWindow(QtGui.QMainWindow):
         
     def features_spikes_selected_callback(self, spikes):
         self.spikes_selected = spikes
+        self.update_action_enabled()
         self.get_view('WaveformView').highlight_spikes(get_array(spikes))
         
     def waveform_box_clicked_callback(self, coord, cluster, channel):

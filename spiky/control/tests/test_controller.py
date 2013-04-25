@@ -62,9 +62,10 @@ def test_controller_1():
     
     
     # Split the newly created cluster into two clusters.
-    cluster_split = c.split_clusters(cluster_new, spikes_sample)[0]
-    assert cluster_split == cluster_new + 1
+    clusters_split = c.split_clusters(cluster_new, spikes_sample)
+    cluster_split = list(set(clusters_split) - set([cluster_new]))[0]
     assert np.array_equal(l.get_spikes(cluster_split), spikes_sample)
+    
     
     # Undo.
     c.undo()
@@ -114,7 +115,6 @@ def test_controller_2():
     
     assert c.can_undo()
     assert not c.can_redo()
-    
     
 def test_controller_recolor_clusters():
     l, c = load()
