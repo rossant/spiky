@@ -140,7 +140,7 @@ class MainWindow(QtGui.QMainWindow):
         self.add_action('split', '&Split', shortcut='Ctrl+K')
 
     def create_robot_actions(self):
-        self.add_action('next_clusters', '&Next clusters', shortcut='Ctrl+R')
+        self.add_action('next_clusters', '&Next clusters', shortcut='Space')
         
     def create_menu(self):
         # File menu.
@@ -500,7 +500,7 @@ class MainWindow(QtGui.QMainWindow):
         clusters =  self.tasks.robot_task.next_clusters(
             _sync=True)[2]['_result']
         log.info("The robot proposes clusters {0:s}.".format(str(clusters)))
-        
+        self.get_view('ClusterView').select(clusters)
         
     
     # Threads.

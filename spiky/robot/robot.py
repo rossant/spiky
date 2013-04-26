@@ -61,17 +61,15 @@ class Robot(object):
         updated."""
         pass
         
-        
-        
     
     # Robot output methods.
     # ---------------------
     def next_clusters(self):
         """Return a set of clusters that are candidates for merging.
         """
-        # Trivial robot.
-        if len(self.clusters_unique) > 1:
-            return self.clusters_unique[:2]
+        # Stupid robot.
+        if len(self.clusters_unique) >= 2:
+            return np.random.choice(self.clusters_unique, 2, replace=False)
         
         return None
     
