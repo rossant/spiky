@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from tools import (find_filename, find_index, load_text, load_xml, normalize,
-    load_binary, load_pickle)
+    load_binary, load_pickle, save_text, get_array)
 from selection import (select, select_pairs, get_spikes_in_clusters,
     get_some_spikes_in_clusters, get_indices)
 from spiky.utils.userpref import USERPREF
@@ -21,7 +21,7 @@ from spiky.utils.colors import COLORS_COUNT
 
 
 # -----------------------------------------------------------------------------
-# File loading functions
+# File reading functions
 # -----------------------------------------------------------------------------
 def read_xml(filename_xml, fileindex):
     """Read the XML file associated to the current dataset,
@@ -38,9 +38,9 @@ def read_xml(filename_xml, fileindex):
     
     return metadata
 
-def read_clusters_info(filename_cluinfo, fileindex):
-    info = load_pickle(filename_cluinfo)
-    return info
+# def read_clusters_info(filename_cluinfo, fileindex):
+    # info = load_pickle(filename_cluinfo)
+    # return info
     
 def read_features(filename_fet, nchannels, fetdim, freq):
     """Read a .fet file and return the normalize features array,
@@ -86,7 +86,8 @@ def read_clusters(filename_clu):
     return clusters
 
 def read_cluster_info(filename_clusterinfo):
-    # For each cluster (absolute indexing): color index, and group index
+    # For each cluster (absolute indexing): cluster index, color index, 
+    # and group index
     cluster_info = load_text(filename_clusterinfo, np.int32)
     return cluster_info
     
@@ -109,6 +110,18 @@ def read_waveforms(filename_spk, nsamples, nchannels):
 def read_probe(filename_probe):
     return normalize(np.array(load_text(filename_probe, np.int32),
         dtype=np.float32))
+
+
+# -----------------------------------------------------------------------------
+# File saving functions
+# -----------------------------------------------------------------------------
+def save_cluster_info(filename_cluinfo, cluster_info):
+    cluster_info_array = np.hstack((cluster_info.index.reshape((-1, 1)), 
+        cluster_info.values))
+    save_text(filename_cluinfo, cluster_info_array)
+    
+def save_clusters(filename_clu, clusters):
+    save_text(filename_clu, clusters, header=len(Counter(clusters)))
 
 
 # -----------------------------------------------------------------------------
@@ -338,7 +351,11 @@ class KlustersLoader(Loader):
         self.filename_xml = find_filename(self.filename, 'xml')
         self.filename_fet = find_filename(self.filename, 'fet')
         self.filename_clu = find_filename(self.filename, 'clu')
-        self.filename_clusterinfo = find_filename(self.filename, 'clusterinfo')
+        self.filename_clu_spiky = self.filename_clu.replace(
+            '.clu.', '.clu_spiky.')
+        self.filename_clusterinfo = find_filename(self.filename, 
+            'clusterinfo') or self.filename_clu.replace(
+            '.clu.', '.clusterinfo.')
         self.filename_groups = find_filename(self.filename, 'groups')
         # fmask or mask file
         self.filename_mask = find_filename(self.filename, 'fmask')
@@ -348,8 +365,8 @@ class KlustersLoader(Loader):
         self.filename_probe = find_filename(self.filename, 'probe')
     
     
-    # Internal read methods
-    # ---------------------
+    # Internal read methods.
+    # ----------------------
     def read_metadata(self):
         try:
             self.metadata = read_xml(self.filename_xml, self.fileindex)
@@ -405,17 +422,21 @@ class KlustersLoader(Loader):
             self.cluster_info = read_cluster_info(self.filename_clusterinfo)
         except IOError:
             info("The CLUSTERINFO file is missing.")
-            maxcluster = max(self.clusters_unique)
-            self.cluster_info = np.zeros((maxcluster + 1, 2), dtype=np.int32)
-            self.cluster_info[:, 0] = np.mod(np.arange(maxcluster + 1, 
+            n = len(self.clusters_unique)
+            self.cluster_info = np.zeros((n, 3), dtype=np.int32)
+            self.cluster_info[:, 0] = self.clusters_unique
+            self.cluster_info[:, 1] = np.mod(np.arange(n, 
                 dtype=np.int32), COLORS_COUNT) + 1
             # First column: color index, second column: group index (2 by
             # default)
-            self.cluster_info[:, 1] = 2 * np.ones(maxcluster + 1)
+            self.cluster_info[:, 2] = 2 * np.ones(n)
+        
+        assert np.array_equal(self.cluster_info[:, 0], self.clusters_unique)
+            
         # Convert to Pandas.
-        self.cluster_info = pd.DataFrame(self.cluster_info, dtype=np.int32)
-        self.cluster_info = select(self.cluster_info, self.clusters_unique)
-        # self.clusters_unique = clusters_unique
+        self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
+            dtype=np.int32, index=self.clusters_unique)
+        # self.cluster_info = select(self.cluster_info, self.clusters_unique)
         self.cluster_colors = self.cluster_info[0].astype(np.int32)
         self.cluster_groups = self.cluster_info[1].astype(np.int32)
         
@@ -462,8 +483,25 @@ class KlustersLoader(Loader):
         self.corrbin = .001
     
     
-    # Public methods
-    # --------------
+    # Internal save methods.
+    # ----------------------
+    def update_cluster_info(self):
+        cluster_info = {
+            'color': self.cluster_colors,
+            'group': self.cluster_groups,
+        }
+        self.cluster_info = pd.DataFrame(cluster_info, dtype=np.int32)
+    
+    def save_clusters(self):
+        save_clusters(self.filename_clu_spiky, get_array(self.clusters))
+        
+    def save_cluster_info(self):
+        self.update_cluster_info()
+        save_cluster_info(self.filename_clusterinfo, self.cluster_info)
+    
+    
+    # Public methods.
+    # ---------------
     def read(self):
         info("Opening {0:s}.".format(self.filename))
         self.read_metadata()
@@ -477,7 +515,8 @@ class KlustersLoader(Loader):
         self.read_stats()
     
     def save(self):
-        pass
+        self.save_clusters()
+        self.save_cluster_info()
     
     def select(self, spikes=None, clusters=None):
         if clusters is not None:

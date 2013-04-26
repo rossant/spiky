@@ -121,6 +121,8 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.add_action('open_last', 'Open &last', shortcut='Ctrl+Alt+O')
             self.open_last_action.setEnabled(False)
+            
+        self.add_action('save', '&Save', shortcut='Ctrl+S')
         
         # Quit action.
         self.add_action('quit', '&Quit', shortcut='Ctrl+Q')
@@ -150,6 +152,8 @@ class MainWindow(QtGui.QMainWindow):
         file_menu = self.menuBar().addMenu("&File")
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.open_last_action)
+        file_menu.addSeparator()
+        file_menu.addAction(self.save_action)
         file_menu.addSeparator()
         file_menu.addAction(self.quit_action)
         
@@ -218,6 +222,20 @@ class MainWindow(QtGui.QMainWindow):
             folder = os.path.dirname(path)
             SETTINGS['main_window.last_data_dir'] = folder
             SETTINGS['main_window.last_data_file'] = path
+            
+    def save_callback(self, checked):
+        folder = SETTINGS.get('main_window.last_data_file')
+        self.loader.save()
+        
+        # # ask a new file name
+        # filename = QtGui.QFileDialog.getSaveFileName(self, "Save a CLU file",
+            # os.path.join(folder, default_filename))[0]
+        # if filename:
+            # # save the new file name
+            # self.save_filename = filename
+            # # save
+            # self.provider.save(filename)
+        
             
     def open_last_callback(self, checked):
         path = SETTINGS['main_window.last_data_file']

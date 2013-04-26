@@ -13,14 +13,56 @@ import shutil
 
 from spiky.io.tests.mock_data import (setup, teardown,
                             nspikes, nclusters, nsamples, nchannels, fetdim)
-from spiky.io.loader import KlustersLoader
+from spiky.io.loader import (KlustersLoader, read_clusters, save_clusters,
+    read_cluster_info, save_cluster_info)
 from spiky.io.selection import select, get_indices
-from spiky.io.tools import check_dtype, check_shape, get_array
+from spiky.io.tools import check_dtype, check_shape, get_array, load_text
 
 
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
+def test_clusters():
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    clufile = os.path.join(dir, 'test.clu.1')
+    clufile2 = os.path.join(dir, 'test.clu.1.saved')
+    clusters = read_clusters(clufile)
+    
+    assert clusters.dtype == np.int32
+    assert clusters.shape == (1000,)
+    
+    # Save.
+    save_clusters(clufile2, clusters)
+    
+    # Open again.
+    clusters2 = read_clusters(clufile2)
+    
+    assert np.array_equal(clusters, clusters2)
+    
+    # Check the headers.
+    clusters_with_header = load_text(clufile, np.int32, skiprows=0)
+    clusters2_with_header = load_text(clufile2, np.int32, skiprows=0)
+    
+    assert np.array_equal(clusters_with_header, clusters2_with_header)
+
+def test_cluster_info():
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    clufile = os.path.join(dir, 'test.clu.1')
+    cluinfofile = os.path.join(dir, 'test.cluinfo.1')
+
+    clusters = read_clusters(clufile)
+    
+    indices = np.array(sorted(Counter(clusters).keys()))
+    colors = np.random.randint(low=0, high=10, size=len(indices))
+    groups = np.random.randint(low=0, high=2, size=len(indices))
+    cluster_info = pd.DataFrame({'color': pd.Series(colors, index=indices),
+        'group': pd.Series(groups, index=indices)})
+    
+    save_cluster_info(cluinfofile, cluster_info)
+    cluster_info2 = read_cluster_info(cluinfofile)
+    
+    assert np.array_equal(cluster_info.values, cluster_info2[:, 1:])
+    
 def test_klusters_loader():
     # Open the mock data.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
@@ -104,6 +146,10 @@ def test_klusters_loader():
     waveforms_selected = l.get_waveforms()
     assert np.array_equal(get_array(select(waveforms_selected, index)), 
         get_array(waveform))
+        
+    # Save
+    l.save()
+    # TODO: check the saved files.
     
 def test_klusters_loader_control():
     # Open the mock data.

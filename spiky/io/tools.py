@@ -141,12 +141,12 @@ if HAS_PANDAS:
             x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
         return x
     
-def save_text(filepath, data, header=None):
+def save_text(filepath, data, header=None, fmt='%d'):
     if isinstance(data, basestring):
         with open(filepath, 'w') as f:
             f.write(data)
     else:
-        np.savetxt(filepath, data, fmt='%d', newline='\n')
+        np.savetxt(filepath, data, fmt=fmt, newline='\n')
         # Write a header.
         if header is not None:
             with open(filepath, 'r') as f:
