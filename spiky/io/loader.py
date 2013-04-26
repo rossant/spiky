@@ -253,7 +253,7 @@ class Loader(object):
     # ---------------
     def update_clusters_unique(self):
         counter = Counter(self.clusters)
-        self.clusters_unique = sorted(counter.keys())
+        self.clusters_unique = np.array(sorted(counter.keys()))
         
     # Set.
     def set_cluster(self, spikes, cluster):

@@ -6,7 +6,7 @@
 from nose.tools import raises
 import numpy as np
 
-from spiky.stats.cache import IndexedMatrix, StatsCache
+from spiky.stats.cache import StatsCache
 
 
 # -----------------------------------------------------------------------------
@@ -14,21 +14,22 @@ from spiky.stats.cache import IndexedMatrix, StatsCache
 # -----------------------------------------------------------------------------
 def test_cache():
     indices = [2, 3, 5, 7]
-    cache = StatsCache(indices, ncorrbin=50)
+    cache = StatsCache(ncorrbin=50)
     
-    np.array_equal(cache.correlograms.blank_indices(), indices)
-    np.array_equal(cache.correlation_matrix.blank_indices(), indices)
+    np.array_equal(cache.correlograms.not_in_indices(indices), indices)
+    np.array_equal(cache.correlation_matrix.not_in_indices(indices), indices)
     
-    cache.correlograms[2, :] = 0
-    cache.correlograms[:, 2] = 0
+    d = {(2, i): 0 for i in indices}
+    d.update({(i, 2): 0 for i in indices})
+    cache.correlograms.update(2, d)
     
-    np.array_equal(cache.correlograms.blank_indices(), [3, 5, 7])
-    np.array_equal(cache.correlation_matrix.blank_indices(), [3, 5, 7])
+    np.array_equal(cache.correlograms.not_in_key_indices(indices), [3, 5, 7])
     
     cache.invalidate(2)
     
-    np.array_equal(cache.correlograms.blank_indices(), indices)
-    np.array_equal(cache.correlation_matrix.blank_indices(), indices)
+    np.array_equal(cache.correlograms.not_in_key_indices(indices), indices)
+    np.array_equal(cache.correlation_matrix.not_in_key_indices(indices), 
+        indices)
     
     
     

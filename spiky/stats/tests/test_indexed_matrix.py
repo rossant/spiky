@@ -6,7 +6,7 @@
 from nose.tools import raises
 import numpy as np
 
-from spiky.stats.cache import IndexedMatrix, StatsCache
+from spiky.stats.indexed_matrix import IndexedMatrix, CacheMatrix
 
 
 # -----------------------------------------------------------------------------
@@ -127,19 +127,20 @@ def test_indexed_matrix_8():
     
 def test_indexed_matrix_9():
     matrix = IndexedMatrix()
+    indices = [10, 20]
     matrix.add_indices(10)
-    assert np.array_equal(matrix.blank_indices(), [10])
+    assert np.array_equal(matrix.not_in_indices(indices), [20])
     
     matrix[10, 10] = 1
-    assert np.array_equal(matrix.blank_indices(), [])
+    assert np.array_equal(matrix.not_in_indices(indices), [20])
     
     matrix.add_indices(20)
-    assert np.array_equal(matrix.blank_indices(), [20])
+    assert np.array_equal(matrix.not_in_indices(indices), [])
     
     matrix[20, :] = 0
     matrix[:, 20] = 0
     
-    assert np.array_equal(matrix.blank_indices(), [])
+    assert np.array_equal(matrix.not_in_indices(indices), [])
     
 def test_indexed_matrix_10():
     indices = [2, 3, 5, 7]
@@ -155,40 +156,55 @@ def test_indexed_matrix_10():
     assert submatrix.shape == (2, 2, 10)
     assert np.array_equal(submatrix.to_array()[0, 1, ...], 2 * np.ones(10))
     
-def test_indexed_matrix_from_dict():
-    indices = [2, 3, 5, 7]
-    matrix = IndexedMatrix(indices=indices, shape=(4, 4, 10))
     
-    assert np.array_equal(matrix.blank_indices(), indices)
+# -----------------------------------------------------------------------------
+# Cache matrix tests
+# -----------------------------------------------------------------------------
+def test_cache_matrix_1():
+    indices = [2, 3, 5, 7]
+    matrix = CacheMatrix(shape=(0, 0, 10))
+    
+    assert np.array_equal(matrix.not_in_indices(indices), indices)
     
     d = {(i, j): i + j for i in indices for j in indices}
-    matrix.update_from_dict(d)
+    matrix.update(indices, d)
     
     matrix_actual = (np.array(indices).reshape((-1, 1)) + 
         np.array(indices).reshape((1, -1)))
     assert np.array_equal(matrix.to_array()[:, :, 0], matrix_actual)
     
-    assert np.array_equal(matrix.blank_indices(), [])
+    assert np.array_equal(matrix.not_in_indices(indices), [])
     
-    matrix.add_indices(11)
-    
-    assert np.array_equal(matrix.blank_indices(), [11])
-    
-    matrix[11, :] = 0
-    matrix[:, 11] = 0
-    
-    assert np.array_equal(matrix.blank_indices(), [])
-    
-def test_indexed_matrix_invalidate():
+def test_cache_matrix_2():
     indices = [2, 3, 5, 7]
-    matrix = IndexedMatrix(indices=indices, shape=(4, 4, 10))
+    matrix = CacheMatrix(shape=(0, 0, 10))
     
     d = {(i, j): i + j for i in indices for j in indices}
-    matrix.update_from_dict(d)
+    matrix.update(indices, d)
     
-    assert np.array_equal(matrix.blank_indices(), [])
+    assert np.array_equal(matrix.not_in_indices(indices), [])
     
     matrix.invalidate([2, 5])
-    assert np.array_equal(matrix.blank_indices([2, 5]), [2, 5])
+    assert np.array_equal(matrix.not_in_indices(indices), [2, 5])
+    
+def test_cache_matrix_2():
+    indices = [2, 3, 5, 7]
+    matrix = CacheMatrix()
+    
+    assert np.array_equal(matrix.not_in_key_indices(indices), indices)
+    
+    matrix.update(2, {(2, 2): 0, (2, 3): 0, (3, 2): 0})
+    assert np.array_equal(matrix.not_in_key_indices(indices), [3, 5, 7])
+    
+    matrix.update([2, 3], {(2, 2): 0, (2, 3): 0, (3, 2): 0, (3, 3): 0})
+    assert np.array_equal(matrix.not_in_key_indices(indices), [5, 7])
+    
+    matrix.invalidate([2, 5])
+    assert np.array_equal(matrix.not_in_key_indices(indices), [2, 5, 7])
+    
+    d = {(i, j): i + j for i in indices for j in indices}
+    matrix.update(indices, d)
+    assert np.array_equal(matrix.not_in_key_indices(indices), [])
+    
     
     

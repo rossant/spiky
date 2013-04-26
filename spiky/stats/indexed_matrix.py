@@ -41,7 +41,6 @@ class IndexedMatrix(object):
         else:
             self._array = data
         self.ndim = self._array.ndim
-        self._notblank = np.zeros(self.shape[:2], dtype=np.bool)
     
     
     # Indices
@@ -76,10 +75,7 @@ class IndexedMatrix(object):
             for j in xrange(len(indices_relative)):
                 array_new[indices_relative, indices_relative[j], ...] = \
                     self._array[:, j, ...]
-                notblank_new[indices_relative, indices_relative[j]] = \
-                    self._notblank[:, j]
         self._array = array_new
-        self._notblank = notblank_new
     
     def remove_indices(self, indices):
         if isinstance(indices, (int, long)):
@@ -95,8 +91,6 @@ class IndexedMatrix(object):
         indices_kept = np.array(sorted(set(self.indices) - set(indices)))
         indices_relative = self.to_relative(indices_kept)
         self._array = self._array[indices_relative, :, ...] \
-            [:, indices_relative, ...]
-        self._notblank = self._notblank[indices_relative, :] \
             [:, indices_relative, ...]
         self.indices = indices_kept
         self.n = len(self.indices)
@@ -137,45 +131,6 @@ class IndexedMatrix(object):
             indices = self.indices
         return sorted(set(indices) - set(self.indices))
     
-    def blank_indices(self, indices=None):
-        """Return the indices where at least one value in the submatrix is 
-        blank.
-        
-        WARNING: only relevant if the matrix is symmetric, and if it is only
-        filled with full columns/rows.
-        
-        """
-        if indices is None:
-            indices = self.indices
-        if len(indices) == 0:
-            return np.array([])
-        indices_relative = self.to_relative(indices)
-        # Indices where the diagonal element is blank
-        # columns_blank = np.nonzero(self._notblank.sum(axis=0) == 0)[0]
-        columns_blank = np.nonzero(~np.diag(self._notblank))[0]
-        indices_blank = sorted(set(columns_blank).
-            intersection(set(indices_relative)))
-        return np.array(self.to_absolute(indices_blank))
-    
-    def invalidate(self, indices):
-        """
-        
-        WARNING: only relevant if the matrix is symmetric, and if it is only
-        filled with full columns/rows
-        
-        """
-        if isinstance(indices, (int, long)):
-            indices = [indices]
-        # Only keep the indices which already exist.
-        indices = np.array(indices)
-        indices = indices[np.in1d(indices, self.indices)]
-        if len(indices) == 0:
-            return
-        indices_relative = self.to_relative(indices)
-        for i in indices_relative:
-            self._notblank[i, :] = False
-            self._notblank[:, i] = False
-    
     
     # Access
     # ------
@@ -212,20 +167,17 @@ class IndexedMatrix(object):
             # item0 is default slice, and item1 contains indices.
             if is_default_slice(item[0]) and is_indices(item[1]):
                 self._array[:, self.to_relative(item[1]), ...] = value
-                self._notblank[:, self.to_relative(item[1])] = True
                 return
             # item0 contains indices, and item1 is default slice.
             elif is_default_slice(item[1]) and is_indices(item[0]):
                 self._array[self.to_relative(item[0]), :, ...] = value
-                self._notblank[self.to_relative(item[0]), :] = True
                 return
             # item0 and item1 are indices.
             elif is_indices(item[0]) and is_indices(item[1]):
                 # Case where both items are enumerables.
                 if (not isinstance(item[0], (int, long)) and 
                     not isinstance(item[1], (int, long))):
-                    # TODO: this is inefficient. Rather inspire from
-                    # update_from_dict.
+                    # TODO: this is inefficient. Rather inspire from update.
                     # Assign value slice after slice.
                     for j in xrange(len(item[1])):
                         try:
@@ -238,29 +190,14 @@ class IndexedMatrix(object):
                             self._array[self.to_relative(item[0]), 
                                         self.to_relative(item[1][j]), ...] \
                                         = value
-                        self._notblank[self.to_relative(item[0]), 
-                                    self.to_relative(item[1][j])] \
-                                    = True
                 else:
                     self._array[self.to_relative(item[0]),
                                 self.to_relative(item[1]), 
                                 ...] = value
-                    self._notblank[self.to_relative(item[0]),
-                                self.to_relative(item[1])] = True
                 return
         raise IndexError(("Indexed matrices can only be accessed with [x,y] "
         "with x and y indices or default slice ':'."))
-        
-    def update_from_dict(self, dic):
-        items0, items1 = zip(*dic.keys())
-        items0_relative = self.to_relative(items0)
-        items1_relative = self.to_relative(items1)
-        for (item0, item1, item0_relative, item1_relative) in zip(
-                items0, items1, items0_relative, items1_relative):
-            self._array[item0_relative, item1_relative, ...] = dic[(
-                item0, item1)]
-            self._notblank[item0_relative, item1_relative] = True
-        
+         
     def __len__(self):
         return self.n
     
@@ -278,3 +215,63 @@ class IndexedMatrix(object):
         return self._array.__repr__()
     
 
+class CacheMatrix(IndexedMatrix):
+    """Implement a cache using an underlying IndexedMatrix.
+    
+    Requirements:
+      
+      * Initialize with empty indices.
+      * The matrix should be symmetric at all times.
+      * add_indices and remove_indices should never be called directly.
+      * When updating, always update using all (i, *) and (*, i) pairs,
+        using update_from_dict.
+      * Indices are transparently added when updating the cache.
+      * One can call invalidate to remove indices.
+    
+    """
+    def __init__(self, dtype=None, shape=None, data=None):
+        super(CacheMatrix, self).__init__(dtype=dtype, shape=shape, data=data)
+        # List of key indices, which
+        self.key_indices = []
+    
+    def invalidate(self, indices):
+        """Remove indices from the cache."""
+        if isinstance(indices, (int, long)):
+            indices = [indices]
+        # Only remove the indices that are present in the existing indices.
+        indices = sorted(set(indices).intersection(set(self.indices)))
+        self.remove_indices(indices)
+        for index in indices:
+            self.key_indices.remove(index)
+    
+    def not_in_key_indices(self, indices):
+        """Return those indices which are not key indices and thus need to
+        be updated."""
+        if isinstance(indices, (int, long)):
+            indices = [indices]
+        return sorted(set(indices) - set(self.key_indices))
+    
+    def update(self, key_indices, dic):
+        """Update the cache using a dictionary indexed by pairs of absolute
+        indices. New indices are silently added. The key indices must also
+        be provided."""
+        items0, items1 = zip(*dic.keys())
+        # Add non-existing indices.
+        indices_new0 = self.not_in_indices(items0)
+        indices_new1 = self.not_in_indices(items1)
+        indices_new = sorted(set(indices_new0).union(set(indices_new1)))
+        if len(indices_new) > 0:
+            self.add_indices(indices_new)
+        # Update key indices.
+        if isinstance(key_indices, (int, long)):
+            key_indices = [key_indices]
+        self.key_indices = sorted(set(self.key_indices).union(
+            set(key_indices)))
+        # Update the matrix with the new values.
+        items0_relative = self.to_relative(items0)
+        items1_relative = self.to_relative(items1)
+        for (item0, item1, item0_relative, item1_relative) in zip(
+                items0, items1, items0_relative, items1_relative):
+            self._array[item0_relative, item1_relative, ...] = dic[(
+                item0, item1)]
+       

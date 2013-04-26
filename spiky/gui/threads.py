@@ -39,7 +39,7 @@ class CorrelogramsTask(QtCore.QObject):
     def compute(self, spiketimes, clusters, clusters_selected,
             halfwidth=None, bin=None):
         log.debug("Computing correlograms for clusters {0:s}.".format(
-            str(clusters_selected)))
+            str(list(clusters_selected))))
         if len(clusters_selected) == 0:
             return {}
         correlograms = compute_correlograms(spiketimes, clusters,
@@ -59,7 +59,7 @@ class CorrelationMatrixTask(QtCore.QObject):
     
     def compute(self, features, clusters, masks, clusters_selected):
         log.debug("Computing correlation for clusters {0:s}.".format(
-            str(clusters_selected)))
+            str(list(clusters_selected))))
         if len(clusters_selected) == 0:
             return {}
         correlations = compute_correlations(features, clusters, masks, 

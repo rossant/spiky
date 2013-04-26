@@ -9,7 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from spiky.stats.indexed_matrix import IndexedMatrix
+from spiky.stats.indexed_matrix import IndexedMatrix, CacheMatrix
 
 
 # -----------------------------------------------------------------------------
@@ -28,23 +28,21 @@ def is_indices(item):
 # Stats cache
 # -----------------------------------------------------------------------------
 class StatsCache(object):
-    def __init__(self, indices, ncorrbin=None):
-        n = len(indices)
-        self.correlograms = IndexedMatrix(indices,
-            shape=(n, n, ncorrbin))
-        self.correlation_matrix = IndexedMatrix(indices)
+    def __init__(self, ncorrbin=None):
+        self.correlograms = CacheMatrix(shape=(0, 0, ncorrbin))
+        self.correlation_matrix = CacheMatrix()
     
     def invalidate(self, clusters):
         self.correlograms.invalidate(clusters)
         self.correlation_matrix.invalidate(clusters)
         
-    def add(self, clusters):
-        self.correlograms.add_indices(clusters)
-        self.correlation_matrix.add_indices(clusters)
+    # def add(self, clusters):
+        # self.correlograms.add_indices(clusters)
+        # self.correlation_matrix.add_indices(clusters)
         
-    def remove(self, clusters):
-        self.correlograms.remove_indices(clusters)
-        self.correlation_matrix.remove_indices(clusters)
+    # def remove(self, clusters):
+        # self.correlograms.remove_indices(clusters)
+        # self.correlation_matrix.remove_indices(clusters)
         
         
         

@@ -239,100 +239,81 @@ class MainWindow(QtGui.QMainWindow):
         self.add_correlograms_view()
     
     
-    # Actions menu callbacks.
-    # -----------------------
-    def after_merge(self, clusters_to_merge, cluster_new):
-        if isinstance(clusters_to_merge, (int, long)):
-            clusters_to_merge = [clusters_to_merge]
-        if isinstance(cluster_new, (int, long)):
-            cluster_new = [cluster_new]
-        self.statscache.add(cluster_new)
-        self.statscache.invalidate(cluster_new)
-        self.statscache.remove(clusters_to_merge)
-        return cluster_new
-        
-    def after_split(self, clusters_old, clusters_new, clusters_empty):
-        if isinstance(clusters_old, (int, long)):
-            clusters_old = [clusters_old]
-        if isinstance(clusters_new, (int, long)):
-            clusters_new = [clusters_new]
-        clusters_selected = sorted(set(clusters_old).
-            union(set(clusters_new)))
-        self.statscache.add(clusters_new)
-        self.statscache.invalidate(clusters_old)
-        self.statscache.remove(clusters_empty)
-        return clusters_selected
-    
+    # Actions callbacks.
+    # ------------------
     def update_cluster_selection(self, clusters_selected):
         self.update_action_enabled()
         self.update_cluster_view()
         self.get_view('ClusterView').select(clusters_selected)
     
+    def action_processed(self, action, to_select=[], to_invalidate=[],
+        to_compute=[], group_to_select=None):
+        """Called after an action has been processed. Used to update the 
+        different views and launch tasks."""
+        if isinstance(to_select, (int, long)):
+            to_select = [to_select]
+        if isinstance(to_invalidate, (int, long)):
+            to_invalidate = [to_invalidate]
+        if isinstance(to_compute, (int, long)):
+            to_compute = [to_compute]
+        # Select clusters to be selected.
+        if len(to_select) > 0:
+            self.update_cluster_selection(to_select)
+        # Invalidate clusters.
+        if len(to_invalidate) > 0:
+            self.statscache.invalidate(to_invalidate)
+        # Compute the correlation matrix for the requested clusters.
+        if len(to_compute) > 0:
+            self.start_compute_correlation_matrix(to_compute)
+        
     def merge_callback(self, checked):
         cluster_view = self.get_view('ClusterView')
         clusters = cluster_view.selected_clusters()
         if len(clusters) >= 2:
-            _, args = self.controller.merge_clusters(clusters)
-            clusters_selected = self.after_merge(*args)
-            self.update_cluster_selection(clusters_selected)
+            action, output = self.controller.merge_clusters(clusters)
+            self.action_processed(action, **output)
             
     def split_callback(self, checked):
         cluster_view = self.get_view('ClusterView')
         clusters = cluster_view.selected_clusters()
         spikes_selected = self.spikes_selected
         if len(spikes_selected) >= 1:
-            _, args = self.controller.split_clusters(clusters, spikes_selected)
-            clusters_selected = self.after_split(*args)
-            self.update_cluster_selection(clusters_selected)
+            action, output = self.controller.split_clusters(
+                clusters, spikes_selected)
+            self.action_processed(action, **output)
             
     def undo_callback(self, checked):
-        cluster_view = self.get_view('ClusterView')
-        clusters_selected = cluster_view.selected_clusters()
-        action, args = self.controller.undo()
-        correlation_matrix_to_update = False
-        
-        if action == 'merge_undo':
-            clusters_to_merge, cluster_new = args
-            clusters_selected = self.after_split(cluster_new, 
-                clusters_to_merge, cluster_new)
-            correlation_matrix_to_update = True
-            
-        elif action == 'split_undo':
-            clusters_old, clusters_new, clusters_empty = args
-            clusters_selected = self.after_merge(clusters_new, clusters_old)
-            correlation_matrix_to_update = True
-            
-        # self.update_action_enabled()
-        # self.update_cluster_view()
-        # self.get_view('ClusterView').select(clusters_selected)
-        self.update_cluster_selection(clusters_selected)
-        
-        if correlation_matrix_to_update:
-            self.start_compute_correlation_matrix()
+        action, output = self.controller.undo()
+        self.action_processed(action, **output)
         
     def redo_callback(self, checked):
-        cluster_view = self.get_view('ClusterView')
-        clusters_selected = cluster_view.selected_clusters()
-        action, args = self.controller.redo()
-        correlation_matrix_to_update = False
+        action, output = self.controller.redo()
+        self.action_processed(action, **output)
         
-        if action == 'merge':
-            clusters_selected = self.after_merge(*args)
-            correlation_matrix_to_update = True
-            
-        elif action == 'split':
-            clusters_selected = self.after_split(*args)
-            correlation_matrix_to_update = True
+    def cluster_color_changed_callback(self, cluster, color):
+        action, output = self.controller.change_cluster_color(cluster, color)
+        self.action_processed(action, **output)
         
-        # self.update_action_enabled()
-        # self.update_cluster_view()
-        # self.get_view('ClusterView').select(clusters_selected)
+    def group_color_changed_callback(self, group, color):
+        action, output = self.controller.change_group_color(group, color)
+        self.action_processed(action, **output)
         
-        self.update_cluster_selection(clusters_selected)
+    def group_renamed_callback(self, group, name):
+        action, output = self.controller.rename_group(group, name)
+        self.action_processed(action, **output)
         
-        if correlation_matrix_to_update:
-            self.start_compute_correlation_matrix()
+    def clusters_moved_callback(self, clusters, group):
+        action, output = self.controller.move_clusters(clusters, group)
+        self.action_processed(action, **output)
         
+    def group_removed_callback(self, group):
+        action, output = self.controller.remove_group(group)
+        self.action_processed(action, **output)
+        
+    def group_added_callback(self, group, name, color):
+        action, output = self.controller.add_group(group, name, color)
+        self.action_processed(action, **output)
+    
     
     # Selection callbacks.
     # --------------------
@@ -365,42 +346,6 @@ class MainWindow(QtGui.QMainWindow):
         self.get_view('FeatureView').set_projection(coord, channel, coord)
         
     
-    # Action callbacks from the cluster view.
-    # ---------------------------------------
-    def cluster_color_changed_callback(self, cluster, color):
-        self.controller.change_cluster_color(cluster, color)
-        self.update_action_enabled()
-        self.update_waveform_view()
-        self.update_feature_view()
-        self.update_correlograms_view()
-        
-    def group_color_changed_callback(self, group, color):
-        self.controller.change_group_color(group, color)
-        # self.update_action_enabled()
-        
-    def group_renamed_callback(self, group, name):
-        self.controller.rename_group(group, name)
-        # self.update_action_enabled()
-        
-    def clusters_moved_callback(self, clusters, group):
-        self.controller.move_clusters(clusters, group)
-        
-        # HACK: bypassing the bug in clusterview.move_clusters
-        clusters_selected = self.get_view('ClusterView').selected_clusters()
-        self.update_cluster_view()
-        self.get_view('ClusterView').select(clusters_selected)
-        
-        # self.update_action_enabled()
-        
-    def group_removed_callback(self, group):
-        self.controller.remove_group(group)
-        # self.update_action_enabled()
-        
-    def group_added_callback(self, group, name, color):
-        self.controller.add_group(group, name, color)
-        # self.update_action_enabled()
-        
-    
     # Task methods.
     # -------------
     def open_done(self, loader):
@@ -410,8 +355,7 @@ class MainWindow(QtGui.QMainWindow):
         self.controller = Controller(self.loader)
         # Create the cache for the cluster statistics that need to be
         # computed in the background.
-        self.statscache = StatsCache(loader.get_clusters_unique(), 
-            loader.ncorrbins)
+        self.statscache = StatsCache(loader.ncorrbins)
         # Start computing the correlation matrix.
         self.start_compute_correlation_matrix()
         # Update the robot.
@@ -423,15 +367,16 @@ class MainWindow(QtGui.QMainWindow):
         # Get the correlograms parameters.
         spiketimes = get_array(self.loader.get_spiketimes('all'))
         clusters = get_array(self.loader.get_clusters('all'))
+        clusters_all = self.loader.get_clusters_unique()
         bin = self.loader.corrbin
         halfwidth = self.loader.ncorrbins * bin / 2
         
         # Add new cluster indices if needed.
-        self.statscache.correlograms.add_indices(clusters_selected)
+        # self.statscache.correlograms.add_indices(clusters_selected)
         
         # Get cluster indices that need to be updated.
-        clusters_to_update = (
-            self.statscache.correlograms.blank_indices(clusters_selected))
+        clusters_to_update = (self.statscache.correlograms.
+            not_in_key_indices(clusters_selected))
         
         # If there are pairs that need to be updated, launch the task.
         if len(clusters_to_update) > 0:
@@ -443,14 +388,16 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.update_correlograms_view()
         
-    def start_compute_correlation_matrix(self):
+    def start_compute_correlation_matrix(self, clusters_to_update=None):
         # Get the correlation matrix parameters.
         features = get_array(self.loader.get_features('all'))
         masks = get_array(self.loader.get_masks('all', full=True))
         clusters = get_array(self.loader.get_clusters('all'))
+        clusters_all = self.loader.get_clusters_unique()
         # Get cluster indices that need to be updated.
-        clusters_to_update = (
-            self.statscache.correlation_matrix.blank_indices())
+        if clusters_to_update is None:
+            clusters_to_update = (self.statscache.correlation_matrix.
+                not_in_key_indices(clusters_all))
         # If there are pairs that need to be updated, launch the task.
         if len(clusters_to_update) > 0:
             # Launch the task.
@@ -474,13 +421,12 @@ class MainWindow(QtGui.QMainWindow):
     
     def correlograms_computed(self, clusters, correlograms):
         # Put the computed correlograms in the cache.
-        self.statscache.correlograms.update_from_dict(correlograms)
+        self.statscache.correlograms.update(clusters, correlograms)
         # Update the view.
-        # if set(self.loader.get_clusters_selected()) == set(clusters):
         self.update_correlograms_view()
     
     def correlation_matrix_computed(self, clusters, matrix):
-        self.statscache.correlation_matrix.update_from_dict(matrix)
+        self.statscache.correlation_matrix.update(clusters, matrix)
         # Update the view.
         self.update_correlation_matrix_view()
     
