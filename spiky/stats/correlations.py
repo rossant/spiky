@@ -113,6 +113,12 @@ def compute_correlations(features, clusters, masks,
             matrix_product[ci, cj] = np.exp(p + np.log(alpha))
             # matrix_product[cj, ci] = matrix_product[ci, cj]
     
+    # Normalize the correlation matrix.
+    s = matrix_product.sum(axis=1)
+    matrix_product[s == 0, 0] = 1e-9
+    s = matrix_product.sum(axis=1)
+    matrix_product *= (1. / s.reshape((-1, 1)))
+            
     d = {(ci, cj): matrix_product[ci, cj]
         for ci in clusters_to_update for cj in clusterslist}
     d.update({(ci, cj): matrix_product[ci, cj]

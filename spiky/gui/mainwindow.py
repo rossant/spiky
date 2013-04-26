@@ -140,7 +140,10 @@ class MainWindow(QtGui.QMainWindow):
         self.add_action('split', '&Split', shortcut='Ctrl+K')
 
     def create_robot_actions(self):
-        self.add_action('next_clusters', '&Next clusters', shortcut='Space')
+        self.add_action('previous_clusters', '&Previous clusters', 
+            shortcut='CTRL+Space')
+        self.add_action('next_clusters', '&Next clusters', 
+            shortcut='Space')
         
     def create_menu(self):
         # File menu.
@@ -167,6 +170,7 @@ class MainWindow(QtGui.QMainWindow):
         
         # Robot menu.
         robot_menu = self.menuBar().addMenu("&Robot")
+        robot_menu.addAction(self.previous_clusters_action)
         robot_menu.addAction(self.next_clusters_action)
         
     def update_action_enabled(self):
@@ -247,7 +251,7 @@ class MainWindow(QtGui.QMainWindow):
         self.get_view('ClusterView').select(clusters_selected)
     
     def action_processed(self, action, to_select=[], to_invalidate=[],
-        to_compute=[], group_to_select=None):
+        to_compute=None, group_to_select=None):
         """Called after an action has been processed. Used to update the 
         different views and launch tasks."""
         if isinstance(to_select, (int, long)):
@@ -263,7 +267,7 @@ class MainWindow(QtGui.QMainWindow):
         if len(to_invalidate) > 0:
             self.statscache.invalidate(to_invalidate)
         # Compute the correlation matrix for the requested clusters.
-        if len(to_compute) > 0:
+        if to_compute is not None:
             self.start_compute_correlation_matrix(to_compute)
         
     def merge_callback(self, checked):
@@ -359,7 +363,7 @@ class MainWindow(QtGui.QMainWindow):
         # Start computing the correlation matrix.
         self.start_compute_correlation_matrix()
         # Update the robot.
-        self.update_robot()
+        self.initialize_robot()
         # Update the views.
         self.update_cluster_view()
         
@@ -422,28 +426,50 @@ class MainWindow(QtGui.QMainWindow):
     def correlograms_computed(self, clusters, correlograms):
         # Put the computed correlograms in the cache.
         self.statscache.correlograms.update(clusters, correlograms)
+        # Update the robot.
+        # self.tasks.robot_task.update(
+            # correlograms=self.statscache.correlograms)
         # Update the view.
         self.update_correlograms_view()
     
     def correlation_matrix_computed(self, clusters, matrix):
         self.statscache.correlation_matrix.update(clusters, matrix)
+        # Update the robot.
+        self.update_robot()
         # Update the view.
         self.update_correlation_matrix_view()
     
     
     # Robot.
     # ------
-    def update_robot(self):
-        self.tasks.robot_task.update(       
+    def initialize_robot(self):
+        self.tasks.robot_task.set_data(
+            # Data.
             features=self.loader.get_features('all'),
             spiketimes=self.loader.get_spiketimes('all'),
-            clusters=self.loader.get_clusters('all'),
             masks=self.loader.get_masks('all'),
+            clusters=self.loader.get_clusters('all'),
             cluster_groups=self.loader.get_cluster_groups('all'),
+            # Statistics.
+            correlograms=self.statscache.correlograms,
+            correlation_matrix=self.statscache.correlation_matrix,
+            )
+    
+    def update_robot(self):
+        self.tasks.robot_task.set_data(
+            clusters=self.loader.get_clusters('all'),
+            correlograms=self.statscache.correlograms,
+            correlation_matrix=self.statscache.correlation_matrix,
             )
             
+    def previous_clusters_callback(self, checked):
+        clusters =  self.tasks.robot_task.previous(
+            _sync=True)[2]['_result']
+        # log.info("The robot proposes clusters {0:s}.".format(str(clusters)))
+        self.get_view('ClusterView').select(clusters)
+            
     def next_clusters_callback(self, checked):
-        clusters =  self.tasks.robot_task.next_clusters(
+        clusters =  self.tasks.robot_task.next(
             _sync=True)[2]['_result']
         log.info("The robot proposes clusters {0:s}.".format(str(clusters)))
         self.get_view('ClusterView').select(clusters)
@@ -656,9 +682,13 @@ class MainWindow(QtGui.QMainWindow):
     
     def update_correlation_matrix_view(self):
         matrix = self.statscache.correlation_matrix
+        # Clusters in groups 0 or 1 to hide.
+        cluster_groups = self.loader.get_cluster_groups('all')
+        clusters_hidden = np.nonzero(np.in1d(cluster_groups, [0, 1]))[0]
         data = dict(
             correlation_matrix=matrix.to_array(),
             cluster_colors_full=self.loader.get_cluster_colors('all'),
+            clusters_hidden=clusters_hidden,
         )
         [view.set_data(**data) 
             for view in self.get_views('CorrelationMatrixView')]

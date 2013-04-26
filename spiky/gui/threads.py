@@ -77,11 +77,14 @@ class RobotTask(QtCore.QObject):
     def __init__(self,):
         self.robot = Robot()
         
-    def update(self, **kwargs):
-        self.robot.update(**kwargs)
+    def set_data(self, **kwargs):
+        self.robot.set_data(**kwargs)
         
-    def next_clusters(self):
-        return self.robot.next_clusters()
+    def previous(self):
+        return self.robot.previous()
+        
+    def next(self):
+        return self.robot.next()
 
 
 # -----------------------------------------------------------------------------

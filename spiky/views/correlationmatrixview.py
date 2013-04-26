@@ -78,8 +78,8 @@ def colormap(x, col0=None, col1=None):
 # -----------------------------------------------------------------------------
 class CorrelationMatrixDataManager(Manager):
     def set_data(self, correlation_matrix=None,
-        cluster_colors_full=None
-        # clusters_info=None,
+        cluster_colors_full=None,
+        clusters_hidden=[],
         ):
         
         if correlation_matrix is None:
@@ -90,26 +90,22 @@ class CorrelationMatrixDataManager(Manager):
             correlation_matrix = -np.ones((2, 2))
         elif correlation_matrix.shape[0] == 1:
             correlation_matrix = -np.ones((2, 2))
+        # else:
+            # # Normalize the correlation matrix.
+            # s = correlation_matrix.sum(axis=1)
+            # correlation_matrix[s == 0, 0] = 1e-9
+            # s = correlation_matrix.sum(axis=1)
+            # correlation_matrix *= (1. / s.reshape((-1, 1)))
         n = correlation_matrix.shape[0]
-        
-        # Normalize the correlation matrix.
-        s = correlation_matrix.sum(axis=1)
-        correlation_matrix[s == 0, 0] = 1e-9
-        s = correlation_matrix.sum(axis=1)
-        correlation_matrix *= (1. / s.reshape((-1, 1)))
-        
         
         self.texture = colormap(correlation_matrix)[::-1, :, :]
         self.correlation_matrix = correlation_matrix
         
-        
         # Hide some clusters.
-        # if n >= 3:
-            # tex0 = self.texture.copy()
-            # for clu in clusters_hidden:
-                # self.texture[clu, :, :] = tex0[clu, :, :] * .25
-                # self.texture[:, clu, :] = tex0[:, clu, :] * .25
-        
+        tex0 = self.texture.copy()
+        for clu in clusters_hidden:
+            self.texture[clu, :, :] = tex0[clu, :, :] * .25
+            self.texture[:, clu, :] = tex0[:, clu, :] * .25
         
         self.clusters_unique = get_indices(cluster_colors_full)
         self.cluster_colors = cluster_colors_full
