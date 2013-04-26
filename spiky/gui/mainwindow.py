@@ -6,7 +6,7 @@
 import pprint
 import os
 import inspect
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
 import pandas as pd
 import numpy as np
@@ -23,7 +23,7 @@ import spiky.utils.logger as log
 from spiky.utils.persistence import encode_bytearray, decode_bytearray
 from spiky.utils.settings import SETTINGS
 from spiky.utils.globalpaths import APPNAME
-from spiky.gui.threads import ThreadedTasks
+from spiky.gui.threads import ThreadedTasks, LOCK
 
 
 # -----------------------------------------------------------------------------
@@ -274,7 +274,8 @@ class MainWindow(QtGui.QMainWindow):
         cluster_view = self.get_view('ClusterView')
         clusters = cluster_view.selected_clusters()
         if len(clusters) >= 2:
-            action, output = self.controller.merge_clusters(clusters)
+            with LOCK:
+                action, output = self.controller.merge_clusters(clusters)
             self.action_processed(action, **output)
             
     def split_callback(self, checked):
@@ -282,40 +283,49 @@ class MainWindow(QtGui.QMainWindow):
         clusters = cluster_view.selected_clusters()
         spikes_selected = self.spikes_selected
         if len(spikes_selected) >= 1:
-            action, output = self.controller.split_clusters(
-                clusters, spikes_selected)
+            with LOCK:
+                action, output = self.controller.split_clusters(
+                    clusters, spikes_selected)
             self.action_processed(action, **output)
             
     def undo_callback(self, checked):
-        action, output = self.controller.undo()
+        with LOCK:
+            action, output = self.controller.undo()
         self.action_processed(action, **output)
         
     def redo_callback(self, checked):
-        action, output = self.controller.redo()
+        with LOCK:
+            action, output = self.controller.redo()
         self.action_processed(action, **output)
         
     def cluster_color_changed_callback(self, cluster, color):
-        action, output = self.controller.change_cluster_color(cluster, color)
+        with LOCK:
+            action, output = self.controller.change_cluster_color(cluster, color)
         self.action_processed(action, **output)
         
     def group_color_changed_callback(self, group, color):
-        action, output = self.controller.change_group_color(group, color)
+        with LOCK:
+            action, output = self.controller.change_group_color(group, color)
         self.action_processed(action, **output)
         
     def group_renamed_callback(self, group, name):
-        action, output = self.controller.rename_group(group, name)
+        with LOCK:
+            action, output = self.controller.rename_group(group, name)
         self.action_processed(action, **output)
         
     def clusters_moved_callback(self, clusters, group):
-        action, output = self.controller.move_clusters(clusters, group)
+        with LOCK:
+            action, output = self.controller.move_clusters(clusters, group)
         self.action_processed(action, **output)
         
     def group_removed_callback(self, group):
-        action, output = self.controller.remove_group(group)
+        with LOCK:
+            action, output = self.controller.remove_group(group)
         self.action_processed(action, **output)
         
     def group_added_callback(self, group, name, color):
-        action, output = self.controller.add_group(group, name, color)
+        with LOCK:
+            action, output = self.controller.add_group(group, name, color)
         self.action_processed(action, **output)
     
     
@@ -370,8 +380,10 @@ class MainWindow(QtGui.QMainWindow):
     def start_compute_correlograms(self, clusters_selected):
         # Get the correlograms parameters.
         spiketimes = get_array(self.loader.get_spiketimes('all'))
-        clusters = get_array(self.loader.get_clusters('all'))
-        clusters_all = self.loader.get_clusters_unique()
+        # Make a copy of the array so that it does not change before the
+        # computation of the correlograms begins.
+        clusters = np.array(get_array(self.loader.get_clusters('all')))
+        # clusters_all = self.loader.get_clusters_unique()
         bin = self.loader.corrbin
         halfwidth = self.loader.ncorrbins * bin / 2
         
@@ -386,11 +398,13 @@ class MainWindow(QtGui.QMainWindow):
         if len(clusters_to_update) > 0:
             # Launch the task.
             self.tasks.correlograms_task.compute(spiketimes, clusters,
-                clusters_to_update, halfwidth=halfwidth, bin=bin)    
+                clusters_to_update=clusters_to_update, 
+                clusters_selected=clusters_selected,
+                halfwidth=halfwidth, bin=bin)    
         # Otherwise, update directly the correlograms view without launching
         # the task in the external process.
         else:
-            self.update_correlograms_view()
+            self.update_correlograms_view(clusters_selected)
         
     def start_compute_correlation_matrix(self, clusters_to_update=None):
         # Get the correlation matrix parameters.
@@ -415,13 +429,13 @@ class MainWindow(QtGui.QMainWindow):
     def selection_done(self, clusters_selected):
         """Called on the main thread once the clusters have been loaded 
         in the main thread."""
-        # Update action enabled/disabled property.
-        self.update_action_enabled()
+        # Update the different views.
+        self.update_feature_view()
+        self.update_waveform_view()
         # Launch the computation of the correlograms.
         self.start_compute_correlograms(clusters_selected)
-        # Update the different views.
-        self.update_waveform_view()
-        self.update_feature_view()
+        # Update action enabled/disabled property.
+        self.update_action_enabled()
     
     def correlograms_computed(self, clusters, correlograms):
         # Put the computed correlograms in the cache.
@@ -430,7 +444,7 @@ class MainWindow(QtGui.QMainWindow):
         # self.tasks.robot_task.update(
             # correlograms=self.statscache.correlograms)
         # Update the view.
-        self.update_correlograms_view()
+        self.update_correlograms_view(clusters)
     
     def correlation_matrix_computed(self, clusters, matrix):
         self.statscache.correlation_matrix.update(clusters, matrix)
@@ -666,19 +680,22 @@ class MainWindow(QtGui.QMainWindow):
         )
         [view.set_data(**data) for view in self.get_views('FeatureView')]
         
-    def update_correlograms_view(self):
+    def update_correlograms_view(self, clusters):
         clusters_selected = self.loader.get_clusters_selected()
-        try:
-            correlograms = self.statscache.correlograms.submatrix(
-                clusters_selected)
-            data = dict(
-                correlograms=correlograms,
-                clusters_selected=clusters_selected,
-                cluster_colors=self.loader.get_cluster_colors(),
-            )
-            [view.set_data(**data) for view in self.get_views('CorrelogramsView')]
-        except IndexError:
-            log.debug("Skip update correlograms view.")
+        # Abort if the selection has changed during the computation of the
+        # correlograms.
+        if not np.array_equal(clusters, clusters_selected):
+            log.debug("Skip update correlograms with clusters selected={0:s}"
+            " and clusters updated={1:s}.".format(clusters_selected, clusters))
+            return
+        correlograms = self.statscache.correlograms.submatrix(
+            clusters_selected)
+        data = dict(
+            correlograms=correlograms,
+            clusters_selected=clusters_selected,
+            cluster_colors=self.loader.get_cluster_colors(),
+        )
+        [view.set_data(**data) for view in self.get_views('CorrelogramsView')]
     
     def update_correlation_matrix_view(self):
         matrix = self.statscache.correlation_matrix

@@ -242,7 +242,8 @@ class CacheMatrix(IndexedMatrix):
         indices = sorted(set(indices).intersection(set(self.indices)))
         self.remove_indices(indices)
         for index in indices:
-            self.key_indices.remove(index)
+            if index in self.key_indices:
+                self.key_indices.remove(index)
     
     def not_in_key_indices(self, indices):
         """Return those indices which are not key indices and thus need to

@@ -4,6 +4,7 @@
 # Imports
 # -----------------------------------------------------------------------------
 import time
+from threading import Lock
 
 import numpy as np
 from qtools import inthread, inprocess
@@ -13,6 +14,13 @@ from spiky.io import KlustersLoader
 from spiky.robot.robot import Robot
 import spiky.utils.logger as log
 from spiky.stats import compute_correlograms, compute_correlations
+
+
+# -----------------------------------------------------------------------------
+# Synchronisation
+# -----------------------------------------------------------------------------
+LOCK = Lock()
+
 
 # -----------------------------------------------------------------------------
 # Tasks
@@ -29,26 +37,27 @@ class SelectTask(QtCore.QObject):
     clustersSelected = QtCore.pyqtSignal(np.ndarray)
     
     def select(self, loader, clusters):
-        loader.select(clusters=clusters)
+        with LOCK:
+            loader.select(clusters=clusters)
         self.clustersSelected.emit(np.array(clusters))
         
         
 class CorrelogramsTask(QtCore.QObject):
     correlogramsComputed = QtCore.pyqtSignal(np.ndarray, object)
     
-    def compute(self, spiketimes, clusters, clusters_selected,
-            halfwidth=None, bin=None):
+    def compute(self, spiketimes, clusters, clusters_to_update=None,
+            clusters_selected=None, halfwidth=None, bin=None):
         log.debug("Computing correlograms for clusters {0:s}.".format(
             str(list(clusters_selected))))
         if len(clusters_selected) == 0:
             return {}
         correlograms = compute_correlograms(spiketimes, clusters,
-            clusters_to_update=clusters_selected,
+            clusters_to_update=clusters_to_update,
             halfwidth=halfwidth, bin=bin)
         return correlograms
         
-    def compute_done(self, spiketimes, clusters, clusters_selected,
-            halfwidth=None, bin=None, _result=None):
+    def compute_done(self, spiketimes, clusters, clusters_to_update=None,
+            clusters_selected=None, halfwidth=None, bin=None, _result=None):
         correlograms = _result
         self.correlogramsComputed.emit(np.array(clusters_selected),
             correlograms)

@@ -25,7 +25,7 @@ class Robot(object):
         self.correlograms = correlograms
         self.correlation_matrix = correlation_matrix
         self.best_pairs = []
-        self.current = 0
+        self.current = -1
     
     
     # Internal methods.
@@ -35,7 +35,7 @@ class Robot(object):
             matrix = self.correlation_matrix.to_array().copy()
             n = matrix.shape[0]
             if n > 0:
-                self.current = 0
+                self.current = -1
                 matrix[np.arange(n), np.arange(n)] = 0
                 indices = np.argsort(matrix.ravel())[::-1]
                 # print indices[:10], matrix.ravel()[indices[:10]]
