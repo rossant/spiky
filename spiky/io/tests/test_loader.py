@@ -10,6 +10,7 @@ import numpy as np
 import numpy.random as rnd
 import pandas as pd
 import shutil
+from nose.tools import with_setup
 
 from spiky.io.tests.mock_data import (setup, teardown,
                             nspikes, nclusters, nsamples, nchannels, fetdim)
@@ -63,7 +64,7 @@ def test_cluster_info():
     
     assert np.array_equal(cluster_info.values, cluster_info2[:, 1:])
     
-def test_klusters_loader():
+def test_klusters_loader_1():
     # Open the mock data.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
     xmlfile = os.path.join(dir, 'test.xml')
@@ -83,8 +84,6 @@ def test_klusters_loader():
     group_colors = l.get_group_colors()
     group_names = l.get_group_names()
     cluster_sizes = l.get_cluster_sizes()
-    
-    maxcluster = clusters.max()
     
     # Check the shape of the data sets.
     # ---------------------------------
@@ -118,6 +117,27 @@ def test_klusters_loader():
     assert check_dtype(group_names, object)
     assert check_dtype(cluster_sizes, np.int32)
     
+def test_klusters_loader_2():
+    # Open the mock data.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    xmlfile = os.path.join(dir, 'test.xml')
+    l = KlustersLoader(xmlfile)
+    
+    # Get full data sets.
+    features = l.get_features()
+    masks = l.get_masks()
+    waveforms = l.get_waveforms()
+    clusters = l.get_clusters()
+    spiketimes = l.get_spiketimes()
+    nclusters = len(Counter(clusters))
+    
+    probe = l.get_probe()
+    cluster_colors = l.get_cluster_colors()
+    cluster_groups = l.get_cluster_groups()
+    group_colors = l.get_group_colors()
+    group_names = l.get_group_names()
+    cluster_sizes = l.get_cluster_sizes()
+    
     
     # Check selection.
     # ----------------
@@ -147,10 +167,6 @@ def test_klusters_loader():
     assert np.array_equal(get_array(select(waveforms_selected, index)), 
         get_array(waveform))
         
-    # Save
-    l.save()
-    # TODO: check the saved files.
-    
 def test_klusters_loader_control():
     # Open the mock data.
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
@@ -216,5 +232,46 @@ def test_klusters_loader_control():
     assert np.all(~np.in1d(10000, l.get_clusters()))
     assert np.all(~np.in1d(100, l.get_cluster_groups()))
     
+def test_klusters_save():
+    """WARNING: this test should occur at the end of the module since it
+    changes the mock data sets."""
+    # Open the mock data.
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    xmlfile = os.path.join(dir, 'test.xml')
+    l = KlustersLoader(xmlfile)
     
+    clusters = l.get_clusters()
+    cluster_colors = l.get_cluster_colors()
+    cluster_groups = l.get_cluster_groups()
+    group_colors = l.get_group_colors()
+    group_names = l.get_group_names()
+    
+    # Set clusters.
+    indices = get_indices(clusters)
+    l.set_cluster(indices[::2], 2)
+    l.set_cluster(indices[1::2], 3)
+    
+    # Set cluster info.
+    cluster_indices = l.get_clusters_unique()
+    l.set_cluster_colors(cluster_indices[::2], 10)
+    l.set_cluster_colors(cluster_indices[1::2], 20)
+    l.set_cluster_groups(cluster_indices[::2], 1)
+    l.set_cluster_groups(cluster_indices[1::2], 0)
+    
+    # Save.
+    l.remove_empty_clusters()
+    l.save()
+    
+    clusters = read_clusters(l.filename_clu_spiky)
+    cluster_info = read_cluster_info(l.filename_clusterinfo)
+    
+    assert np.all(clusters[::2] == 2)
+    assert np.all(clusters[1::2] == 3)
+    
+    assert np.array_equal(cluster_info[:,0], cluster_indices)
+    assert np.all(cluster_info[::2,1] == 10)
+    assert np.all(cluster_info[1::2,1] == 20)
+    assert np.all(cluster_info[::2,2] == 1)
+    assert np.all(cluster_info[1::2,2] == 0)
+
     

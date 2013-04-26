@@ -105,6 +105,8 @@ class IndexedMatrix(object):
             single_index = True
         else:
             single_index = False
+        if len(indices_relative) == 0:
+            return []
         indices_absolute = self.indices[indices_relative]
         if single_index and conserve_single_indices:
             indices_absolute = indices_absolute[0]
@@ -116,6 +118,8 @@ class IndexedMatrix(object):
             single_index = True
         else:
             single_index = False
+        if len(indices_absolute) == 0:
+            return []
         # Ensure all requested absolute indices are valid.
         if not np.all(np.in1d(indices_absolute, self.indices)):
             index = indices_absolute[
