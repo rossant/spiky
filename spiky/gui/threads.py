@@ -53,8 +53,8 @@ class CorrelogramsTask(QtCore.QObject):
     def compute(self, spiketimes, clusters, clusters_to_update=None,
             clusters_selected=None, halfwidth=None, bin=None):
         log.debug("Computing correlograms for clusters {0:s}.".format(
-            str(list(clusters_selected))))
-        if len(clusters_selected) == 0:
+            str(list(clusters_to_update))))
+        if len(clusters_to_update) == 0:
             return {}
         correlograms = compute_correlograms(spiketimes, clusters,
             clusters_to_update=clusters_to_update,

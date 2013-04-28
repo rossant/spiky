@@ -339,18 +339,19 @@ class WaveformPositionManager(Manager):
         """Return the smallest viewbox such that the selected channels are
         visible.
         """
+        w, h = self.load_box_size(effective=False)
         channels = np.array(channels)
-        pos = self.box_positions[channels,:]
+        Tx, Ty = self.box_positions
         # find the box enclosing all channels center positions
-        xmin, ymin = np.min(pos, axis=0)
-        xmax, ymax = np.max(pos, axis=0)
+        xmin, xmax = Tx[channels,:].min(), Tx[channels,:].max()
+        ymin, ymax = Ty[channels,:].min(), Ty[channels,:].max()
         # take the size of the individual boxes into account
-        mx = self.w * (.5 + self.alpha)
-        my = self.h * (.5 + self.alpha)
-        xmin -= self.w * mx
-        xmax += self.w * mx
-        ymin -= self.h * my
-        ymax += self.h * my
+        # mx = w * (.5 + self.alpha)
+        # my = h * (.5 + self.alpha)
+        xmin -= w / 2
+        xmax += w / 2
+        ymin -= h / 2
+        ymax += h / 2
         return xmin, ymin, xmax, ymax
         
     def find_box(self, xp, yp):
@@ -375,8 +376,6 @@ class WaveformPositionManager(Manager):
         # channel positions: Nchannels x Nclusters
         Tx, Ty = self.box_positions
         
-        
-        
         w, h = self.box_size
         # print w, h
         # enclosed box
@@ -399,7 +398,10 @@ class WaveformDataManager(Manager):
                  clusters_selected=None,
                  cluster_colors=None,
                  geometrical_positions=None,
+                 autozoom=None,
                  ):
+                 
+        self.autozoom = autozoom
                  
         if waveforms is None:
             waveforms = np.zeros((0, 1, 1))
@@ -764,7 +766,10 @@ class WaveformPaintManager(PlotPaintManager):
             box_size_margin=box_size_margin,
             channel_positions=channel_positions,
             )
-
+        
+        if self.data_manager.autozoom:
+            self.interaction_manager.autozoom()
+        
 
 # -----------------------------------------------------------------------------
 # Interactivity
@@ -1004,6 +1009,12 @@ class WaveformInteractionManager(PlotInteractionManager):
             return
             
         self.info_manager.show_closest_cluster(xd, yd)
+        
+    def autozoom(self):
+        channels = np.argsort(self.data_manager.masks_array.sum(axis=0))[::-1]
+        channels = channels[:2]
+        viewbox = self.position_manager.get_viewbox(channels)
+        self.parent.process_interaction('SetViewbox', viewbox)
         
     
 class WaveformBindings(SpikyBindings):

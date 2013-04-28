@@ -63,6 +63,7 @@ class MainWindow(QtGui.QMainWindow):
         self.controller = None
         self.spikes_highlighted = []
         self.spikes_selected = []
+        self.robot_active = False
         
         # Create the main window.
         self.create_views()
@@ -447,13 +448,17 @@ class MainWindow(QtGui.QMainWindow):
     def selection_done(self, clusters_selected):
         """Called on the main thread once the clusters have been loaded 
         in the main thread."""
-        # Update the different views.
-        self.update_feature_view()
-        self.update_waveform_view()
+        # Update the different views, with autozoom on if the selection has
+        # been made by the robot.
+        self.update_feature_view(autozoom=self.robot_active)
+        self.update_waveform_view(autozoom=self.robot_active)
+        # if self.robot_active:
+            # self.autozoom()
         # Launch the computation of the correlograms.
         self.start_compute_correlograms(clusters_selected)
         # Update action enabled/disabled property.
         self.update_action_enabled()
+        self.robot_active = False
     
     def correlograms_computed(self, clusters, correlograms):
         # Put the computed correlograms in the cache.
@@ -498,13 +503,18 @@ class MainWindow(QtGui.QMainWindow):
         clusters =  self.tasks.robot_task.previous(
             _sync=True)[2]['_result']
         # log.info("The robot proposes clusters {0:s}.".format(str(clusters)))
+        self.robot_active = True
         self.get_view('ClusterView').select(clusters)
             
     def next_clusters_callback(self, checked):
         clusters =  self.tasks.robot_task.next(
             _sync=True)[2]['_result']
         log.info("The robot proposes clusters {0:s}.".format(str(clusters)))
+        self.robot_active = True
         self.get_view('ClusterView').select(clusters)
+        
+    # def autozoom(self):
+        # self.get_view('FeatureView').auto_projection()
         
     
     # Threads.
@@ -674,7 +684,7 @@ class MainWindow(QtGui.QMainWindow):
         )
         self.get_view('ClusterView').set_data(**data)
     
-    def update_waveform_view(self):
+    def update_waveform_view(self, autozoom=None):
         data = dict(
             waveforms=self.loader.get_waveforms(),
             clusters=self.loader.get_clusters(),
@@ -682,10 +692,11 @@ class MainWindow(QtGui.QMainWindow):
             clusters_selected=self.loader.get_clusters_selected(),
             masks=self.loader.get_masks(),
             geometrical_positions=self.loader.get_probe(),
+            autozoom=autozoom,
         )
         [view.set_data(**data) for view in self.get_views('WaveformView')]
     
-    def update_feature_view(self):
+    def update_feature_view(self, autozoom=None):
         data = dict(
             features=self.loader.get_features(),
             masks=self.loader.get_masks(),
@@ -695,6 +706,7 @@ class MainWindow(QtGui.QMainWindow):
             nchannels=self.loader.nchannels,
             fetdim=self.loader.fetdim,
             nextrafet=self.loader.nextrafet,
+            autozoom=autozoom,
         )
         [view.set_data(**data) for view in self.get_views('FeatureView')]
         

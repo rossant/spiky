@@ -709,6 +709,7 @@ class ClusterView(QtGui.QTreeView):
             if cluster is not None:
                 selection.select(cluster.index, cluster.index)
         selection_model.select(selection, 
+                selection_model.Clear |
                 selection_model.Current |
                 selection_model.Select | 
                 selection_model.Rows 
@@ -979,6 +980,7 @@ class ClusterView(QtGui.QTreeView):
             self.scrollTo(group_indices[-1].index)
         elif clusters:
             self.scrollTo(self.model.get_cluster(clusters[-1]).index)
+    
     
     # Selected items
     # --------------

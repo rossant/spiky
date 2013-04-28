@@ -117,6 +117,7 @@ class FeatureDataManager(Manager):
                  fetdim=None,
                  nchannels=None,
                  nextrafet=None,
+                 autozoom=None,
                  ):
         
         if features is None:
@@ -166,7 +167,10 @@ class FeatureDataManager(Manager):
         
         # set initial projection
         self.projection_manager.set_data()
-        self.projection_manager.reset_projection()
+        if not autozoom:
+            self.projection_manager.reset_projection()
+        else:
+            self.projection_manager.auto_projection()
         
         # update the highlight manager
         self.highlight_manager.initialize()
@@ -567,6 +571,12 @@ class FeatureProjectionManager(Manager):
             self.set_projection(0, self.projection[0][0], self.projection[0][1], False)
             self.set_projection(1, self.projection[1][0], self.projection[1][1])
 
+    def auto_projection(self):
+        channel_best = np.argmax(self.data_manager.masks_array.sum(axis=0))
+        self.set_projection(0, channel_best, 0)
+        self.set_projection(1, channel_best, 1)
+        
+            
     def select_neighbor_channel(self, coord, channel_dir):
         # current channel and feature in the given coordinate
         proj = self.projection[coord]
@@ -870,6 +880,11 @@ class FeatureView(GalryWidget):
         self.projection_manager.set_projection(coord, channel, feature)
         self.paint_manager.update_points()
         self.paint_manager.updateGL()
+        
+    # def auto_projection(self):
+        # channel_best = np.argmax(self.data_manager.masks_array.sum(axis=0))
+        # self.set_projection(0, channel_best, 0)
+        # self.set_projection(1, channel_best, 1)
         
         
     def sizeHint(self):
