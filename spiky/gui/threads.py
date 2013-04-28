@@ -37,8 +37,13 @@ class SelectTask(QtCore.QObject):
     clustersSelected = QtCore.pyqtSignal(np.ndarray)
     
     def select(self, loader, clusters):
+        # This delay makes the interface smoother and reduces the risk of 
+        # thread-induced bugs when selecting lots of different clusters
+        # quickly.
+        time.sleep(.25)
         with LOCK:
             loader.select(clusters=clusters)
+        log.debug("Selected clusters {0:s}.".format(str(clusters)))
         self.clustersSelected.emit(np.array(clusters))
         
         

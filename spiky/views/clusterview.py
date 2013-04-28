@@ -972,7 +972,7 @@ class ClusterView(QtGui.QTreeView):
             for groupidx in selected_groups]
         
         # log.debug("Selected {0:d} clusters.".format(len(clusters)))
-        log.debug("Selected clusters {0:s}.".format(str(clusters)))
+        # log.debug("Selected clusters {0:s}.".format(str(clusters)))
         self.clustersSelected.emit(np.array(clusters, dtype=np.int32))
         
         if group_indices:
