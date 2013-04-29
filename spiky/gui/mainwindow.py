@@ -513,9 +513,6 @@ class MainWindow(QtGui.QMainWindow):
         self.robot_active = True
         self.get_view('ClusterView').select(clusters)
         
-    # def autozoom(self):
-        # self.get_view('FeatureView').auto_projection()
-        
     
     # Threads.
     # --------

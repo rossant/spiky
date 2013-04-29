@@ -89,8 +89,8 @@ def read_cluster_info(filename_clusterinfo):
     # For each cluster (absolute indexing): cluster index, color index, 
     # and group index
     cluster_info = load_text(filename_clusterinfo, np.int32)
-    cluster_info = pd.DataFrame(cluster_info[:, 1:], 
-        dtype=np.int32, index=cluster_info[:, 0])
+    cluster_info = pd.DataFrame({'color': cluster_info[:, 1], 
+        'group': cluster_info[:, 2]}, dtype=np.int32, index=cluster_info[:, 0])
     return cluster_info
     
 def read_group_info(filename_groups):
@@ -98,7 +98,7 @@ def read_group_info(filename_groups):
     group_info = load_text(filename_groups, str)
     group_info = pd.DataFrame(
         {'color': group_info[:, 1].astype(np.int32),
-         'name': group_info[:, 2]}, index=group_info[:, 0])
+         'name': group_info[:, 2]}, index=group_info[:, 0].astype(np.int32))
     return group_info
     
 def read_masks(filename_mask, fetdim):
@@ -364,9 +364,10 @@ class KlustersLoader(Loader):
         self.filename_clu_spiky = self.filename_clu.replace(
             '.clu.', '.clu_spiky.')
         self.filename_clusterinfo = find_filename(self.filename, 
-            'clusterinfo') or self.filename_clu.replace(
-            '.clu.', '.clusterinfo.')
-        self.filename_groups = find_filename(self.filename, 'groups')
+            'cluinfo') or self.filename_clu.replace(
+            '.clu.', '.cluinfo.')
+        self.filename_groups = (find_filename(self.filename, 'groupinfo') or 
+            self.filename_clu.replace('.clu.', '.groupinfo.'))
         # fmask or mask file
         self.filename_mask = find_filename(self.filename, 'fmask')
         if not self.filename_mask:
@@ -441,7 +442,9 @@ class KlustersLoader(Loader):
             # default)
             self.cluster_info[:, 2] = 2 * np.ones(n)
                 
-            self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
+            self.cluster_info = pd.DataFrame({
+                'color': self.cluster_info[:, 1],
+                'group': self.cluster_info[:, 2]},
                 dtype=np.int32, index=self.cluster_info[:, 0])
         assert np.array_equal(self.cluster_info.index, self.clusters_unique)
             
@@ -449,8 +452,8 @@ class KlustersLoader(Loader):
         # self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
             # dtype=np.int32, index=self.clusters_unique)
         # self.cluster_info = select(self.cluster_info, self.clusters_unique)
-        self.cluster_colors = self.cluster_info[0].astype(np.int32)
-        self.cluster_groups = self.cluster_info[1].astype(np.int32)
+        self.cluster_colors = self.cluster_info['color'].astype(np.int32)
+        self.cluster_groups = self.cluster_info['group'].astype(np.int32)
         
     def read_group_info(self):
         try:
@@ -465,7 +468,8 @@ class KlustersLoader(Loader):
                 dtype=object)
             self.group_info = pd.DataFrame(
                 {'color': self.group_info[:, 1].astype(np.int32),
-                 'name': self.group_info[:, 2]}, index=self.group_info[:, 0])
+                 'name': self.group_info[:, 2]},
+                 index=self.group_info[:, 0].astype(np.int32))
         # Convert to Pandas.
         # self.group_info = pd.DataFrame(self.group_info)
         # self.group_info[0] = self.group_info[0].astype(np.int32)
@@ -509,12 +513,23 @@ class KlustersLoader(Loader):
         }
         self.cluster_info = pd.DataFrame(cluster_info, dtype=np.int32)
     
+    def update_group_info(self):
+        group_info = {
+            'color': self.group_colors,
+            'name': self.group_names,
+        }
+        self.group_info = pd.DataFrame(group_info)
+    
     def save_clusters(self):
         save_clusters(self.filename_clu_spiky, get_array(self.clusters))
         
     def save_cluster_info(self):
         self.update_cluster_info()
         save_cluster_info(self.filename_clusterinfo, self.cluster_info)
+    
+    def save_group_info(self):
+        self.update_group_info()
+        save_group_info(self.filename_groups, self.group_info)
     
     
     # Public methods.
@@ -534,6 +549,7 @@ class KlustersLoader(Loader):
     def save(self):
         self.save_clusters()
         self.save_cluster_info()
+        self.save_group_info()
     
     def select(self, spikes=None, clusters=None):
         if clusters is not None:
