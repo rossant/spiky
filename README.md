@@ -1,5 +1,8 @@
-Spiky
-=====
+## THIS REPOSITORY IS OUTDATED
+
+[The new repository can be found here.](https://github.com/klusta-team/klustaviewa)
+
+## Old notes
 
 *Spiky* is the code name for the next-generation spike-sorting software 
 adapted to high-channel count silicon probes. Written in Python, it aims at 
