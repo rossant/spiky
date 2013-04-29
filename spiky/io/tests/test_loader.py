@@ -15,7 +15,7 @@ from nose.tools import with_setup
 from spiky.io.tests.mock_data import (setup, teardown,
                             nspikes, nclusters, nsamples, nchannels, fetdim)
 from spiky.io.loader import (KlustersLoader, read_clusters, save_clusters,
-    read_cluster_info, save_cluster_info)
+    read_cluster_info, save_cluster_info, read_group_info, save_group_info)
 from spiky.io.selection import select, get_indices
 from spiky.io.tools import check_dtype, check_shape, get_array, load_text
 
@@ -62,7 +62,22 @@ def test_cluster_info():
     save_cluster_info(cluinfofile, cluster_info)
     cluster_info2 = read_cluster_info(cluinfofile)
     
-    assert np.array_equal(cluster_info.values, cluster_info2[:, 1:])
+    assert np.array_equal(cluster_info.values, cluster_info2.values)
+    
+def test_group_info():
+    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mockdata')
+    groupinfofile = os.path.join(dir, 'test.groups.1')
+
+    group_info = np.zeros((3, 2), dtype=object)
+    group_info[:,0] = (np.arange(3) + 1)
+    group_info[:,1] = np.array(['Noise', 'MUA', 'Good'],
+        dtype=object)
+    group_info = pd.DataFrame(group_info)
+    
+    save_group_info(groupinfofile, group_info)
+    group_info2 = read_group_info(groupinfofile)
+    
+    assert np.array_equal(group_info.values, group_info2.values)
     
 def test_klusters_loader_1():
     # Open the mock data.
@@ -268,10 +283,10 @@ def test_klusters_save():
     assert np.all(clusters[::2] == 2)
     assert np.all(clusters[1::2] == 3)
     
-    assert np.array_equal(cluster_info[:,0], cluster_indices)
-    assert np.all(cluster_info[::2,1] == 10)
-    assert np.all(cluster_info[1::2,1] == 20)
-    assert np.all(cluster_info[::2,2] == 1)
-    assert np.all(cluster_info[1::2,2] == 0)
+    assert np.array_equal(cluster_info.index, cluster_indices)
+    assert np.all(cluster_info.values[::2, 0] == 10)
+    assert np.all(cluster_info.values[1::2, 0] == 20)
+    assert np.all(cluster_info.values[::2, 1] == 1)
+    assert np.all(cluster_info.values[1::2, 1] == 0)
 
     

@@ -89,11 +89,16 @@ def read_cluster_info(filename_clusterinfo):
     # For each cluster (absolute indexing): cluster index, color index, 
     # and group index
     cluster_info = load_text(filename_clusterinfo, np.int32)
+    cluster_info = pd.DataFrame(cluster_info[:, 1:], 
+        dtype=np.int32, index=cluster_info[:, 0])
     return cluster_info
     
 def read_group_info(filename_groups):
     # For each group (absolute indexing): color index, and name
     group_info = load_text(filename_groups, str)
+    group_info = pd.DataFrame(
+        {'color': group_info[:, 1].astype(np.int32),
+         'name': group_info[:, 2]}, index=group_info[:, 0])
     return group_info
     
 def read_masks(filename_mask, fetdim):
@@ -119,6 +124,11 @@ def save_cluster_info(filename_cluinfo, cluster_info):
     cluster_info_array = np.hstack((cluster_info.index.reshape((-1, 1)), 
         cluster_info.values))
     save_text(filename_cluinfo, cluster_info_array)
+    
+def save_group_info(filename_groupinfo, group_info):
+    group_info_array = np.hstack((group_info.index.reshape((-1, 1)), 
+        group_info.values))
+    save_text(filename_groupinfo, group_info_array, fmt='%s')
     
 def save_clusters(filename_clu, clusters):
     save_text(filename_clu, clusters, header=len(Counter(clusters)))
@@ -430,12 +440,14 @@ class KlustersLoader(Loader):
             # First column: color index, second column: group index (2 by
             # default)
             self.cluster_info[:, 2] = 2 * np.ones(n)
-        
-        assert np.array_equal(self.cluster_info[:, 0], self.clusters_unique)
+                
+            self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
+                dtype=np.int32, index=self.cluster_info[:, 0])
+        assert np.array_equal(self.cluster_info.index, self.clusters_unique)
             
         # Convert to Pandas.
-        self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
-            dtype=np.int32, index=self.clusters_unique)
+        # self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
+            # dtype=np.int32, index=self.clusters_unique)
         # self.cluster_info = select(self.cluster_info, self.clusters_unique)
         self.cluster_colors = self.cluster_info[0].astype(np.int32)
         self.cluster_groups = self.cluster_info[1].astype(np.int32)
@@ -445,15 +457,20 @@ class KlustersLoader(Loader):
             self.group_info = read_group_info(self.filename_groups)
         except IOError:
             info("The GROUPS file is missing.")
-            self.group_info = np.zeros((3, 2), dtype=object)
-            self.group_info[:,0] = (#np.array(
+            self.group_info = np.zeros((3, 3), dtype=object)
+            self.group_info[:, 0] = np.arange(3)
+            self.group_info[:, 1] = (#np.array(
                 np.mod(np.arange(3), COLORS_COUNT) + 1)#, dtype=str)
-            self.group_info[:,1] = np.array(['Noise', 'MUA', 'Good'],
+            self.group_info[:, 2] = np.array(['Noise', 'MUA', 'Good'],
                 dtype=object)
+            self.group_info = pd.DataFrame(
+                {'color': self.group_info[:, 1].astype(np.int32),
+                 'name': self.group_info[:, 2]}, index=self.group_info[:, 0])
         # Convert to Pandas.
-        self.group_info = pd.DataFrame(self.group_info)
-        self.group_colors = self.group_info[0].astype(np.int32)
-        self.group_names = self.group_info[1].astype(np.str_)
+        # self.group_info = pd.DataFrame(self.group_info)
+        # self.group_info[0] = self.group_info[0].astype(np.int32)
+        self.group_colors = self.group_info['color'].astype(np.int32)
+        self.group_names = self.group_info['name']
         
     def read_masks(self):
         try:
