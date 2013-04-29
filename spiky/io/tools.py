@@ -138,15 +138,16 @@ if HAS_PANDAS:
         with open(filepath, 'r') as f:
             for _ in xrange(skiprows):
                 f.readline()
-            x = pd.read_csv(f, header=None, sep=delimiter).values.astype(dtype).squeeze()
+            x = pd.read_csv(f, header=None, 
+                sep=delimiter).values.astype(dtype).squeeze()
         return x
     
-def save_text(filepath, data, header=None, fmt='%d'):
+def save_text(filepath, data, header=None, fmt='%d', delimiter=' '):
     if isinstance(data, basestring):
         with open(filepath, 'w') as f:
             f.write(data)
     else:
-        np.savetxt(filepath, data, fmt=fmt, newline='\n')
+        np.savetxt(filepath, data, fmt=fmt, newline='\n', delimiter=delimiter)
         # Write a header.
         if header is not None:
             with open(filepath, 'r') as f:

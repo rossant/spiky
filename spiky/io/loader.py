@@ -95,7 +95,7 @@ def read_cluster_info(filename_clusterinfo):
     
 def read_group_info(filename_groups):
     # For each group (absolute indexing): color index, and name
-    group_info = load_text(filename_groups, str)
+    group_info = load_text(filename_groups, str, delimiter='\t')
     group_info = pd.DataFrame(
         {'color': group_info[:, 1].astype(np.int32),
          'name': group_info[:, 2]}, index=group_info[:, 0].astype(np.int32))
@@ -128,7 +128,7 @@ def save_cluster_info(filename_cluinfo, cluster_info):
 def save_group_info(filename_groupinfo, group_info):
     group_info_array = np.hstack((group_info.index.reshape((-1, 1)), 
         group_info.values))
-    save_text(filename_groupinfo, group_info_array, fmt='%s')
+    save_text(filename_groupinfo, group_info_array, fmt='%s', delimiter='\t')
     
 def save_clusters(filename_clu, clusters):
     save_text(filename_clu, clusters, header=len(Counter(clusters)))
@@ -353,6 +353,7 @@ class KlustersLoader(Loader):
         # Find the file index associated to the filename, or 1 by default.
         self.fileindex = find_index(filename) or 1
         self.find_filenames()
+        self.save_original_clufile()
         self.read()
         
     def find_filenames(self):
@@ -361,8 +362,9 @@ class KlustersLoader(Loader):
         self.filename_xml = find_filename(self.filename, 'xml')
         self.filename_fet = find_filename(self.filename, 'fet')
         self.filename_clu = find_filename(self.filename, 'clu')
-        self.filename_clu_spiky = self.filename_clu.replace(
-            '.clu.', '.clu_spiky.')
+        self.filename_clu_spiky = find_filename(self.filename, 'clu')
+        # self.filename_clu_spiky = self.filename_clu.replace(
+            # '.clu.', '.clu_spiky.')
         self.filename_clusterinfo = find_filename(self.filename, 
             'cluinfo') or self.filename_clu.replace(
             '.clu.', '.cluinfo.')
@@ -374,6 +376,16 @@ class KlustersLoader(Loader):
             self.filename_mask = find_filename(self.filename, 'mask')
         self.filename_spk = find_filename(self.filename, 'spk')
         self.filename_probe = find_filename(self.filename, 'probe')
+        
+    def save_original_clufile(self):
+        filename_clu_original = find_filename(self.filename, 'clu_original')
+        if filename_clu_original is None:
+            # Save the original clu file if it does not exist yet.
+            with open(self.filename_clu, 'r') as f:
+                clu = f.read()
+            with open(self.filename_clu.replace('.clu.', 
+                '.clu_original.'), 'w') as f:
+                f.write(clu)
     
     
     # Internal read methods.
@@ -432,7 +444,7 @@ class KlustersLoader(Loader):
         try:
             self.cluster_info = read_cluster_info(self.filename_clusterinfo)
         except IOError:
-            info("The CLUSTERINFO file is missing.")
+            info("The CLUINFO file is missing, generating a default one.")
             n = len(self.clusters_unique)
             self.cluster_info = np.zeros((n, 3), dtype=np.int32)
             self.cluster_info[:, 0] = self.clusters_unique
@@ -446,12 +458,10 @@ class KlustersLoader(Loader):
                 'color': self.cluster_info[:, 1],
                 'group': self.cluster_info[:, 2]},
                 dtype=np.int32, index=self.cluster_info[:, 0])
-        assert np.array_equal(self.cluster_info.index, self.clusters_unique)
+                
+        assert np.array_equal(self.cluster_info.index, self.clusters_unique), \
+            "The CLUINFO file does not correspond to the loaded CLU file."
             
-        # Convert to Pandas.
-        # self.cluster_info = pd.DataFrame(self.cluster_info[:, 1:], 
-            # dtype=np.int32, index=self.clusters_unique)
-        # self.cluster_info = select(self.cluster_info, self.clusters_unique)
         self.cluster_colors = self.cluster_info['color'].astype(np.int32)
         self.cluster_groups = self.cluster_info['group'].astype(np.int32)
         
@@ -459,7 +469,7 @@ class KlustersLoader(Loader):
         try:
             self.group_info = read_group_info(self.filename_groups)
         except IOError:
-            info("The GROUPS file is missing.")
+            info("The GROUPINFO file is missing, generating a default one.")
             self.group_info = np.zeros((3, 3), dtype=object)
             self.group_info[:, 0] = np.arange(3)
             self.group_info[:, 1] = (#np.array(
